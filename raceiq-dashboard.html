@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RaceIQ · Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f4f2;
+    --card:#ffffff;
+    --ink:#1c1b1a;
+    --muted:#8a8683;
+    --line:#ececea;
+    --accent:#c1553a;      /* warm terracotta, like BAXA */
+    --accent-soft:#fbeee9;
+    --blue:#3b7dd8;
+    --blue-soft:#eaf1fb;
+    --green:#3f9d6d;
+    --green-soft:#e8f4ee;
+    --amber:#c98a2b;
+    --amber-soft:#fbf3e4;
+    --purple:#7d5bd0;
+    --red:#d1543f;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.04);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5}
+  .serif{font-family:Georgia,"Times New Roman",serif}
+  .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+
+  /* ---- Sidebar ---- */
+  .side{padding:22px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:11px;padding:4px 6px 18px}
+  .logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#1c1b1a,#454140);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;letter-spacing:.5px}
+  .brand h1{font-size:15px;font-weight:700}
+  .brand span{font-size:11px;color:var(--muted)}
+  .navlabel{font-size:10px;letter-spacing:.14em;color:var(--muted);font-weight:600;padding:14px 8px 6px}
+  .nav a{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:10px;color:#403c3a;text-decoration:none;font-size:14px;font-weight:500}
+  .nav a .ic{width:17px;text-align:center;opacity:.7}
+  .nav a:hover{background:#efedeb}
+  .nav a.active{background:#1c1b1a;color:#fff}
+  .nav a.active .ic{opacity:1}
+  .nav a.active .dot{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  .side-foot{margin-top:auto;border:1px solid var(--line);border-radius:12px;padding:11px}
+  .side-foot .k{font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:600}
+  .side-foot .v{font-size:13px;font-weight:600;margin-top:2px}
+
+  /* ---- Main ---- */
+  .main{padding:26px 34px 60px;max-width:1500px}
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px}
+  .eyebrow{font-size:11px;letter-spacing:.16em;color:var(--muted);font-weight:600}
+  .title{font-size:34px;font-style:italic;margin-top:4px}
+  .btn{background:var(--accent);color:#fff;border:none;padding:12px 20px;border-radius:11px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;gap:9px;align-items:center;box-shadow:var(--shadow)}
+  .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:none}
+  .btn:hover{filter:brightness(.97)}
+
+  /* selector strip */
+  .selectors{display:flex;flex-wrap:wrap;gap:0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+  .sel{flex:1;min-width:120px;padding:13px 16px;border-right:1px solid var(--line)}
+  .sel:last-child{border-right:none}
+  .sel label{font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:600;display:block}
+  .sel select,.sel .valpill{margin-top:5px;font-size:14px;font-weight:600;color:var(--ink);border:none;background:transparent;width:100%;cursor:pointer;outline:none}
+  .sel.cmp{background:var(--accent-soft)}
+
+  /* KPI cards */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
+  .kpi{padding:18px 20px;border-right:1px solid var(--line)}
+  .kpi:last-child{border-right:none}
+  .kpi .lab{font-size:10px;letter-spacing:.1em;color:var(--muted);font-weight:600}
+  .kpi .num{font-size:30px;font-weight:700;margin-top:8px;line-height:1}
+  .kpi .sub{font-size:11px;color:var(--muted);margin-top:6px}
+  .kpi.b1 .num{color:var(--ink)}
+  .kpi.b2{background:var(--blue-soft)} .kpi.b2 .lab{color:var(--blue)} .kpi.b2 .num{color:var(--blue)}
+  .kpi.b3{background:var(--accent-soft)} .kpi.b3 .lab{color:var(--accent)} .kpi.b3 .num{color:var(--accent)}
+  .kpi.b4{background:var(--amber-soft)} .kpi.b4 .lab{color:var(--amber)} .kpi.b4 .num{color:var(--amber)}
+  .kpi.b5{background:var(--green-soft)} .kpi.b5 .lab{color:var(--green)} .kpi.b5 .num{color:var(--green)}
+
+  /* grid */
+  .grid{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;margin-bottom:18px}
+  .grid3{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+  .card h3{font-size:15px;font-weight:700}
+  .card .kick{font-size:10px;letter-spacing:.14em;color:var(--muted);font-weight:600;margin-bottom:4px}
+  .cardhead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+
+  .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);align-items:center}
+  .legend b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
+  .chartwrap{position:relative;height:78px;margin-bottom:2px}
+  .chartrow{display:flex;align-items:center;gap:14px;padding:9px 0;border-top:1px solid var(--line)}
+  .chartrow:first-of-type{border-top:none}
+  .chartrow .meta{width:74px;flex:none}
+  .chartrow .meta .mlab{font-size:10px;letter-spacing:.08em;color:var(--muted);font-weight:600}
+  .chartrow .meta .mval{font-size:15px;font-weight:700;margin-top:2px}
+  .chartrow .meta .mval2{font-size:12px;font-weight:600;color:var(--accent)}
+  .chartrow .cc{flex:1;position:relative;height:56px}
+
+  /* track map */
+  .tm-wrap{display:flex;gap:16px}
+  .tm{flex:1}
+  .corner-card{width:172px;flex:none;border:1px solid var(--line);border-radius:12px;padding:14px;background:#fafafa;align-self:flex-start}
+  .corner-card .cn{font-weight:700;font-size:15px}
+  .corner-card .ct{font-size:11px;color:var(--muted);margin-bottom:10px}
+  .corner-card .row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-top:1px solid var(--line)}
+  .corner-card .row span{color:var(--muted)}
+  .corner-card .row b{font-weight:600}
+  .corner-card .delta{margin-top:10px;background:var(--green-soft);color:var(--green);border-radius:8px;padding:8px;text-align:center;font-weight:700;font-size:13px}
+  .maplegend{display:flex;gap:16px;font-size:11px;color:var(--muted);margin-top:8px;justify-content:center}
+  .maplegend b{display:inline-block;width:16px;height:4px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .seclabel{font-size:11px;font-weight:700}
+
+  /* tire panel */
+  .tire-top{display:flex;gap:14px;align-items:center;margin-bottom:14px}
+  .tire-badge{width:56px;height:56px;border-radius:50%;border:4px solid var(--amber);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--amber);font-size:20px;flex:none}
+  .metric{padding:10px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .metric .ml{font-size:12px;color:var(--muted)}
+  .metric .mv{font-size:14px;font-weight:700}
+  .pitwindow{background:var(--accent-soft);border-radius:12px;padding:14px;text-align:center;margin:6px 0 4px}
+  .pitwindow .pl{font-size:10px;letter-spacing:.12em;color:var(--accent);font-weight:600}
+  .pitwindow .pv{font-size:24px;font-weight:800;color:var(--accent);margin-top:2px}
+  .bar{height:7px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:8px}
+  .bar>i{display:block;height:100%;background:var(--blue);border-radius:4px}
+  .predtbl{width:100%;font-size:13px;border-collapse:collapse;margin-top:6px}
+  .predtbl td{padding:7px 0;border-top:1px solid var(--line)}
+  .predtbl td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .predtbl tr:first-child td{border-top:none}
+
+  /* AI report */
+  .ai-badge{display:inline-flex;gap:7px;align-items:center;font-size:10px;letter-spacing:.14em;font-weight:600;color:var(--purple);background:#f1ecfb;padding:5px 10px;border-radius:20px;margin-bottom:12px}
+  .ai-sec{margin-bottom:16px}
+  .ai-sec .h{font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:700;margin-bottom:7px}
+  .ai-sec p{font-size:13.5px;color:#3a3735}
+  .insight{display:flex;gap:9px;font-size:13px;padding:6px 0;align-items:baseline}
+  .insight .tag{flex:none;width:5px;height:5px;border-radius:50%;background:var(--accent);margin-top:6px}
+  .insight .d{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+  .d.pos{color:var(--green)} .d.neg{color:var(--red)}
+  .reco{display:flex;gap:10px;font-size:13px;padding:7px 0;align-items:flex-start}
+  .reco .n{flex:none;width:20px;height:20px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .strat{display:flex;gap:10px;margin-top:6px}
+  .strat .opt{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px}
+  .strat .opt.best{border-color:var(--accent);background:var(--accent-soft)}
+  .strat .opt .t{font-size:13px;font-weight:700}
+  .strat .opt .s{font-size:11px;color:var(--muted);margin-top:3px}
+
+  .sectordelta{display:flex;flex-direction:column;gap:0}
+  .sd-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--line);font-size:14px}
+  .sd-row:first-child{border-top:none}
+  .sd-row .sv{font-weight:700;font-variant-numeric:tabular-nums}
+  .donutwrap{display:flex;align-items:center;gap:16px;margin-top:6px}
+  .gainloss{display:flex;gap:24px}
+  .gainloss .g .k{font-size:10px;letter-spacing:.1em;color:var(--muted);font-weight:600}
+  .gainloss .g .v{font-size:18px;font-weight:700}
+  .note{font-size:11px;color:var(--muted);margin-top:26px;text-align:center}
+  @media(max-width:1100px){.app{grid-template-columns:1fr}.side{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.grid,.grid3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">RIQ</div>
+      <div><h1>RaceIQ</h1><span>AI Race Engineer</span></div>
+    </div>
+    <div class="navlabel">ANALYSIS</div>
+    <nav class="nav">
+      <a class="active" href="#"><span class="ic">▦</span> Dashboard <span class="dot"></span></a>
+      <a href="#"><span class="ic">⇆</span> Lap Comparison</a>
+      <a href="#"><span class="ic">◎</span> Track Map</a>
+      <a href="#"><span class="ic">◍</span> Tire Analysis</a>
+      <a href="#"><span class="ic">✦</span> AI Engineer</a>
+      <a href="#"><span class="ic">↑</span> Import Telemetry</a>
+      <a href="#"><span class="ic">⚙</span> Settings</a>
+    </nav>
+    <div class="side-foot">
+      <div class="k">SEASON</div>
+      <div class="v">2025 · Spanish GP</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="eyebrow">RACE ANALYSIS · 2025 SEASON</div>
+        <div class="title serif">Dashboard</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn ghost">☾ &nbsp;Theme</button>
+        <button class="btn">⤓ &nbsp;Export Report</button>
+      </div>
+    </div>
+
+    <!-- Session selectors -->
+    <div class="selectors">
+      <div class="sel"><label>SESSION</label><select><option>Race</option><option>Qualifying</option><option>Sprint</option><option>Practice</option></select></div>
+      <div class="sel"><label>GRAND PRIX</label><select><option>Spanish GP</option><option>Monaco GP</option><option>British GP</option></select></div>
+      <div class="sel"><label>DRIVER</label><select><option>M. Verstappen · RBR</option><option>C. Leclerc · FER</option></select></div>
+      <div class="sel"><label>LAP</label><select><option>Lap 23</option><option>Lap 22</option><option>Lap 24</option></select></div>
+      <div class="sel cmp"><label>COMPARE TO</label><select><option>L. Norris · MCL (Lap 22)</option><option>Reference Lap</option></select></div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="kpi b1"><div class="lab">BEST LAP</div><div class="num">1:13.672</div><div class="sub">Verstappen · Lap 23</div></div>
+      <div class="kpi b2"><div class="lab">LAP DELTA</div><div class="num">−0.239s</div><div class="sub">faster than Norris</div></div>
+      <div class="kpi b3"><div class="lab">TOP SPEED</div><div class="num">324.6</div><div class="sub">km/h · +2.8 vs Norris</div></div>
+      <div class="kpi b4">      <div class="lab">TIRE DEG</div><div class="num">0.08s</div><div class="sub">per lap · Medium</div></div>
+      <div class="kpi b5"><div class="lab">PIT WINDOW</div><div class="num">28–32</div><div class="sub">recommended laps</div></div>
+    </div>
+
+    <!-- Row 1: Telemetry + Track map -->
+    <div class="grid">
+      <!-- Telemetry -->
+      <div class="card">
+        <div class="cardhead">
+          <div><div class="kick">TELEMETRY COMPARISON</div><h3>Verstappen L23 vs Norris L22</h3></div>
+          <div class="legend"><span><b style="background:#3b7dd8"></b>Verstappen</span><span><b style="background:#c1553a"></b>Norris</span></div>
+        </div>
+        <div class="chartrow">
+          <div class="meta"><div class="mlab">SPEED km/h</div><div class="mval" style="color:#3b7dd8">324.6</div><div class="mval2">321.8</div></div>
+          <div class="cc"><canvas id="cSpeed"></canvas></div>
+        </div>
+        <div class="chartrow">
+          <div class="meta"><div class="mlab">THROTTLE %</div><div class="mval" style="color:#3b7dd8">68</div><div class="mval2">64</div></div>
+          <div class="cc"><canvas id="cThrottle"></canvas></div>
+        </div>
+        <div class="chartrow">
+          <div class="meta"><div class="mlab">BRAKE %</div><div class="mval" style="color:#3b7dd8">18</div><div class="mval2">20</div></div>
+          <div class="cc"><canvas id="cBrake"></canvas></div>
+        </div>
+        <div class="chartrow">
+          <div class="meta"><div class="mlab">GEAR</div><div class="mval" style="color:#3b7dd8">5.2</div><div class="mval2">5.1</div></div>
+          <div class="cc"><canvas id="cGear"></canvas></div>
+        </div>
+        <div class="chartrow">
+          <div class="meta"><div class="mlab">Δ TIME s</div><div class="mval" style="color:var(--green)">−0.239</div></div>
+          <div class="cc"><canvas id="cDelta"></canvas></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);text-align:right;margin-top:6px">Distance (m) · 0 → 4655</div>
+      </div>
+
+      <!-- Track map -->
+      <div class="card">
+        <div class="cardhead">
+          <div><div class="kick">INTERACTIVE TRACK MAP</div><h3>Circuit de Barcelona-Catalunya</h3></div>
+        </div>
+        <div class="tm-wrap">
+          <div class="tm">
+            <svg viewBox="0 0 300 240" width="100%" style="max-height:250px">
+              <!-- track path split into gain/loss/neutral segments -->
+              <path d="M60,200 C40,170 45,135 70,120" fill="none" stroke="#3f9d6d" stroke-width="7" stroke-linecap="round"/>
+              <path d="M70,120 C90,108 120,110 140,95" fill="none" stroke="#d1543f" stroke-width="7" stroke-linecap="round"/>
+              <path d="M140,95 C160,82 175,60 200,55" fill="none" stroke="#c9c6c3" stroke-width="7" stroke-linecap="round"/>
+              <path d="M200,55 C228,50 250,68 248,95" fill="none" stroke="#3f9d6d" stroke-width="7" stroke-linecap="round"/>
+              <path d="M248,95 C246,120 225,132 210,150" fill="none" stroke="#d1543f" stroke-width="7" stroke-linecap="round"/>
+              <path d="M210,150 C196,168 175,168 160,178" fill="none" stroke="#c9c6c3" stroke-width="7" stroke-linecap="round"/>
+              <path d="M160,178 C140,190 120,185 100,195" fill="none" stroke="#d1543f" stroke-width="7" stroke-linecap="round"/>
+              <path d="M100,195 C86,201 72,205 60,200" fill="none" stroke="#3f9d6d" stroke-width="7" stroke-linecap="round"/>
+              <!-- corner markers -->
+              <g font-size="9" font-weight="700" text-anchor="middle">
+                <circle cx="70" cy="120" r="9" fill="#fff" stroke="#c1553a" stroke-width="2"/><text x="70" y="123">1</text>
+                <circle cx="140" cy="95" r="9" fill="#fff" stroke="#403c3a" stroke-width="2"/><text x="140" y="98">4</text>
+                <circle cx="200" cy="55" r="9" fill="#fff" stroke="#403c3a" stroke-width="2"/><text x="200" y="58">7</text>
+                <circle cx="210" cy="150" r="9" fill="#fff" stroke="#403c3a" stroke-width="2"/><text x="210" y="153">10</text>
+                <circle cx="100" cy="195" r="9" fill="#fff" stroke="#403c3a" stroke-width="2"/><text x="100" y="198">13</text>
+              </g>
+              <!-- sector labels -->
+              <text x="40" y="150" class="seclabel" fill="#3f9d6d">S1 −0.156</text>
+              <text x="205" y="35" class="seclabel" fill="#3f9d6d">S2 +0.082</text>
+              <text x="150" y="215" class="seclabel" fill="#d1543f">S3 −0.165</text>
+            </svg>
+            <div class="maplegend"><span><b style="background:#3f9d6d"></b>Gaining</span><span><b style="background:#d1543f"></b>Losing</span><span><b style="background:#c9c6c3"></b>Neutral</span></div>
+          </div>
+          <div class="corner-card">
+            <div class="cn">Turn 7</div>
+            <div class="ct">Medium-Speed Right</div>
+            <div class="row"><span>Entry speed</span><b>228 km/h</b></div>
+            <div class="row"><span>Min speed</span><b>98 km/h</b></div>
+            <div class="row"><span>Exit speed</span><b>165 km/h</b></div>
+            <div class="row"><span>Braking point</span><b>125 m</b></div>
+            <div class="row"><span>Throttle</span><b>76%</b></div>
+            <div class="delta">Δ −0.082s gained</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Tire + AI report + Sector delta -->
+    <div class="grid3">
+      <!-- Tire -->
+      <div class="card">
+        <div class="kick">TIRE ANALYSIS</div>
+        <div class="tire-top" style="margin-top:8px">
+          <div class="tire-badge">M</div>
+          <div>
+            <div style="font-size:15px;font-weight:700">Medium · 23 laps old</div>
+            <div style="font-size:12px;color:var(--muted)">Degrading 0.08s / lap</div>
+          </div>
+        </div>
+        <div class="pitwindow"><div class="pl">RECOMMENDED PIT WINDOW</div><div class="pv">Lap 28 – 32</div></div>
+        <div class="metric"><span class="ml">Remaining competitive life</span><span class="mv">~7 laps</span></div>
+        <div class="metric"><span class="ml">Model confidence</span><span class="mv">87%</span></div>
+        <div class="bar"><i style="width:87%"></i></div>
+        <div class="kick" style="margin-top:16px">PREDICTED LAP TIMES</div>
+        <table class="predtbl">
+          <tr><td>Now (+0 laps)</td><td>1:14.128</td></tr>
+          <tr><td>+5 laps</td><td>1:14.982</td></tr>
+          <tr><td>+10 laps</td><td>1:16.013</td></tr>
+        </table>
+      </div>
+
+      <!-- AI report -->
+      <div class="card">
+        <div class="ai-badge">✦ AI ENGINEER REPORT</div>
+        <div class="ai-sec">
+          <div class="h">SUMMARY</div>
+          <p>Great lap overall — strong traction out of slow corners and excellent control through the high-speed Sector 1. Small losses in the technical final sector.</p>
+        </div>
+        <div class="ai-sec">
+          <div class="h">KEY INSIGHTS</div>
+          <div class="insight"><span class="tag"></span>Biggest time loss · Turns 4–6 (S2)<span class="d neg">+0.082</span></div>
+          <div class="insight"><span class="tag" style="background:var(--green)"></span>Strongest area · Turns 13–16 (S3)<span class="d pos">−0.165</span></div>
+          <div class="insight"><span class="tag"></span>Braking 2m later into T7 gained<span class="d pos">−0.070</span></div>
+        </div>
+        <div class="ai-sec">
+          <div class="h">RECOMMENDATIONS</div>
+          <div class="reco"><span class="n">1</span><span>Trail-brake deeper into Turn 4 to protect entry speed.</span></div>
+          <div class="reco"><span class="n">2</span><span>Carry more minimum speed through Turns 5–6.</span></div>
+          <div class="reco"><span class="n">3</span><span>Better exit in T7 sets up the following straight.</span></div>
+        </div>
+        <div class="ai-sec" style="margin-bottom:0">
+          <div class="h">STRATEGY OPTIONS</div>
+          <div class="strat">
+            <div class="opt best"><div class="t">1-Stop</div><div class="s">Pit Lap 29–31 · est. 1:18.45</div></div>
+            <div class="opt"><div class="t">2-Stop</div><div class="s">Pit Lap 20 + 40 · est. 1:19.32</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sector delta -->
+      <div class="card">
+        <div class="kick">LAP COMPARISON</div>
+        <h3 style="margin:2px 0 12px">VER vs NOR · Lap 22</h3>
+        <div class="sectordelta">
+          <div class="sd-row"><span>Sector 1</span><span class="sv" style="color:var(--green)">−0.156s</span></div>
+          <div class="sd-row"><span>Sector 2</span><span class="sv" style="color:var(--red)">+0.082s</span></div>
+          <div class="sd-row"><span>Sector 3</span><span class="sv" style="color:var(--green)">−0.165s</span></div>
+          <div class="sd-row"><span><b>Total delta</b></span><span class="sv" style="color:var(--green)">−0.239s</span></div>
+        </div>
+        <div class="donutwrap">
+          <canvas id="cDonut" width="120" height="120" style="max-width:120px"></canvas>
+          <div class="gainloss">
+            <div class="g"><div class="k">TIME GAINED</div><div class="v" style="color:var(--green)">−0.321s</div></div>
+            <div class="g"><div class="k">TIME LOST</div><div class="v" style="color:var(--red)">+0.082s</div></div>
+          </div>
+        </div>
+        <div class="kick" style="margin-top:18px">CORNER Δ HEATMAP</div>
+        <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-top:8px" id="heat"></div>
+      </div>
+    </div>
+
+    <div class="note">RaceIQ concept dashboard · sample data from FastF1-style telemetry · all figures illustrative</div>
+  </main>
+</div>
+
+<script>
+Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+Chart.defaults.plugins.legend.display = false;
+Chart.defaults.plugins.tooltip.enabled = false;
+Chart.defaults.elements.point.radius = 0;
+Chart.defaults.animation = false;
+
+const N = 120;
+function noisy(base, amp, phase){return Array.from({length:N},(_,i)=>base+amp*Math.sin(i/9+phase)+ (Math.random()-0.5)*amp*0.25);}
+const labels = Array.from({length:N},(_,i)=>i);
+
+// realistic-ish shapes: speed dips at braking zones
+function speedShape(off){
+  const brakes=[15,38,58,80,100];
+  return Array.from({length:N},(_,i)=>{
+    let s=320;
+    brakes.forEach(b=>{const d=Math.abs(i-b);s-=Math.max(0,180-d*22);});
+    return Math.max(95,s)+off+(Math.random()-0.5)*4;
+  });
+}
+function throttleShape(off){
+  const brakes=[15,38,58,80,100];
+  return Array.from({length:N},(_,i)=>{
+    let t=100;brakes.forEach(b=>{const d=Math.abs(i-b);t-=Math.max(0,95-d*16);});
+    return Math.max(0,Math.min(100,t))+off*0.4;
+  });
+}
+function brakeShape(off){
+  const brakes=[15,38,58,80,100];
+  return Array.from({length:N},(_,i)=>{
+    let br=0;brakes.forEach(b=>{const d=Math.abs(i-b);br+=Math.max(0,85-d*20);});
+    return Math.min(100,br)+off*0.3;
+  });
+}
+function gearShape(off){
+  return Array.from({length:N},(_,i)=>{
+    const s=speedShape(0)[i];return Math.max(1,Math.min(8,Math.round(s/45)))+ (off?0:0);
+  });
+}
+
+function mk(id,setA,setB,fillGreen){
+  const ctx=document.getElementById(id);
+  const ds=[
+    {data:setA,borderColor:'#3b7dd8',borderWidth:1.8,tension:.35,fill:false},
+    {data:setB,borderColor:'#c1553a',borderWidth:1.4,tension:.35,fill:false,borderDash:[3,2]}
+  ];
+  new Chart(ctx,{type:'line',data:{labels,datasets:ds},
+    options:{maintainAspectRatio:false,scales:{x:{display:false},y:{display:false}},plugins:{legend:{display:false}}}});
+}
+mk('cSpeed',speedShape(4),speedShape(0));
+mk('cThrottle',throttleShape(6),throttleShape(0));
+mk('cBrake',brakeShape(-2),brakeShape(3));
+// gear as stepped
+(function(){const ctx=document.getElementById('cGear');
+new Chart(ctx,{type:'line',data:{labels,datasets:[
+  {data:gearShape(0),borderColor:'#3b7dd8',borderWidth:1.8,stepped:true,fill:false},
+  {data:gearShape(1).map(v=>Math.max(1,v-(Math.random()<.2?1:0))),borderColor:'#c1553a',borderWidth:1.2,stepped:true,fill:false,borderDash:[3,2]}
+]},options:{maintainAspectRatio:false,scales:{x:{display:false},y:{display:false,min:0,max:8}}}});})();
+// delta area
+(function(){const ctx=document.getElementById('cDelta');
+let d=0;const arr=Array.from({length:N},(_,i)=>{d+=(Math.random()-0.55)*0.03; if(i>90)d-=0.008; return d;});
+new Chart(ctx,{type:'line',data:{labels,datasets:[{data:arr,borderColor:'#3f9d6d',borderWidth:1.6,fill:true,
+  backgroundColor:'rgba(63,157,109,.12)',tension:.3}]},
+  options:{maintainAspectRatio:false,scales:{x:{display:false},y:{display:false}}}});})();
+
+// donut
+(function(){const ctx=document.getElementById('cDonut');
+new Chart(ctx,{type:'doughnut',data:{labels:['Gained','Lost'],datasets:[{data:[0.321,0.082],
+  backgroundColor:['#3f9d6d','#d1543f'],borderWidth:0}]},
+  options:{cutout:'70%',plugins:{legend:{display:false}}}});})();
+
+// heatmap corners
+const heat=document.getElementById('heat');
+const deltas=[-0.03,-0.05,0.02,0.04,0.03,0.01,-0.08,-0.02,0.00,0.03,-0.06,-0.04,-0.09,-0.05,-0.03,-0.02];
+deltas.forEach((v,i)=>{
+  const cell=document.createElement('div');
+  const green=v<0; const mag=Math.min(1,Math.abs(v)/0.09);
+  cell.style.cssText=`aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;background:${green?`rgba(63,157,109,${0.35+mag*0.6})`:`rgba(209,84,63,${0.35+mag*0.6})`}`;
+  cell.textContent=i+1;cell.title=`Turn ${i+1}: ${v>0?'+':''}${v.toFixed(2)}s`;
+  heat.appendChild(cell);
+});
+</script>
+</body>
+</html>
