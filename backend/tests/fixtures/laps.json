@@ -1,0 +1,26 @@
+[
+  {
+    "session_key": 9159,
+    "driver_number": 55,
+    "lap_number": 18,
+    "date_start": "2023-09-17T12:30:00Z",
+    "lap_duration": 89.385,
+    "duration_sector_1": 29.592,
+    "duration_sector_2": 30.561,
+    "duration_sector_3": 29.232,
+    "is_pit_out_lap": false,
+    "st_speed": 296.6
+  },
+  {
+    "session_key": 9159,
+    "driver_number": 4,
+    "lap_number": 18,
+    "date_start": "2023-09-17T12:30:00Z",
+    "lap_duration": 89.443,
+    "duration_sector_1": 29.455,
+    "duration_sector_2": 30.462,
+    "duration_sector_3": 29.526,
+    "is_pit_out_lap": false,
+    "st_speed": 295.9
+  }
+]

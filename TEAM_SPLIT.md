@@ -52,9 +52,15 @@ and the analysis router logic.
 - Corner detection (from FastF1 circuit info or speed-minima heuristics).
 - Output the structured `LapComparison` / `CornerInsight` objects in the contract.
 
-**Definition of done:** `POST /api/analysis/compare` returns real deltas for two
+**Definition of done:** `GET /api/analysis/compare` returns real deltas for two
 drivers. **Depends on:** P1's telemetry endpoint shape (mock it until ready).
 **Unblocks:** P3 (tire features) and P4 (charts).
+
+> Decided (P2, Phase 0): `GET`, not `POST`. The endpoint only reads/derives data from
+> query params (session_key, driver_number, reference_driver_number, lap_number,
+> reference_lap_number, include_traces) with no side effects, so it's naturally
+> cacheable, bookmarkable, and matches what's already implemented in
+> `routers/analysis.py`. Revisit only if the param list grows enough to need a body.
 
 ## Person 3 — ML: Tire Degradation + AI Layer
 **Owns:** `ml/`, `backend/app/services/tires.py`, `backend/app/services/ai_engineer.py`.

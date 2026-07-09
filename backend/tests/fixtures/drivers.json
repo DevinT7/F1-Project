@@ -1,0 +1,20 @@
+[
+  {
+    "session_key": 9159,
+    "driver_number": 55,
+    "full_name": "Carlos Sainz",
+    "name_acronym": "SAI",
+    "team_name": "Ferrari",
+    "team_colour": "E8002D",
+    "headshot_url": null
+  },
+  {
+    "session_key": 9159,
+    "driver_number": 4,
+    "full_name": "Lando Norris",
+    "name_acronym": "NOR",
+    "team_name": "McLaren",
+    "team_colour": "FF8000",
+    "headshot_url": null
+  }
+]

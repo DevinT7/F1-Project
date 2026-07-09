@@ -41,6 +41,7 @@ export function mockComparison(): LapComparison {
     })),
     driver_trace: { session_key: 9159, driver_number: 1, lap_time: 73.672, samples: you },
     reference_trace: { session_key: 9159, driver_number: 4, lap_time: 73.911, samples: ref },
+    warnings: [],
   };
 }
 

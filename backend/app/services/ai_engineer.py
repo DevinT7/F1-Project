@@ -34,12 +34,14 @@ def _extract_facts(req: AIReportRequest) -> dict:
         facts["time_lost_s"] = c.time_lost_s
         facts["sectors"] = [{"sector": s.sector, "delta_s": s.delta_s}
                             for s in c.sector_deltas]
-        # biggest loss / strongest gain by corner
+        # biggest loss / strongest gain by corner. Pull every grounded number P2
+        # already computed for that corner (not just time_delta_s) so the
+        # narrative can say *why* time was lost/gained, not just how much.
         if c.corners:
             worst = max(c.corners, key=lambda x: x.time_delta_s)
             best = min(c.corners, key=lambda x: x.time_delta_s)
-            facts["biggest_loss"] = {"corner": worst.corner_number, "delta_s": worst.time_delta_s}
-            facts["strongest"] = {"corner": best.corner_number, "delta_s": best.time_delta_s}
+            facts["biggest_loss"] = _corner_fact(worst)
+            facts["strongest"] = _corner_fact(best)
         facts["driver"] = c.driver.name_acronym or str(c.driver.driver_number)
         facts["reference"] = c.reference.name_acronym or str(c.reference.driver_number)
     t = req.tires
@@ -50,6 +52,44 @@ def _extract_facts(req: AIReportRequest) -> dict:
         facts["pit_window"] = t.recommended_pit_window
         facts["confidence"] = t.model_confidence
     return facts
+
+
+def _corner_fact(c) -> dict:
+    """Every grounded, already-computed number for one corner (see the
+    consumer-field doc block on CornerInsight in schemas.py for sign
+    conventions) -- the narrative below rephrases these, never recomputes or
+    invents them."""
+    return {
+        "corner": c.corner_number,
+        "corner_name": c.corner_name,
+        "delta_s": c.time_delta_s,
+        "braking_delta_m": c.braking_delta_m,
+        "min_speed_delta_kmh": c.min_speed_delta_kmh,
+        "throttle_delay_s": c.throttle_delay_s,
+    }
+
+
+def _corner_finding_phrase(corner_fact: dict) -> str:
+    """"lost 0.21s in Turn 7, braked 18m earlier, full throttle 0.4s later" --
+    the project doc's example structured-finding sentence, built purely from
+    already-computed numbers (see _corner_fact)."""
+    label = corner_fact.get("corner_name") or f"Turn {corner_fact['corner']}"
+    bits = [f"lost {abs(corner_fact['delta_s']):.2f}s in {label}"] \
+        if corner_fact["delta_s"] > 0 else [f"gained {abs(corner_fact['delta_s']):.2f}s in {label}"]
+
+    bd = corner_fact.get("braking_delta_m")
+    if bd is not None and abs(bd) >= 0.5:
+        bits.append(f"braked {abs(bd):.0f}m {'later' if bd > 0 else 'earlier'}")
+
+    sd = corner_fact.get("min_speed_delta_kmh")
+    if sd is not None and abs(sd) >= 0.5:
+        bits.append(f"carried {abs(sd):.0f} km/h {'more' if sd > 0 else 'less'} min speed")
+
+    td = corner_fact.get("throttle_delay_s")
+    if td is not None and abs(td) >= 0.01:
+        bits.append(f"full throttle {abs(td):.2f}s {'later' if td > 0 else 'earlier'}")
+
+    return ", ".join(bits)
 
 
 def _template_report(req: AIReportRequest, facts: dict) -> AIReport:
@@ -69,15 +109,13 @@ def _template_report(req: AIReportRequest, facts: dict) -> AIReport:
             insights.append(AIInsight(label=f"Sector {s.sector}", delta_s=s.delta_s))
         if "biggest_loss" in facts and facts["biggest_loss"]["delta_s"] > 0:
             bl = facts["biggest_loss"]
-            insights.append(AIInsight(label=f"Biggest loss · Turn {bl['corner']}",
-                                      delta_s=bl["delta_s"]))
-            recommendations.append(
-                f"Focus on Turn {bl['corner']} — carry more minimum speed and get the "
-                f"car rotated earlier to recover {bl['delta_s']:.3f}s.")
+            bl_label = bl.get("corner_name") or f"Turn {bl['corner']}"
+            insights.append(AIInsight(label=f"Biggest loss · {bl_label}", delta_s=bl["delta_s"]))
+            recommendations.append(f"Focus on {bl_label} — {_corner_finding_phrase(bl)}.")
         if "strongest" in facts:
             st = facts["strongest"]
-            insights.append(AIInsight(label=f"Strongest · Turn {st['corner']}",
-                                      delta_s=st["delta_s"]))
+            st_label = st.get("corner_name") or f"Turn {st['corner']}"
+            insights.append(AIInsight(label=f"Strongest · {st_label}", delta_s=st["delta_s"]))
 
     t = req.tires
     if t:

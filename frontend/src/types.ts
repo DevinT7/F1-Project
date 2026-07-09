@@ -35,6 +35,9 @@ export interface TelemetryTrace {
   driver_number: number;
   lap_number?: number | null;
   lap_time?: number | null;
+  // True when lap_time is a statistical outlier vs. this driver's other laps
+  // this session (traffic / safety car / VSC / red flag). See LapComparison.warnings.
+  is_anomalous_lap?: boolean;
   samples: TelemetrySample[];
 }
 
@@ -46,7 +49,9 @@ export interface CornerInsight {
   min_speed?: number | null;
   exit_speed?: number | null;
   braking_point_m?: number | null;
-  throttle_delay_s?: number | null;
+  braking_delta_m?: number | null;      // driver - reference; negative = driver braked earlier
+  throttle_delay_s?: number | null;     // driver - reference; positive = driver later to full throttle
+  min_speed_delta_kmh?: number | null;  // driver - reference; negative = driver carried less speed
   time_delta_s: number;
 }
 
@@ -67,6 +72,8 @@ export interface LapComparison {
   corners: CornerInsight[];
   driver_trace?: TelemetryTrace | null;
   reference_trace?: TelemetryTrace | null;
+  // Human-readable caveats about this comparison (e.g. an anomalous lap). [] = none.
+  warnings: string[];
 }
 
 export interface LapPacePrediction {
