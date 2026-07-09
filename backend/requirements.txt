@@ -1,0 +1,22 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+pydantic==2.10.4
+pydantic-settings==2.7.1
+numpy==2.2.1
+pandas==2.2.3
+python-dotenv==1.0.1
+
+# Secondary data source (heavier; used by analysis + ml)
+fastf1==3.5.3
+
+# Optional ML (Person 3). Uncomment when training:
+# scikit-learn==1.6.0
+# xgboost==2.1.3
+# lightgbm==4.5.0
+
+# Optional AI layer (Person 3). Uncomment to use a real LLM:
+# openai==1.59.6
+
+# Dev / test
+pytest==8.3.4

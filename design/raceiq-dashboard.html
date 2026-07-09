@@ -207,7 +207,7 @@
       <div class="kpi b1"><div class="lab">BEST LAP</div><div class="num">1:13.672</div><div class="sub">Verstappen · Lap 23</div></div>
       <div class="kpi b2"><div class="lab">LAP DELTA</div><div class="num">−0.239s</div><div class="sub">faster than Norris</div></div>
       <div class="kpi b3"><div class="lab">TOP SPEED</div><div class="num">324.6</div><div class="sub">km/h · +2.8 vs Norris</div></div>
-      <div class="kpi b4">      <div class="lab">TIRE DEG</div><div class="num">0.08s</div><div class="sub">per lap · Medium</div></div>
+      <div class="kpi b4"><div class="lab">TIRE DEG</div><div class="num">0.08s</div><div class="sub">per lap · Medium</div></div>
       <div class="kpi b5"><div class="lab">PIT WINDOW</div><div class="num">28–32</div><div class="sub">recommended laps</div></div>
     </div>
 
@@ -250,7 +250,6 @@
         <div class="tm-wrap">
           <div class="tm">
             <svg viewBox="0 0 300 240" width="100%" style="max-height:250px">
-              <!-- track path split into gain/loss/neutral segments -->
               <path d="M60,200 C40,170 45,135 70,120" fill="none" stroke="#3f9d6d" stroke-width="7" stroke-linecap="round"/>
               <path d="M70,120 C90,108 120,110 140,95" fill="none" stroke="#d1543f" stroke-width="7" stroke-linecap="round"/>
               <path d="M140,95 C160,82 175,60 200,55" fill="none" stroke="#c9c6c3" stroke-width="7" stroke-linecap="round"/>
@@ -259,7 +258,6 @@
               <path d="M210,150 C196,168 175,168 160,178" fill="none" stroke="#c9c6c3" stroke-width="7" stroke-linecap="round"/>
               <path d="M160,178 C140,190 120,185 100,195" fill="none" stroke="#d1543f" stroke-width="7" stroke-linecap="round"/>
               <path d="M100,195 C86,201 72,205 60,200" fill="none" stroke="#3f9d6d" stroke-width="7" stroke-linecap="round"/>
-              <!-- corner markers -->
               <g font-size="9" font-weight="700" text-anchor="middle">
                 <circle cx="70" cy="120" r="9" fill="#fff" stroke="#c1553a" stroke-width="2"/><text x="70" y="123">1</text>
                 <circle cx="140" cy="95" r="9" fill="#fff" stroke="#403c3a" stroke-width="2"/><text x="140" y="98">4</text>
@@ -267,7 +265,6 @@
                 <circle cx="210" cy="150" r="9" fill="#fff" stroke="#403c3a" stroke-width="2"/><text x="210" y="153">10</text>
                 <circle cx="100" cy="195" r="9" fill="#fff" stroke="#403c3a" stroke-width="2"/><text x="100" y="198">13</text>
               </g>
-              <!-- sector labels -->
               <text x="40" y="150" class="seclabel" fill="#3f9d6d">S1 −0.156</text>
               <text x="205" y="35" class="seclabel" fill="#3f9d6d">S2 +0.082</text>
               <text x="150" y="215" class="seclabel" fill="#d1543f">S3 −0.165</text>
@@ -317,19 +314,19 @@
         <div class="ai-badge">✦ AI ENGINEER REPORT</div>
         <div class="ai-sec">
           <div class="h">SUMMARY</div>
-          <p>Great lap overall — strong traction out of slow corners and excellent control through the high-speed Sector 1. Small losses in the technical final sector.</p>
+          <p>Great lap overall — strong traction out of corners and excellent control through high-speed sections.</p>
         </div>
         <div class="ai-sec">
           <div class="h">KEY INSIGHTS</div>
-          <div class="insight"><span class="tag"></span>Biggest time loss · Turns 4–6 (S2)<span class="d neg">+0.082</span></div>
-          <div class="insight"><span class="tag" style="background:var(--green)"></span>Strongest area · Turns 13–16 (S3)<span class="d pos">−0.165</span></div>
-          <div class="insight"><span class="tag"></span>Braking 2m later into T7 gained<span class="d pos">−0.070</span></div>
+          <div class="insight"><span class="tag"></span>Biggest Time Loss · Turn 4, 5, 6 (Sector 2)<span class="d neg">+0.082</span></div>
+          <div class="insight"><span class="tag" style="background:var(--green)"></span>Strongest Area · Turn 13 to 16 (Sector 3)<span class="d pos">−0.165</span></div>
+          <div class="insight"><span class="tag"></span>Braking · 2m later into Turn 7 gained<span class="d pos">−0.070</span></div>
         </div>
         <div class="ai-sec">
           <div class="h">RECOMMENDATIONS</div>
-          <div class="reco"><span class="n">1</span><span>Trail-brake deeper into Turn 4 to protect entry speed.</span></div>
-          <div class="reco"><span class="n">2</span><span>Carry more minimum speed through Turns 5–6.</span></div>
-          <div class="reco"><span class="n">3</span><span>Better exit in T7 sets up the following straight.</span></div>
+          <div class="reco"><span class="n">1</span><span>Trail brake deeper into Turn 4.</span></div>
+          <div class="reco"><span class="n">2</span><span>Carry more minimum speed in Turns 5–6.</span></div>
+          <div class="reco"><span class="n">3</span><span>Better exit in Turn 7 for longer straight.</span></div>
         </div>
         <div class="ai-sec" style="margin-bottom:0">
           <div class="h">STRATEGY OPTIONS</div>
@@ -374,79 +371,33 @@ Chart.defaults.elements.point.radius = 0;
 Chart.defaults.animation = false;
 
 const N = 120;
-function noisy(base, amp, phase){return Array.from({length:N},(_,i)=>base+amp*Math.sin(i/9+phase)+ (Math.random()-0.5)*amp*0.25);}
 const labels = Array.from({length:N},(_,i)=>i);
+const brakes=[15,38,58,80,100];
+function speedShape(off){return Array.from({length:N},(_,i)=>{let s=320;brakes.forEach(b=>{const d=Math.abs(i-b);s-=Math.max(0,180-d*22);});return Math.max(95,s)+off+(Math.random()-0.5)*4;});}
+function throttleShape(off){return Array.from({length:N},(_,i)=>{let t=100;brakes.forEach(b=>{const d=Math.abs(i-b);t-=Math.max(0,95-d*16);});return Math.max(0,Math.min(100,t))+off*0.4;});}
+function brakeShape(off){return Array.from({length:N},(_,i)=>{let br=0;brakes.forEach(b=>{const d=Math.abs(i-b);br+=Math.max(0,85-d*20);});return Math.min(100,br)+off*0.3;});}
+function gearShape(){return Array.from({length:N},(_,i)=>{const s=speedShape(0)[i];return Math.max(1,Math.min(8,Math.round(s/45)));});}
 
-// realistic-ish shapes: speed dips at braking zones
-function speedShape(off){
-  const brakes=[15,38,58,80,100];
-  return Array.from({length:N},(_,i)=>{
-    let s=320;
-    brakes.forEach(b=>{const d=Math.abs(i-b);s-=Math.max(0,180-d*22);});
-    return Math.max(95,s)+off+(Math.random()-0.5)*4;
-  });
-}
-function throttleShape(off){
-  const brakes=[15,38,58,80,100];
-  return Array.from({length:N},(_,i)=>{
-    let t=100;brakes.forEach(b=>{const d=Math.abs(i-b);t-=Math.max(0,95-d*16);});
-    return Math.max(0,Math.min(100,t))+off*0.4;
-  });
-}
-function brakeShape(off){
-  const brakes=[15,38,58,80,100];
-  return Array.from({length:N},(_,i)=>{
-    let br=0;brakes.forEach(b=>{const d=Math.abs(i-b);br+=Math.max(0,85-d*20);});
-    return Math.min(100,br)+off*0.3;
-  });
-}
-function gearShape(off){
-  return Array.from({length:N},(_,i)=>{
-    const s=speedShape(0)[i];return Math.max(1,Math.min(8,Math.round(s/45)))+ (off?0:0);
-  });
-}
-
-function mk(id,setA,setB,fillGreen){
-  const ctx=document.getElementById(id);
-  const ds=[
-    {data:setA,borderColor:'#3b7dd8',borderWidth:1.8,tension:.35,fill:false},
-    {data:setB,borderColor:'#c1553a',borderWidth:1.4,tension:.35,fill:false,borderDash:[3,2]}
-  ];
-  new Chart(ctx,{type:'line',data:{labels,datasets:ds},
-    options:{maintainAspectRatio:false,scales:{x:{display:false},y:{display:false}},plugins:{legend:{display:false}}}});
-}
+function mk(id,a,b){new Chart(document.getElementById(id),{type:'line',data:{labels,datasets:[
+  {data:a,borderColor:'#3b7dd8',borderWidth:1.8,tension:.35,fill:false},
+  {data:b,borderColor:'#c1553a',borderWidth:1.4,tension:.35,fill:false,borderDash:[3,2]}
+]},options:{maintainAspectRatio:false,scales:{x:{display:false},y:{display:false}}}});}
 mk('cSpeed',speedShape(4),speedShape(0));
 mk('cThrottle',throttleShape(6),throttleShape(0));
 mk('cBrake',brakeShape(-2),brakeShape(3));
-// gear as stepped
-(function(){const ctx=document.getElementById('cGear');
-new Chart(ctx,{type:'line',data:{labels,datasets:[
-  {data:gearShape(0),borderColor:'#3b7dd8',borderWidth:1.8,stepped:true,fill:false},
-  {data:gearShape(1).map(v=>Math.max(1,v-(Math.random()<.2?1:0))),borderColor:'#c1553a',borderWidth:1.2,stepped:true,fill:false,borderDash:[3,2]}
-]},options:{maintainAspectRatio:false,scales:{x:{display:false},y:{display:false,min:0,max:8}}}});})();
-// delta area
-(function(){const ctx=document.getElementById('cDelta');
-let d=0;const arr=Array.from({length:N},(_,i)=>{d+=(Math.random()-0.55)*0.03; if(i>90)d-=0.008; return d;});
-new Chart(ctx,{type:'line',data:{labels,datasets:[{data:arr,borderColor:'#3f9d6d',borderWidth:1.6,fill:true,
-  backgroundColor:'rgba(63,157,109,.12)',tension:.3}]},
-  options:{maintainAspectRatio:false,scales:{x:{display:false},y:{display:false}}}});})();
+new Chart(document.getElementById('cGear'),{type:'line',data:{labels,datasets:[
+  {data:gearShape(),borderColor:'#3b7dd8',borderWidth:1.8,stepped:true,fill:false},
+  {data:gearShape().map(v=>Math.max(1,v-(Math.random()<.2?1:0))),borderColor:'#c1553a',borderWidth:1.2,stepped:true,fill:false,borderDash:[3,2]}
+]},options:{maintainAspectRatio:false,scales:{x:{display:false},y:{display:false,min:0,max:8}}}});
+let d=0;const darr=Array.from({length:N},(_,i)=>{d+=(Math.random()-0.55)*0.03;if(i>90)d-=0.008;return d;});
+new Chart(document.getElementById('cDelta'),{type:'line',data:{labels,datasets:[{data:darr,borderColor:'#3f9d6d',borderWidth:1.6,fill:true,backgroundColor:'rgba(63,157,109,.12)',tension:.3}]},options:{maintainAspectRatio:false,scales:{x:{display:false},y:{display:false}}}});
+new Chart(document.getElementById('cDonut'),{type:'doughnut',data:{labels:['Gained','Lost'],datasets:[{data:[0.321,0.082],backgroundColor:['#3f9d6d','#d1543f'],borderWidth:0}]},options:{cutout:'70%'}});
 
-// donut
-(function(){const ctx=document.getElementById('cDonut');
-new Chart(ctx,{type:'doughnut',data:{labels:['Gained','Lost'],datasets:[{data:[0.321,0.082],
-  backgroundColor:['#3f9d6d','#d1543f'],borderWidth:0}]},
-  options:{cutout:'70%',plugins:{legend:{display:false}}}});})();
-
-// heatmap corners
 const heat=document.getElementById('heat');
 const deltas=[-0.03,-0.05,0.02,0.04,0.03,0.01,-0.08,-0.02,0.00,0.03,-0.06,-0.04,-0.09,-0.05,-0.03,-0.02];
-deltas.forEach((v,i)=>{
-  const cell=document.createElement('div');
-  const green=v<0; const mag=Math.min(1,Math.abs(v)/0.09);
-  cell.style.cssText=`aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;background:${green?`rgba(63,157,109,${0.35+mag*0.6})`:`rgba(209,84,63,${0.35+mag*0.6})`}`;
-  cell.textContent=i+1;cell.title=`Turn ${i+1}: ${v>0?'+':''}${v.toFixed(2)}s`;
-  heat.appendChild(cell);
-});
+deltas.forEach((v,i)=>{const c=document.createElement('div');const green=v<0;const mag=Math.min(1,Math.abs(v)/0.09);
+c.style.cssText=`aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;background:${green?`rgba(63,157,109,${0.35+mag*0.6})`:`rgba(209,84,63,${0.35+mag*0.6})`}`;
+c.textContent=i+1;c.title=`Turn ${i+1}: ${v>0?'+':''}${v.toFixed(2)}s`;heat.appendChild(c);});
 </script>
 </body>
 </html>

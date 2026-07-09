@@ -1,0 +1,19 @@
+# Dev stack (Person 1). Phase 5 will add Postgres/TimescaleDB for stored analyses.
+services:
+  backend:
+    build: ./backend
+    ports: ["8000:8000"]
+    environment:
+      - RACEIQ_REDIS_URL=redis://redis:6379/0
+      - RACEIQ_CORS_ORIGINS=http://localhost:5173
+    volumes:
+      - ./backend:/app
+      - fastf1_cache:/app/.fastf1_cache
+    depends_on: [redis]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+volumes:
+  fastf1_cache:
