@@ -1,42 +1,190 @@
-"""RaceIQ backend entrypoint (Person 1).
-
-Run locally:
-    cd backend
-    pip install -r requirements.txt
-    uvicorn app.main:app --reload
-Then open http://localhost:8000/docs
-"""
+"""RaceIQ FastAPI entrypoint."""
 from __future__ import annotations
 
-from fastapi import FastAPI
+import os
+from datetime import datetime, timezone
+from typing import Any
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import __version__
+from . import cache
+from .clients import fastf1_client
+from .clients.openf1 import (
+    OpenF1Error,
+    ProviderBadResponseError,
+    ProviderRateLimitError,
+    ProviderTimeoutError,
+    ProviderUnavailableError,
+)
 from .config import settings
-from .routers import ai, analysis, sessions, tires
+from .routers import (
+    ai,
+    analysis,
+    drivers,
+    laps,
+    sessions,
+    stints,
+    telemetry,
+    tires,
+    weather,
+)
+
+API_PREFIX = "/api"
+
+
+def _app_version() -> str:
+    return os.getenv("APP_VERSION") or __version__
+
+
+def _split_origins(value: str | None) -> list[str]:
+    return [origin.strip() for origin in (value or "").split(",") if origin.strip()]
+
+
+def _cors_origins() -> list[str]:
+    origins: list[str] = []
+    for value in (
+        os.getenv("FRONTEND_ORIGIN"),
+        os.getenv("RACEIQ_CORS_ORIGINS"),
+        settings.cors_origins,
+    ):
+        for origin in _split_origins(value):
+            if origin not in origins:
+                origins.append(origin)
+    return origins
+
+
+def _utc_timestamp() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _error_payload(
+    *,
+    code: str,
+    message: str,
+    status_code: int,
+    details: Any | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "error": {
+            "code": code,
+            "message": message,
+            "status_code": status_code,
+        }
+    }
+    if details is not None:
+        payload["error"]["details"] = details
+    return payload
+
 
 app = FastAPI(
     title="RaceIQ API",
-    version=__version__,
-    description="AI-powered Formula 1 performance analyzer. Data: OpenF1 + FastF1.",
+    version=_app_version(),
+    description="AI-powered Formula 1 telemetry analytics API.",
+    docs_url="/docs",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_list,
+    allow_origins=_cors_origins(),
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-API = "/api"
-app.include_router(sessions.router, prefix=API)
-app.include_router(analysis.router, prefix=API)
-app.include_router(tires.router, prefix=API)
-app.include_router(ai.router, prefix=API)
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
+    status_code = exc.status_code
+    message = str(exc.detail or "Request failed")
+    code = "http_error"
+    if status_code == 404:
+        code = "not_found"
+    elif status_code == 502:
+        code = "provider_error"
+    elif status_code == 400:
+        code = "bad_request"
+    return JSONResponse(
+        status_code=status_code,
+        content=_error_payload(code=code, message=message, status_code=status_code),
+    )
 
 
-@app.get("/health", tags=["meta"])
-async def health():
-    return {"status": "ok", "version": __version__,
-            "fastf1_enabled": settings.enable_fastf1,
-            "ai": "llm" if settings.openai_api_key else "template"}
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=422,
+        content=_error_payload(
+            code="validation_error",
+            message="Request validation failed",
+            status_code=422,
+            details=exc.errors(),
+        ),
+    )
+
+
+@app.exception_handler(OpenF1Error)
+async def provider_exception_handler(request: Request, exc: OpenF1Error) -> JSONResponse:
+    status_code = 502
+    if isinstance(exc, (ProviderRateLimitError, ProviderTimeoutError, ProviderUnavailableError)):
+        status_code = 503
+    elif isinstance(exc, ProviderBadResponseError):
+        status_code = 502
+    return JSONResponse(
+        status_code=status_code,
+        content=_error_payload(
+            code="provider_error",
+            message=str(exc),
+            status_code=status_code,
+        ),
+    )
+
+
+@app.get(f"{API_PREFIX}/health", tags=["meta"])
+async def health() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "cache": cache.status(),
+        "fastf1": fastf1_client.status(),
+        "timestamp": _utc_timestamp(),
+        "version": _app_version(),
+    }
+
+
+@app.get("/health", include_in_schema=False)
+async def legacy_health() -> dict[str, Any]:
+    return await health()
+
+
+@app.get(f"{API_PREFIX}/data-status", tags=["meta"])
+async def data_status() -> dict[str, Any]:
+    return {
+        "cache": {
+            "status": cache.status(),
+            "backend": cache.backend_name(),
+        },
+        "fastf1": fastf1_client.status(),
+        "openf1": {
+            "status": "configured",
+            "base_url": settings.openf1_base_url,
+        },
+    }
+
+
+app.include_router(sessions.router, prefix=API_PREFIX)
+app.include_router(drivers.router, prefix=API_PREFIX)
+app.include_router(laps.router, prefix=API_PREFIX)
+app.include_router(telemetry.router, prefix=API_PREFIX)
+app.include_router(stints.router, prefix=API_PREFIX)
+app.include_router(weather.router, prefix=API_PREFIX)
+app.include_router(analysis.router, prefix=API_PREFIX)
+app.include_router(tires.router, prefix=API_PREFIX)
+app.include_router(ai.router, prefix=API_PREFIX)

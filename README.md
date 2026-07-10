@@ -32,10 +32,23 @@ cp .env.example .env            # optional; historical data needs no keys
 uvicorn app.main:app --reload   # http://localhost:8000/docs
 ```
 
+OpenF1 setup: no key is required for historical public data; set
+`RACEIQ_OPENF1_API_KEY` only for a live/sponsor tier.
+
+FastF1 setup: set `FASTF1_CACHE_DIR` or `RACEIQ_FASTF1_CACHE_DIR` to a persistent
+folder and keep `FASTF1_ENABLED=true` for telemetry endpoints. The first request
+for a session can be slow while FastF1 warms its local cache.
+
+Redis setup: local development can use the in-memory cache. For Docker or
+production, run Redis and set `REDIS_URL=redis://redis:6379/0`.
+
 Try (real data — 2023 Singapore GP race, session_key 9159):
 ```bash
+curl "http://localhost:8000/api/sessions?year=2024"
 curl "http://localhost:8000/api/sessions?year=2024&country=Italy"
 curl "http://localhost:8000/api/telemetry?session_key=9159&driver_number=1"
+curl "http://localhost:8000/api/telemetry/lap?year=2024&grand_prix=Monaco&session=Race&driver=VER&lap=23"
+curl "http://localhost:8000/api/telemetry/compare?year=2024&grand_prix=Monaco&session=Race&driver_a=VER&lap_a=23&driver_b=NOR&lap_b=22"
 curl "http://localhost:8000/api/analysis/compare?session_key=9159&driver_number=1&reference_driver_number=4"
 curl "http://localhost:8000/api/tires/degradation?session_key=9159&driver_number=1"
 ```
@@ -59,10 +72,19 @@ cd backend && pytest -q
 | GET | `/api/sessions` | list sessions (year/country/type) | P1 |
 | GET | `/api/sessions/{key}/drivers` | drivers in a session | P1 |
 | GET | `/api/telemetry` | distance-aligned lap trace | P1/P2 |
+| GET | `/api/telemetry/lap` | FastF1 chart-ready lap telemetry | P1 |
+| GET | `/api/telemetry/compare` | FastF1 aligned lap telemetry + delta | P1 |
 | GET | `/api/analysis/compare` | two-lap delta + sectors + corners | P2 |
 | GET | `/api/tires/degradation` | degradation + pit window | P3 |
 | POST | `/api/ai/report` | grounded natural-language report | P3/P4 |
-| GET | `/health` | status | P1 |
+| GET | `/api/health` | status | P1 |
+| GET | `/api/data-status` | provider/cache status | P1 |
+
+## Deployment notes
+Redis is required in production so cache state survives process restarts and repeated
+telemetry calls do not hammer providers. Mount a persistent FastF1 cache volume
+(`FASTF1_CACHE_DIR`) because cold session loads are expensive. Respect provider
+limits, and set `FRONTEND_ORIGIN` / `RACEIQ_CORS_ORIGINS` for the deployed frontend.
 
 ## Build phases (from the project doc)
 1. Telemetry comparison → 2. Corner analysis → 3. Tire model → 4. AI engineer →

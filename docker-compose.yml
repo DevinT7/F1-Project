@@ -4,8 +4,19 @@ services:
     build: ./backend
     ports: ["8000:8000"]
     environment:
+      - APP_ENV=${APP_ENV:-development}
+      - APP_VERSION=${APP_VERSION:-0.1.0}
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:5173}
+      - REDIS_URL=redis://redis:6379/0
+      - CACHE_DEFAULT_TTL_SECONDS=${CACHE_DEFAULT_TTL_SECONDS:-3600}
+      - FASTF1_CACHE_DIR=/app/.fastf1_cache
+      - FASTF1_ENABLED=${FASTF1_ENABLED:-true}
+      - FASTF1_DEFAULT_TIMEOUT_SECONDS=${FASTF1_DEFAULT_TIMEOUT_SECONDS:-90}
+      - TELEMETRY_CACHE_TTL_SECONDS=${TELEMETRY_CACHE_TTL_SECONDS:-3600}
       - RACEIQ_REDIS_URL=redis://redis:6379/0
-      - RACEIQ_CORS_ORIGINS=http://localhost:5173
+      - RACEIQ_FASTF1_CACHE_DIR=/app/.fastf1_cache
+      - RACEIQ_ENABLE_FASTF1=${FASTF1_ENABLED:-true}
+      - RACEIQ_CORS_ORIGINS=${FRONTEND_ORIGIN:-http://localhost:5173}
     volumes:
       - ./backend:/app
       - fastf1_cache:/app/.fastf1_cache
