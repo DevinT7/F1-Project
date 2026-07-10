@@ -299,7 +299,13 @@ class OpenF1Client:
             try:
                 await self.rate_limiter.wait()
                 path = endpoint if extra is None else f"{endpoint}?{extra}"
-                response = await self._client.get(path, params=params)
+                # httpx's `params=` kwarg *replaces* a URL's existing query string,
+                # even when it's an empty dict -- which would silently strip the
+                # date>/date< filter we just hand-appended into `path` for
+                # endpoints like car_data/location (OpenF1's nonstandard operator
+                # syntax doesn't fit a normal params dict). Pass None instead of
+                # `{}` so httpx leaves the embedded query string alone.
+                response = await self._client.get(path, params=params or None)
                 if response.status_code == 429:
                     retry_after = _retry_after_seconds(response)
                     logger.warning(
