@@ -16,6 +16,8 @@ Covers the Phase 4 definition-of-done items from P2_ANALYSIS_PLAN.md:
 """
 from __future__ import annotations
 
+import asyncio
+
 import numpy as np
 from fastapi.testclient import TestClient
 
@@ -128,7 +130,7 @@ def test_biggest_loss_recommendation_uses_real_computed_numbers_only():
         _corner_trace(1), _corner_trace(44), include_traces=False,
     )
     cmp.corners = [corner]  # substitute a controlled corner for a deterministic assertion
-    report = ai_engineer.build_report(AIReportRequest(comparison=cmp))
+    report = asyncio.run(ai_engineer.build_report(AIReportRequest(comparison=cmp)))
     assert report.grounded is True
     joined = " ".join(report.recommendations)
     assert "Turn 7" in joined

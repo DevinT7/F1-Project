@@ -11,4 +11,4 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 @router.post("/report", response_model=AIReport)
 async def report(req: AIReportRequest):
-    return ai_engineer.build_report(req)
+    return await ai_engineer.build_report(req)

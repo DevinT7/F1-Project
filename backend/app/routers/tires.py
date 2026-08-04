@@ -11,8 +11,11 @@ router = APIRouter(prefix="/tires", tags=["tires"])
 
 
 @router.get("/degradation", response_model=TireAnalysis)
-async def degradation(session_key: int, driver_number: int, horizon: int = 10):
+async def degradation(session_key: int, driver_number: int, horizon: int = 10,
+                      stint_number: int | None = None):
+    """`stint_number` defaults to the driver's current/last stint."""
     try:
-        return await tires_svc.analyse_current_stint(session_key, driver_number, horizon)
+        return await tires_svc.analyse_current_stint(
+            session_key, driver_number, horizon, stint_number)
     except OpenF1Error as e:
         raise HTTPException(status_code=502, detail=str(e))

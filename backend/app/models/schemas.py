@@ -150,7 +150,12 @@ class TireAnalysis(BaseModel):
     compound: str | None = None
     tyre_age_laps: int | None = None
     degradation_s_per_lap: float
-    remaining_competitive_laps: int | None = None
+    remaining_competitive_laps: int | None = None   # a COUNT of laps of tyre life left
+    # UNIT DECISION (P3/P4, Phase 0): RACE LAP NUMBERS, not tyre age.
+    # `(24, 27)` means "pit between lap 24 and lap 27 of the race" and is safe to
+    # render verbatim as "PIT WINDOW 24-27". Contrast `remaining_competitive_laps`
+    # above, which is a count relative to now. Anything deriving this from
+    # `tyre_age_laps` is a bug — see P3_TIRE_AI_PLAN.md gap #1.
     recommended_pit_window: tuple[int, int] | None = None
     model_confidence: float = Field(ge=0, le=1)
     predictions: list[LapPacePrediction]

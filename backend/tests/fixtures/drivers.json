@@ -16,5 +16,23 @@
     "team_name": "McLaren",
     "team_colour": "FF8000",
     "headshot_url": null
+  },
+  {
+    "session_key": 9159,
+    "driver_number": 16,
+    "full_name": "Charles Leclerc",
+    "name_acronym": "LEC",
+    "team_name": "Ferrari",
+    "team_colour": "E8002D",
+    "headshot_url": null
+  },
+  {
+    "session_key": 9159,
+    "driver_number": 81,
+    "full_name": "Oscar Piastri",
+    "name_acronym": "PIA",
+    "team_name": "McLaren",
+    "team_colour": "FF8000",
+    "headshot_url": null
   }
 ]

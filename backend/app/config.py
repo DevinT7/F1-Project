@@ -1,7 +1,11 @@
 """Central configuration. Reads from environment / .env (see .env.example)."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
@@ -19,6 +23,15 @@ class Settings(BaseSettings):
     # --- App cache (in-memory dev default; point at Redis in prod) ---
     cache_ttl_seconds: int = 60 * 60  # historical data is immutable, cache hard
     redis_url: str | None = None
+
+    # --- Tire model (Person 3) ---
+    # Gitignored by design, so a fresh clone has no artifact and tires.py serves the
+    # baseline. See ml/README.md for how to build one.
+    tire_model_path: str = str(_REPO_ROOT / "ml" / "models" / "tire_model.pkl")
+    # Serve the model even when its own artifact records beats_baseline=False.
+    # Off by default: ml/models/MODEL_CARD.md currently says the trained model loses
+    # to the trivial baselines, so shipping it would make the endpoint worse.
+    tire_model_force: bool = False
 
     # --- AI race engineer (optional) ---
     openai_api_key: str | None = None

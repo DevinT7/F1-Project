@@ -2,11 +2,13 @@ fastf1==3.5.3
 pandas==2.2.3
 numpy==2.2.1
 scikit-learn==1.6.0
-xgboost==2.1.3
+# 2.1.3 is incompatible with scikit-learn 1.6: XGBRegressor has no __sklearn_tags__,
+# so any Pipeline containing it raises AttributeError on fit. 2.1.4 fixes it.
+xgboost==2.1.4
 lightgbm==4.5.0
 pyarrow==18.1.0
 joblib==1.4.2
-# optional explainability
-# shap==0.46.0
+# feature importances in train.py
+shap==0.46.0
 # optional experiment tracking
 # mlflow==2.19.0

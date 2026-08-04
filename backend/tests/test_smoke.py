@@ -6,6 +6,8 @@ This is the pattern each teammate uses to build in isolation.
 """
 from __future__ import annotations
 
+import asyncio
+
 import numpy as np
 from fastapi.testclient import TestClient
 
@@ -68,7 +70,7 @@ def test_ai_engineer_is_grounded_and_has_no_llm_key(monkeypatch):
         Driver(driver_number=1, name_acronym="VER"),
         Driver(driver_number=44, name_acronym="HAM"),
         a, b, include_traces=False)
-    report = ai_engineer.build_report(AIReportRequest(comparison=cmp))
+    report = asyncio.run(ai_engineer.build_report(AIReportRequest(comparison=cmp)))
     assert report.source == "template"      # no API key in test env
     assert report.grounded is True
     assert report.summary

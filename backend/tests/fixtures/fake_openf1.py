@@ -34,6 +34,21 @@ def _parse(dt: str) -> datetime:
     return datetime.fromisoformat(dt.replace("Z", "+00:00"))
 
 
+def _skey(session_key: int | str, rows: list[dict]) -> int:
+    """Mirror OpenF1: a non-numeric key (`"latest"`) means the most recent session."""
+    if str(session_key).lstrip("-").isdigit():
+        return int(session_key)
+    return max((r["session_key"] for r in rows), default=-1)
+
+
+def _by_driver(rows: list[dict], session_key: int | str,
+               driver_number: int | None) -> list[dict]:
+    out = [r for r in rows if r["session_key"] == _skey(session_key, rows)]
+    if driver_number is not None:
+        out = [r for r in out if r["driver_number"] == driver_number]
+    return out
+
+
 class FakeOpenF1Client:
     """No network, no caching, no rate limits — just filters saved fixtures."""
 
@@ -45,6 +60,9 @@ class FakeOpenF1Client:
             55: _load("car_data_55.json"),
             4: _load("car_data_4.json"),
         }
+        self._stints = _load("stints.json")
+        self._pit = _load("pit.json")
+        self._weather = _load("weather.json")
 
     async def aclose(self) -> None:
         pass
@@ -54,7 +72,7 @@ class FakeOpenF1Client:
                        session_key: int | str | None = None) -> list[dict]:
         rows = self._sessions
         if session_key is not None:
-            rows = [r for r in rows if r["session_key"] == int(session_key)]
+            rows = [r for r in rows if r["session_key"] == _skey(session_key, rows)]
         if year is not None:
             rows = [r for r in rows if r.get("year") == year]
         if country_name is not None:
@@ -65,14 +83,14 @@ class FakeOpenF1Client:
 
     async def drivers(self, session_key: int | str,
                       driver_number: int | None = None) -> list[dict]:
-        rows = [r for r in self._drivers if r["session_key"] == int(session_key)]
+        rows = [r for r in self._drivers if r["session_key"] == _skey(session_key, self._drivers)]
         if driver_number is not None:
             rows = [r for r in rows if r["driver_number"] == driver_number]
         return rows
 
     async def laps(self, session_key: int | str, driver_number: int | None = None,
                    lap_number: int | None = None) -> list[dict]:
-        rows = [r for r in self._laps if r["session_key"] == int(session_key)]
+        rows = [r for r in self._laps if r["session_key"] == _skey(session_key, self._laps)]
         if driver_number is not None:
             rows = [r for r in rows if r["driver_number"] == driver_number]
         if lap_number is not None:
@@ -82,7 +100,7 @@ class FakeOpenF1Client:
     async def car_data(self, session_key: int | str, driver_number: int,
                        date_gt: str | None = None, date_lt: str | None = None) -> list[dict]:
         rows = self._car_data.get(driver_number, [])
-        rows = [r for r in rows if r["session_key"] == int(session_key)]
+        rows = [r for r in rows if r["session_key"] == _skey(session_key, rows)]
         if date_gt is not None:
             gt = _parse(date_gt)
             rows = [r for r in rows if _parse(r["date"]) > gt]
@@ -98,11 +116,11 @@ class FakeOpenF1Client:
 
     async def stints(self, session_key: int | str,
                      driver_number: int | None = None) -> list[dict]:
-        return []
+        return _by_driver(self._stints, session_key, driver_number)
 
     async def pit(self, session_key: int | str,
                   driver_number: int | None = None) -> list[dict]:
-        return []
+        return _by_driver(self._pit, session_key, driver_number)
 
     async def weather(self, session_key: int | str) -> list[dict]:
-        return []
+        return [r for r in self._weather if r["session_key"] == _skey(session_key, self._weather)]

@@ -1,0 +1,18 @@
+[
+  {
+    "session_key": 9159,
+    "meeting_key": 1219,
+    "driver_number": 16,
+    "lap_number": 22,
+    "date": "2023-09-17T12:36:40Z",
+    "pit_duration": 22.4
+  },
+  {
+    "session_key": 9159,
+    "meeting_key": 1219,
+    "driver_number": 81,
+    "lap_number": 2,
+    "date": "2023-09-17T12:03:20Z",
+    "pit_duration": 22.4
+  }
+]
