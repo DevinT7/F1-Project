@@ -10,10 +10,14 @@ venv/
 .coverage
 # Phase 1 normalized session store (python -m app.ingestion)
 /data/
+# schedule cache the API writes when served from the fixture repo (e2e, demo export)
+backend/tests/fixtures/ingestion/store/_schedule/
 *.egg-info/
 
 # ML artifacts / data
 ml/data/
+# schedule cache the API writes when served from the fixture repo (e2e, demo export)
+backend/tests/fixtures/ingestion/store/_schedule/
 ml/models/
 *.parquet
 !backend/tests/fixtures/ingestion/**/*.parquet
@@ -23,6 +27,11 @@ ml/models/
 node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/.next/
+frontend/*.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/
+frontend/.lighthouse/
 
 # Editor / OS
 .DS_Store

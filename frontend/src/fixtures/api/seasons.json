@@ -1,0 +1,41 @@
+{
+ "seasons": [
+  {
+   "year": 2026,
+   "sessions_stored": 0
+  },
+  {
+   "year": 2025,
+   "sessions_stored": 0
+  },
+  {
+   "year": 2024,
+   "sessions_stored": 1
+  },
+  {
+   "year": 2023,
+   "sessions_stored": 0
+  },
+  {
+   "year": 2022,
+   "sessions_stored": 0
+  },
+  {
+   "year": 2021,
+   "sessions_stored": 0
+  },
+  {
+   "year": 2020,
+   "sessions_stored": 0
+  },
+  {
+   "year": 2019,
+   "sessions_stored": 0
+  },
+  {
+   "year": 2018,
+   "sessions_stored": 0
+  }
+ ],
+ "earliest_supported": 2018
+}

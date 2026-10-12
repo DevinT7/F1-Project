@@ -1,0 +1,8 @@
+{
+ "error": {
+  "code": "lap_invalid",
+  "message": "ALO lap 1 is not valid for comparison (no_lap_time).",
+  "status_code": 422,
+  "request_id": "fixture-error_lap_invalid"
+ }
+}

@@ -1,0 +1,97 @@
+"use client";
+/**
+ * TanStack Query hooks over the typed API. Historical F1 data never changes once ingested, so
+ * session data and comparisons are cached for the life of the page.
+ */
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createContext, useContext } from "react";
+
+import type { Api, ComparisonRequest } from "./api/endpoints";
+import type { LapRef } from "./url-state";
+
+export const ApiContext = createContext<{ api: Api; demo: boolean } | null>(null);
+
+export function useApi(): { api: Api; demo: boolean } {
+  const ctx = useContext(ApiContext);
+  if (!ctx) throw new Error("useApi must be used inside <Providers>");
+  return ctx;
+}
+
+const forever = { staleTime: Infinity, gcTime: 30 * 60_000 } as const;
+
+export const keys = {
+  seasons: (demo: boolean) => ["seasons", demo] as const,
+  events: (demo: boolean, year: number) => ["events", demo, year] as const,
+  session: (demo: boolean, key: string) => ["session", demo, key] as const,
+  sessionData: (demo: boolean, key: string, what: string) => ["session", demo, key, what] as const,
+  comparison: (demo: boolean, req: ComparisonRequest) => ["comparison", demo, req] as const,
+};
+
+export function useSeasons() {
+  const { api, demo } = useApi();
+  return useQuery({ queryKey: keys.seasons(demo), queryFn: () => api.seasons(), ...forever });
+}
+
+export function useEvents(year: number | null) {
+  const { api, demo } = useApi();
+  return useQuery({
+    queryKey: keys.events(demo, year ?? 0),
+    queryFn: () => api.events(year!),
+    enabled: year !== null,
+    staleTime: 60 * 60_000,
+  });
+}
+
+export function useSessionStatus(key: string | null) {
+  const { api, demo } = useApi();
+  return useQuery({
+    queryKey: keys.session(demo, key ?? ""),
+    queryFn: () => api.session(key!),
+    enabled: key !== null,
+    staleTime: 60_000,
+  });
+}
+
+export function useIngest(key: string | null) {
+  const { api, demo } = useApi();
+  const client = useQueryClient();
+  return useMutation({
+    mutationKey: ["ingest", demo, key],
+    mutationFn: () => api.ingest(key!),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.session(demo, key ?? "") }),
+  });
+}
+
+function useSessionData<T>(key: string | null, ready: boolean, what: string, fn: (api: Api, key: string) => Promise<T>) {
+  const { api, demo } = useApi();
+  return useQuery({
+    queryKey: keys.sessionData(demo, key ?? "", what),
+    queryFn: () => fn(api, key!),
+    enabled: key !== null && ready,
+    ...forever,
+  });
+}
+
+export const useDrivers = (key: string | null, ready: boolean) =>
+  useSessionData(key, ready, "drivers", (api, k) => api.drivers(k));
+export const useLaps = (key: string | null, ready: boolean) =>
+  useSessionData(key, ready, "laps", (api, k) => api.laps(k));
+export const useFastestLaps = (key: string | null, ready: boolean) =>
+  useSessionData(key, ready, "fastest", (api, k) => api.fastestLaps(k));
+export const useCorners = (key: string | null, ready: boolean) =>
+  useSessionData(key, ready, "corners", (api, k) => api.corners(k));
+
+export function comparisonRequest(session: string, ref: LapRef, tgt: LapRef, resolution: number): ComparisonRequest {
+  return { session_key: session, reference: { ...ref }, target: { ...tgt }, resolution_m: resolution };
+}
+
+export function useComparison(req: ComparisonRequest | null) {
+  const { api, demo } = useApi();
+  return useQuery({
+    queryKey: req ? keys.comparison(demo, req) : ["comparison", demo, null],
+    queryFn: () => api.compare(req!),
+    enabled: req !== null,
+    retry: false,
+    ...forever,
+  });
+}

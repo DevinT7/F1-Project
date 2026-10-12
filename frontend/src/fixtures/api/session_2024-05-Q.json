@@ -1,0 +1,27 @@
+{
+ "session_key": "2024-05-Q",
+ "status": "ready",
+ "info": {
+  "key": "2024_05_Q",
+  "year": 2024,
+  "round": 5,
+  "event_name": "Chinese Grand Prix",
+  "circuit": "Shanghai",
+  "country": "China",
+  "session_code": "Q",
+  "session_name": "Qualifying",
+  "date": "2024-04-20T07:00:00Z",
+  "n_laps_scheduled": null,
+  "event_format": "sprint_qualifying",
+  "circuit_rotation_deg": 237.0
+ },
+ "manifest": {
+  "session_key": "2024_05_Q",
+  "ingested_at": "2026-10-12T06:07:58.608469Z",
+  "fastf1_version": "3.5.3",
+  "schema_version": 1,
+  "lap_count": 9,
+  "telemetry_count": 9,
+  "driver_count": 3
+ }
+}

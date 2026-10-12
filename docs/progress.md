@@ -142,3 +142,81 @@ The test suite asserts p95 < 300 ms over 20 uncached requests.
 `frontend/src/api.ts` fails `tsc` on `import.meta.env` because the project has no `vite-env.d.ts`.
 The error already exists on `main`. The usual fix is to add `src/vite-env.d.ts` containing
 `/// <reference types="vite/client" />`. That belongs to the frontend owner and isn't done here.
+
+## Phase 5 — Frontend dashboard (P1, 2026-10-12)
+
+`frontend/` is now a **Next.js 16 App Router** app (TypeScript strict, Tailwind 4, TanStack
+Query, Zustand, Plotly basic bundle). It merges the original Vite dashboard into the Phase 5
+spec.
+
+**Carried over from the original frontend** (`src/Dashboard.tsx`, `src/styles.css`,
+`design/raceiq-dashboard.html`):
+- The pit-wall design: RIQ sidebar and nav, eyebrow plus serif-italic title, selector strip,
+  KPI strip, cards, sector-delta rows, and the corner card beside the track map.
+  The original palette is the light theme. A matching warm dark palette is the default.
+- The live per-row value readouts next to the telemetry rows, now driven by hover.
+- **Demo data** (`?demo=1`): serves real API responses exported by
+  `backend/scripts/export_frontend_fixtures.py`, so it needs no backend.
+- The `/api` dev proxy, now a Next rewrite (`BACKEND_URL`, default `http://localhost:8000`).
+- The Tire and AI Engineer cards. They're placeholders behind
+  `NEXT_PUBLIC_FEATURE_TIRES` / `NEXT_PUBLIC_FEATURE_ENGINEER`, as the spec requires.
+
+**Removed:** the Vite entry files and the old client for the legacy `/api` endpoints
+(`src/Dashboard.tsx`, `api.ts`, `types.ts`, `mock.ts`, `styles.css`, `main.tsx`,
+`index.html`, `vite.config.ts`). Their roles are taken over by the components and
+`src/lib/` (the generated-type client, `src/fixtures/api/` for demo data, and
+`globals.css`).
+
+**Structure:**
+- `src/lib/`: typed API client derived from `src/api/types.ts`, URL state, formatters
+  (with a locked sign convention), colour scale and contrast, track geometry, store, query hooks.
+- `src/components/`: SessionSelector, LapPicker, ComparisonHeader, TelemetryStack, TrackMap,
+  CornerPanel / FindingsList / SectorCard, shell, error boundary.
+
+**Shareable URLs:** `/?s=2024-05-Q&ref=VER:fastest&tgt=ALO:15[&res=4][&demo=1]`. The page
+renders from the URL alone, and every selection writes back to it.
+
+### Acceptance
+
+| Criterion | Result |
+|---|---|
+| A shared URL reproduces the same comparison | ✅ e2e: load the URL, reload, and get the same gap (+0.488 s) and the same pickers |
+| Hovering any chart moves the cursor on all charts and the map marker | ✅ one shared x-axis plus a store-driven overlay cursor and map marker (e2e and manual) |
+| The delta chart's end value equals the displayed lap gap | ✅ 0.488 vs "+0.488 s" (e2e asserts it) |
+| Map colours agree with the findings' signs (3 corners) | ✅ T16 ▲ red, T11 ▼ green, T9 ● grey (component test and `docs/screenshots/README.md`) |
+| Lighthouse accessibility ≥ 90, no console errors | ✅ **accessibility 100**, best practices 96, console-errors audit clean |
+| `make check-frontend` green | ✅ typecheck + ESLint + 84 Vitest tests |
+
+### Tests
+
+- **Vitest (84 tests):** formatters (sign convention), URL parse/serialize round-trip, colour
+  scale including the ±0.02 s neutral band, contrast/luminance adjustment, segment-to-path
+  (on the real lap), API client and error envelope, Demo mode.
+- **Component tests with MSW** (handlers serve the exported real responses): selector cascade
+  through to URL, shared-URL load, invalid-lap flag, error toast with code and request_id,
+  network error, corner click and finding click updating the panel, map/finding sign
+  agreement, Demo mode with the network blocked.
+- **Playwright e2e (2 tests):** real backend on the fixture repo plus a production build. Load
+  the URL, charts render (11 traces), hover moves the map marker, clicking a corner fills the
+  panel, delta end equals the gap, no console errors, and a reload reproduces the comparison.
+
+### Performance (production build, 2,701 points × 11 traces across 5 subplots)
+
+- Charts are interactive about 2–3 s after a cold load (Plotly is lazy-loaded).
+- Hover sweep of 120 moves: **0 long tasks**. Each move takes about 50 ms to the next painted
+  frame, measured through Playwright, which includes the IPC round trip and two
+  `requestAnimationFrame` waits.
+- The first version moved the cursor as a Plotly shape. Plotly treats a shape edit as a
+  `calc` edit that recomputes every trace, which cost 82 ms per move and produced 78 long
+  tasks. The cursor and the selection band are now DOM overlays positioned from the x-axis
+  mapping, so hover never touches Plotly data or layout.
+
+### Environment notes
+
+- `next build` / `next dev` default to Turbopack. In this sandbox, Turbopack's PostCSS worker
+  fails to spawn (Windows error 0xc0000142), so the e2e config uses `next build --webpack`,
+  and `next dev --webpack` works for local dev here. Plain `next dev` should be fine on a
+  normal machine.
+- `agentRules: false` in `next.config.ts` stops `next dev` from writing an `AGENTS.md` into the repo.
+- TypeScript is pinned to 5.x. The newest release (7, the native port) conflicts with
+  `openapi-typescript`'s peer range.

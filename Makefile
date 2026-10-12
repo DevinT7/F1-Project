@@ -1,6 +1,6 @@
 # RaceIQ developer tasks. Windows without make: run the commands under each target directly.
 
-.PHONY: test openapi openapi-check gen-types
+.PHONY: test openapi openapi-check gen-types check-frontend e2e
 
 test:
 	cd backend && python -m pytest -q
@@ -16,3 +16,11 @@ openapi-check:
 # Regenerate frontend/src/api/types.ts from the API (openapi-typescript), then type-check it.
 gen-types: openapi
 	cd frontend && npm run gen-types && npx tsc --noEmit --strict --skipLibCheck src/api/types.ts
+
+# Frontend: type-check, lint, unit + component tests (Vitest + MSW).
+check-frontend:
+	cd frontend && npm run check
+
+# Frontend end-to-end smoke (Playwright; starts the backend on the fixture repo + a prod build).
+e2e:
+	cd frontend && npx playwright test

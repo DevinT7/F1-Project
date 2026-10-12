@@ -53,13 +53,17 @@ curl "http://localhost:8000/api/analysis/compare?session_key=9159&driver_number=
 curl "http://localhost:8000/api/tires/degradation?session_key=9159&driver_number=1"
 ```
 
-### Frontend
+### Frontend (Next.js 16 · Tailwind · Plotly · TanStack Query)
 ```bash
 cd frontend
 npm install
-npm run dev                     # http://localhost:5173 (proxies /api to :8000)
+BACKEND_URL=http://localhost:8000 npm run dev   # http://localhost:3000 (proxies /api to the backend)
+npm run check                                   # typecheck + lint + Vitest (or `make check-frontend`)
+npx playwright test                             # e2e smoke (starts the backend on the fixture repo)
 ```
-No backend yet? Click **Demo data** in the UI to preview with sample telemetry.
+Share a comparison by URL: `/?s=2024-05-Q&ref=VER:fastest&tgt=ALO:fastest`.
+No backend? Click **Demo data** (`?demo=1`): real API output for 2024 China qualifying.
+Screenshots and the visual checklist: [docs/screenshots/](docs/screenshots/).
 
 ### Ingestion (FastF1 → local Parquet store)
 ```bash
