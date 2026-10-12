@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from ...ingestion.models import CornerInfo, DriverInfo, EventInfo, LapRecord, Manifest, SessionInfo
+from ...tires.stints import DriverStints
 
 
 class _Out(BaseModel):
@@ -76,6 +77,12 @@ class CornersResponse(_Out):
     session_key: str
     circuit_rotation_deg: float | None = None
     corners: list[CornerInfo]
+
+
+class StintsResponse(_Out):
+    session_key: str
+    min_clean_laps: int = Field(description="clean laps a stint needs to be model-eligible")
+    drivers: list[DriverStints]
 
 
 class HealthResponse(_Out):

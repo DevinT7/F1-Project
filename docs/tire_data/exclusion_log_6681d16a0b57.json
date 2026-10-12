@@ -1,0 +1,459 @@
+{
+  "hash": "6681d16a0b578b892423adf8b60c8ab0f800f121b23b7604e13f691997523146",
+  "input_rows": 26676,
+  "kept_rows": 21473,
+  "per_race": {
+    "2023_01_R": {
+      "drops": {
+        "in_or_out_lap": 102,
+        "inaccurate_or_deleted": 18,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 44,
+        "short_stint": 14,
+        "stint_outlier": 19,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Bahrain Grand Prix",
+      "input_rows": 1056,
+      "kept_rows": 839,
+      "retention": 0.7945,
+      "round": 1,
+      "year": 2023
+    },
+    "2023_02_R": {
+      "drops": {
+        "in_or_out_lap": 48,
+        "inaccurate_or_deleted": 15,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 51,
+        "short_stint": 10,
+        "stint_outlier": 49,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Saudi Arabian Grand Prix",
+      "input_rows": 943,
+      "kept_rows": 750,
+      "retention": 0.7953,
+      "round": 2,
+      "year": 2023
+    },
+    "2023_03_R": {
+      "drops": {
+        "in_or_out_lap": 67,
+        "inaccurate_or_deleted": 1,
+        "lap_1_or_restart": 66,
+        "non_green_track_status": 114,
+        "short_stint": 57,
+        "stint_outlier": 32,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Australian Grand Prix",
+      "input_rows": 1003,
+      "kept_rows": 666,
+      "retention": 0.664,
+      "round": 3,
+      "year": 2023
+    },
+    "2023_04_R": {
+      "drops": {
+        "in_or_out_lap": 47,
+        "inaccurate_or_deleted": 1,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 91,
+        "short_stint": 14,
+        "stint_outlier": 27,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Azerbaijan Grand Prix",
+      "input_rows": 962,
+      "kept_rows": 762,
+      "retention": 0.7921,
+      "round": 4,
+      "year": 2023
+    },
+    "2023_05_R": {
+      "drops": {
+        "in_or_out_lap": 40,
+        "inaccurate_or_deleted": 7,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 0,
+        "short_stint": 5,
+        "stint_outlier": 32,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Miami Grand Prix",
+      "input_rows": 1138,
+      "kept_rows": 1034,
+      "retention": 0.9086,
+      "round": 5,
+      "year": 2023
+    },
+    "2023_07_R": {
+      "drops": {
+        "in_or_out_lap": 85,
+        "inaccurate_or_deleted": 9,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 0,
+        "short_stint": 3,
+        "stint_outlier": 59,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Spanish Grand Prix",
+      "input_rows": 1312,
+      "kept_rows": 1136,
+      "retention": 0.8659,
+      "round": 7,
+      "year": 2023
+    },
+    "2023_08_R": {
+      "drops": {
+        "in_or_out_lap": 66,
+        "inaccurate_or_deleted": 8,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 157,
+        "short_stint": 5,
+        "stint_outlier": 65,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Canadian Grand Prix",
+      "input_rows": 1317,
+      "kept_rows": 996,
+      "retention": 0.7563,
+      "round": 8,
+      "year": 2023
+    },
+    "2023_09_R": {
+      "drops": {
+        "in_or_out_lap": 122,
+        "inaccurate_or_deleted": 81,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 44,
+        "short_stint": 14,
+        "stint_outlier": 59,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Austrian Grand Prix",
+      "input_rows": 1354,
+      "kept_rows": 1014,
+      "retention": 0.7489,
+      "round": 9,
+      "year": 2023
+    },
+    "2023_10_R": {
+      "drops": {
+        "in_or_out_lap": 50,
+        "inaccurate_or_deleted": 16,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 98,
+        "short_stint": 3,
+        "stint_outlier": 25,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "British Grand Prix",
+      "input_rows": 971,
+      "kept_rows": 759,
+      "retention": 0.7817,
+      "round": 10,
+      "year": 2023
+    },
+    "2023_11_R": {
+      "drops": {
+        "in_or_out_lap": 74,
+        "inaccurate_or_deleted": 16,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 18,
+        "short_stint": 0,
+        "stint_outlier": 62,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Hungarian Grand Prix",
+      "input_rows": 1252,
+      "kept_rows": 1062,
+      "retention": 0.8482,
+      "round": 11,
+      "year": 2023
+    },
+    "2023_12_R": {
+      "drops": {
+        "in_or_out_lap": 75,
+        "inaccurate_or_deleted": 13,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 55,
+        "short_stint": 24,
+        "stint_outlier": 12,
+        "unknown_compound": 0,
+        "wet_conditions": 77
+      },
+      "event": "Belgian Grand Prix",
+      "input_rows": 816,
+      "kept_rows": 540,
+      "retention": 0.6618,
+      "round": 12,
+      "year": 2023
+    },
+    "2023_15_R": {
+      "drops": {
+        "in_or_out_lap": 50,
+        "inaccurate_or_deleted": 10,
+        "lap_1_or_restart": 19,
+        "non_green_track_status": 180,
+        "short_stint": 0,
+        "stint_outlier": 54,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Singapore Grand Prix",
+      "input_rows": 1088,
+      "kept_rows": 775,
+      "retention": 0.7123,
+      "round": 15,
+      "year": 2023
+    },
+    "2024_01_R": {
+      "drops": {
+        "in_or_out_lap": 85,
+        "inaccurate_or_deleted": 18,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 18,
+        "short_stint": 0,
+        "stint_outlier": 31,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Bahrain Grand Prix",
+      "input_rows": 1129,
+      "kept_rows": 957,
+      "retention": 0.8477,
+      "round": 1,
+      "year": 2024
+    },
+    "2024_02_R": {
+      "drops": {
+        "in_or_out_lap": 38,
+        "inaccurate_or_deleted": 17,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 40,
+        "short_stint": 52,
+        "stint_outlier": 22,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Saudi Arabian Grand Prix",
+      "input_rows": 901,
+      "kept_rows": 712,
+      "retention": 0.7902,
+      "round": 2,
+      "year": 2024
+    },
+    "2024_03_R": {
+      "drops": {
+        "in_or_out_lap": 73,
+        "inaccurate_or_deleted": 2,
+        "lap_1_or_restart": 19,
+        "non_green_track_status": 53,
+        "short_stint": 13,
+        "stint_outlier": 47,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Australian Grand Prix",
+      "input_rows": 998,
+      "kept_rows": 791,
+      "retention": 0.7926,
+      "round": 3,
+      "year": 2024
+    },
+    "2024_04_R": {
+      "drops": {
+        "in_or_out_lap": 72,
+        "inaccurate_or_deleted": 20,
+        "lap_1_or_restart": 38,
+        "non_green_track_status": 21,
+        "short_stint": 13,
+        "stint_outlier": 21,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Japanese Grand Prix",
+      "input_rows": 907,
+      "kept_rows": 722,
+      "retention": 0.796,
+      "round": 4,
+      "year": 2024
+    },
+    "2024_05_R": {
+      "drops": {
+        "in_or_out_lap": 81,
+        "inaccurate_or_deleted": 5,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 187,
+        "short_stint": 14,
+        "stint_outlier": 15,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Chinese Grand Prix",
+      "input_rows": 1032,
+      "kept_rows": 710,
+      "retention": 0.688,
+      "round": 5,
+      "year": 2024
+    },
+    "2024_06_R": {
+      "drops": {
+        "in_or_out_lap": 56,
+        "inaccurate_or_deleted": 20,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 100,
+        "short_stint": 7,
+        "stint_outlier": 38,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Miami Grand Prix",
+      "input_rows": 1111,
+      "kept_rows": 870,
+      "retention": 0.7831,
+      "round": 6,
+      "year": 2024
+    },
+    "2024_07_R": {
+      "drops": {
+        "in_or_out_lap": 54,
+        "inaccurate_or_deleted": 11,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 0,
+        "short_stint": 9,
+        "stint_outlier": 59,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Emilia Romagna Grand Prix",
+      "input_rows": 1238,
+      "kept_rows": 1085,
+      "retention": 0.8764,
+      "round": 7,
+      "year": 2024
+    },
+    "2024_08_R": {
+      "drops": {
+        "in_or_out_lap": 14,
+        "inaccurate_or_deleted": 3,
+        "lap_1_or_restart": 36,
+        "non_green_track_status": 16,
+        "short_stint": 4,
+        "stint_outlier": 41,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Monaco Grand Prix",
+      "input_rows": 1237,
+      "kept_rows": 1123,
+      "retention": 0.9078,
+      "round": 8,
+      "year": 2024
+    },
+    "2024_10_R": {
+      "drops": {
+        "in_or_out_lap": 84,
+        "inaccurate_or_deleted": 14,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 0,
+        "short_stint": 0,
+        "stint_outlier": 52,
+        "unknown_compound": 0,
+        "wet_conditions": 4
+      },
+      "event": "Spanish Grand Prix",
+      "input_rows": 1310,
+      "kept_rows": 1136,
+      "retention": 0.8672,
+      "round": 10,
+      "year": 2024
+    },
+    "2024_11_R": {
+      "drops": {
+        "in_or_out_lap": 89,
+        "inaccurate_or_deleted": 10,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 46,
+        "short_stint": 5,
+        "stint_outlier": 41,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Austrian Grand Prix",
+      "input_rows": 1405,
+      "kept_rows": 1194,
+      "retention": 0.8498,
+      "round": 11,
+      "year": 2024
+    },
+    "2024_13_R": {
+      "drops": {
+        "in_or_out_lap": 81,
+        "inaccurate_or_deleted": 5,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 21,
+        "short_stint": 27,
+        "stint_outlier": 59,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Hungarian Grand Prix",
+      "input_rows": 1355,
+      "kept_rows": 1142,
+      "retention": 0.8428,
+      "round": 13,
+      "year": 2024
+    },
+    "2024_14_R": {
+      "drops": {
+        "in_or_out_lap": 69,
+        "inaccurate_or_deleted": 10,
+        "lap_1_or_restart": 20,
+        "non_green_track_status": 17,
+        "short_stint": 3,
+        "stint_outlier": 24,
+        "unknown_compound": 0,
+        "wet_conditions": 0
+      },
+      "event": "Belgian Grand Prix",
+      "input_rows": 841,
+      "kept_rows": 698,
+      "retention": 0.83,
+      "round": 14,
+      "year": 2024
+    }
+  },
+  "rules": [
+    "lap_1_or_restart",
+    "in_or_out_lap",
+    "non_green_track_status",
+    "inaccurate_or_deleted",
+    "wet_conditions",
+    "unknown_compound",
+    "stint_outlier",
+    "short_stint"
+  ],
+  "totals": {
+    "in_or_out_lap": 1622,
+    "inaccurate_or_deleted": 330,
+    "lap_1_or_restart": 558,
+    "non_green_track_status": 1371,
+    "short_stint": 296,
+    "stint_outlier": 945,
+    "unknown_compound": 0,
+    "wet_conditions": 81
+  }
+}

@@ -103,3 +103,48 @@ invalidate a lap. On 2024 R5 Q this leaves 92 of 279 laps valid, and
 Only 2024 has been verified so far. FastF1 has timing and telemetry from 2018. Re-test
 older seasons before claiming support for them. Missing telemetry is already handled:
 the lap is marked `no_telemetry` and nothing crashes.
+
+## Phase 6A — Tire dataset (P1, 2026-10-12)
+
+Code: `backend/app/tires/` (`config.py`, `exclusions.py`, `dataset.py`, `stints.py`,
+`report.py`). The plan's `raceiq/tires/` maps to `backend/app/tires/`, following the same
+convention as Phases 1–5. The CLI is `python -m app.tires.dataset build --seasons 2023 2024`.
+
+### Track-status codes (verified in FastF1 3.5.3, `fastf1/_api.py::track_status_data`)
+
+| Code | Meaning | Treated as |
+|---|---|---|
+| `1` | Track clear | green |
+| `2` | Yellow flag (sectors unknown) | non-green |
+| `3` | "??? Never seen so far, does not exist?" (from the FastF1 docs) | non-green |
+| `4` | Safety car | non-green, neutralization |
+| `5` | Red flag | non-green, neutralization, restart detection |
+| `6` | Virtual safety car deployed | non-green, neutralization |
+| `7` | VSC ending | non-green, neutralization |
+
+A lap's `TrackStatus` concatenates every code seen during the lap (`"12"`, `"1267"`), so the
+rule treats it as a **set of characters**. A lap is kept only if that set is exactly `{"1"}`,
+which means `"11"` is green and `"12"` is not. A missing status is not green.
+
+### Rule interpretations not spelled out in the plan
+
+- **`lap_1_or_restart`:** the restart lap is decided per driver. It is the lap whose previous
+  lap (same driver) carried code `5` while this lap does not. Red-flag laps themselves fall to
+  `non_green_track_status`.
+- **`inaccurate_or_deleted`:** `Deleted = None` (unknown) does not count as deleted.
+- **`stint_outlier`:** a stint whose MAD is 0 is left alone. A zero spread gives no basis for
+  judging outliers, and with a zero threshold anything slower than the median would be dropped.
+- **`laps_since_neutralization`:** counts from the most recent earlier lap number on which
+  **any** driver carried code 4, 5, 6 or 7. Before the first one, the sentinel is 999. The lap
+  number is a proxy for the leader's timeline, so it is approximate for lapped cars.
+- **`prev_lap_time_s`:** the previous **kept** lap in the same stint, which can skip over excluded
+  laps. It is null at the start of a stint. It may only be used as a feature where it would
+  really be available, which means forecasting.
+- **Stints endpoint `clean_laps`:** counts laps passing the lap-level rules (1–7).
+  `model_eligible` then applies the stint-level rule (≥ 5 clean laps). This matches what the
+  dataset keeps without reporting `clean_laps: 0` for a stint that simply has 4 clean laps.
+- **Traffic:** there is no reliable gap data, so `traffic_known = False` on every row, and no
+  traffic feature is derived.
+- **Units:** `fuel_proxy = race_laps_total − lap_number` stays in laps. No kg conversion and no
+  time-per-kg constant exist anywhere. `race_laps_total` falls back to the highest lap number
+  when FastF1 has no scheduled distance.

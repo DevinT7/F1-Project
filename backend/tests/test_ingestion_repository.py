@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 import pytest
+from pathlib import Path
 
 from app.ingestion import models
 from app.ingestion.errors import SessionNotFoundError, TelemetryUnavailableError
@@ -189,3 +190,35 @@ def test_atomic_write_creates_parents(tmp_path):
     atomic_write_bytes(tmp_path / "a" / "b" / "c.bin", b"x")
     assert (tmp_path / "a" / "b" / "c.bin").read_bytes() == b"x"
     assert os.listdir(tmp_path / "a" / "b") == ["c.bin"]
+
+
+def test_swap_retries_a_transient_permission_error(repo, monkeypatch):
+    real = repo_mod.os.replace
+    calls = {"n": 0}
+
+    def flaky(src, dst):
+        if Path(src).name.startswith(".staging-") and calls["n"] < 2:  # the directory swap only
+            calls["n"] += 1
+            raise PermissionError(5, "Access is denied")
+        return real(src, dst)
+
+    monkeypatch.setattr(repo_mod.os, "replace", flaky)
+    monkeypatch.setattr(repo_mod.time, "sleep", lambda s: None)
+    repo.save_session(synth.bundle())
+    assert calls["n"] == 2 and repo.has_session(synth.KEY)
+
+
+def test_swap_gives_up_on_a_persistent_lock_and_keeps_the_old_copy(repo, monkeypatch):
+    repo.save_session(synth.bundle())
+    real = repo_mod.os.replace
+
+    def locked(src, dst):
+        if Path(src).name.startswith(".staging-"):
+            raise PermissionError(5, "Access is denied")
+        return real(src, dst)
+
+    monkeypatch.setattr(repo_mod.os, "replace", locked)
+    monkeypatch.setattr(repo_mod.time, "sleep", lambda s: None)
+    with pytest.raises(PermissionError):
+        repo.save_session(synth.bundle())
+    assert repo.has_session(synth.KEY)  # the previous copy was restored

@@ -11,6 +11,7 @@ from ..schemas.sessions import (
     IngestResponse,
     LapsResponse,
     SessionStatusResponse,
+    StintsResponse,
 )
 from ..services import SessionQueryService
 
@@ -68,6 +69,16 @@ def list_laps(
 def fastest_laps(session_key: str = SessionKey,
                  service: SessionQueryService = Depends(get_session_service)) -> FastestLapsResponse:
     return service.fastest_laps(session_key)
+
+
+@router.get("/{session_key}/stints", response_model=StintsResponse, summary="Tyre stints per driver",
+            description="Per driver: stint number, compound, first/last lap, tyre age at start, new or used "
+                        "set, total laps, clean laps (after the Phase 6A exclusion rules) and whether the stint "
+                        "is model-eligible (≥ 5 clean laps).",
+            responses=error_responses(404, 422))
+def list_stints(session_key: str = SessionKey,
+                service: SessionQueryService = Depends(get_session_service)) -> StintsResponse:
+    return service.stints(session_key)
 
 
 @router.get("/{session_key}/corners", response_model=CornersResponse, summary="Circuit corner table",

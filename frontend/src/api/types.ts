@@ -469,6 +469,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions/{session_key}/stints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tyre stints per driver
+         * @description Per driver: stint number, compound, first/last lap, tyre age at start, new or used set, total laps, clean laps (after the Phase 6A exclusion rules) and whether the stint is model-eligible (≥ 5 clean laps).
+         */
+        get: operations["list_stints_api_v1_sessions__session_key__stints_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/weather": {
         parameters: {
             query?: never;
@@ -694,6 +714,15 @@ export interface components {
             team: string | null;
             /** Team Color */
             team_color: string | null;
+        };
+        /** DriverStints */
+        DriverStints: {
+            /** Driver */
+            driver: string;
+            /** Stints */
+            stints: components["schemas"]["StintSummary"][];
+            /** Team */
+            team?: string | null;
         };
         /** DriversResponse */
         DriversResponse: {
@@ -1315,6 +1344,54 @@ export interface components {
              * @enum {string}
              */
             status: "ready" | "not_ingested" | "stale_schema";
+        };
+        /** StintSummary */
+        StintSummary: {
+            /**
+             * Clean Laps
+             * @description laps surviving every Phase 6A exclusion rule
+             */
+            clean_laps: number;
+            /**
+             * Compound
+             * @description normalized upper-case; the most common compound in the stint
+             */
+            compound: string | null;
+            /** First Lap */
+            first_lap: number;
+            /**
+             * Fresh Tyre
+             * @description new set at the start of the stint (False = used)
+             */
+            fresh_tyre: boolean | null;
+            /** Last Lap */
+            last_lap: number;
+            /**
+             * Model Eligible
+             * @description clean_laps ≥ the dataset's minimum clean stint length
+             */
+            model_eligible: boolean;
+            /** Stint */
+            stint: number;
+            /** Total Laps */
+            total_laps: number;
+            /**
+             * Tyre Age At Start
+             * @description FastF1 TyreLife on the stint's first lap
+             */
+            tyre_age_at_start: number | null;
+        };
+        /** StintsResponse */
+        StintsResponse: {
+            /** Drivers */
+            drivers: components["schemas"]["DriverStints"][];
+            /**
+             * Min Clean Laps
+             * @description clean laps a stint needs to be model-eligible
+             */
+            min_clean_laps: number;
+            /** Session Key */
+            session_key: string;
         };
         /** TelemetrySample */
         TelemetrySample: {
@@ -2419,6 +2496,65 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LapsResponse"];
+                };
+            };
+            /** @description Session not ingested / not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid request, invalid lap, or comparison failed an integrity check */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unexpected error (body carries the request id) */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_stints_api_v1_sessions__session_key__stints_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Session key "<year>-<round>-<session>", e.g. "2024-05-Q" (2024 round 5 qualifying). Underscores ("2024_05_Q") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R. */
+                session_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StintsResponse"];
                 };
             };
             /** @description Session not ingested / not found */

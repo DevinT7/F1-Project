@@ -21,6 +21,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 import uuid
 from collections.abc import Iterable
 from datetime import datetime, timezone
@@ -119,6 +120,23 @@ def telemetry_filename(driver: str, lap: int) -> str:
     return f"{driver}_{int(lap):03d}.parquet"
 
 
+def _replace_with_retry(src: Path, dst: Path, attempts: int = 6, delay_s: float = 0.5) -> None:
+    """os.replace a directory, retrying briefly on PermissionError.
+
+    On Windows a freshly written directory can be held open for a moment by antivirus or the
+    search indexer, so the rename fails with "Access is denied" (seen while bulk-ingesting
+    2023 R15). Retrying for ~3 s rides that out; a persistent lock still raises.
+    """
+    for attempt in range(attempts):
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(delay_s * (attempt + 1) / 2)
+
+
 # ---------------------------------------------------------------- repository
 class ParquetRepository:
     def __init__(self, root: str | Path) -> None:
@@ -189,12 +207,12 @@ class ParquetRepository:
         trash: Path | None = None
         if final.exists():
             trash = final.with_name(f".trash-{final.name}-{uuid.uuid4().hex[:8]}")
-            os.replace(final, trash)
+            _replace_with_retry(final, trash)
         try:
-            os.replace(staging, final)
+            _replace_with_retry(staging, final)
         except BaseException:
             if trash is not None:
-                os.replace(trash, final)
+                _replace_with_retry(trash, final)
             raise
         if trash is not None:
             shutil.rmtree(trash, ignore_errors=True)

@@ -30,6 +30,8 @@ from ..processing.delta import compare_laps
 from ..processing.insights import build_session_context, generate_findings
 from ..processing.models import AlignedLap, LapData
 from ..storage.repository import SessionRepository
+from ..tires.config import ExclusionConfig
+from ..tires.stints import summarize_stints
 from .schemas.common import canonical_session_key, public_session_key
 from .schemas.comparisons import (
     ComparisonChannels,
@@ -51,6 +53,7 @@ from .schemas.sessions import (
     Season,
     SeasonsResponse,
     SessionStatusResponse,
+    StintsResponse,
 )
 
 EARLIEST_SEASON = 2018
@@ -138,6 +141,12 @@ class SessionQueryService:
         ]
         entries.sort(key=lambda e: (e.lap is None, e.lap.lap_time_s if e.lap else 0.0, e.driver))
         return FastestLapsResponse(session_key=public_session_key(key), laps=entries)
+
+    def stints(self, session_key: str) -> StintsResponse:
+        key = self._require(session_key)
+        cfg = ExclusionConfig()
+        return StintsResponse(session_key=public_session_key(key), min_clean_laps=cfg.min_clean_stint_laps,
+                              drivers=summarize_stints(self.repo.list_laps(key), cfg))
 
     def corners(self, session_key: str) -> CornersResponse:
         key = self._require(session_key)
