@@ -16,3 +16,15 @@ class TelemetryUnavailableError(IngestionError):
 
 class LapInvalidError(IngestionError):
     """No lap satisfies the requested validity constraint."""
+
+
+class DriverNotFoundError(SessionNotFoundError):
+    """The driver has no laps in this session."""
+
+
+class LapNotFoundError(SessionNotFoundError):
+    """The requested lap number does not exist for the driver."""
+
+
+class PayloadTooLargeError(IngestionError):
+    """The requested response would exceed the transport size cap."""

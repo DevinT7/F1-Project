@@ -1,0 +1,4887 @@
+{
+  "components": {
+    "schemas": {
+      "AIInsight": {
+        "properties": {
+          "delta_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta S"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "AIInsight",
+        "type": "object"
+      },
+      "AIReport": {
+        "properties": {
+          "grounded": {
+            "default": true,
+            "title": "Grounded",
+            "type": "boolean"
+          },
+          "insights": {
+            "items": {
+              "$ref": "#/components/schemas/AIInsight"
+            },
+            "title": "Insights",
+            "type": "array"
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommendations",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "strategy_options": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Strategy Options",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "insights",
+          "recommendations",
+          "strategy_options",
+          "source"
+        ],
+        "title": "AIReport",
+        "type": "object"
+      },
+      "AIReportRequest": {
+        "properties": {
+          "comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LapComparison-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "tires": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TireAnalysis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "AIReportRequest",
+        "type": "object"
+      },
+      "ComparisonChannels": {
+        "additionalProperties": false,
+        "properties": {
+          "reference": {
+            "$ref": "#/components/schemas/LapChannels"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LapChannels"
+          }
+        },
+        "required": [
+          "reference",
+          "target"
+        ],
+        "title": "ComparisonChannels",
+        "type": "object"
+      },
+      "ComparisonMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "cached": {
+            "description": "served from the in-process comparison cache",
+            "title": "Cached",
+            "type": "boolean"
+          },
+          "points": {
+            "description": "length of every array in the response",
+            "title": "Points",
+            "type": "integer"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/ReportQuality"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/LapMeta"
+          },
+          "resolution_m": {
+            "title": "Resolution M",
+            "type": "number"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "string"
+          },
+          "sign_convention": {
+            "default": "delta_s = target elapsed time − reference elapsed time at the same distance. Positive = the target is behind (has lost time); negative = the target is ahead. delta_s[0] is 0 and delta_s[-1] equals the official lap-time gap (target − reference) within 0.02 s.",
+            "title": "Sign Convention",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LapMeta"
+          }
+        },
+        "required": [
+          "session_key",
+          "resolution_m",
+          "points",
+          "reference",
+          "target",
+          "quality",
+          "cached"
+        ],
+        "title": "ComparisonMeta",
+        "type": "object"
+      },
+      "ComparisonRequest": {
+        "additionalProperties": false,
+        "examples": [
+          {
+            "reference": {
+              "driver": "VER",
+              "lap": "fastest"
+            },
+            "resolution_m": 2.0,
+            "session_key": "2024-05-Q",
+            "target": {
+              "driver": "ALO",
+              "lap": 15
+            }
+          }
+        ],
+        "properties": {
+          "reference": {
+            "$ref": "#/components/schemas/LapSelector"
+          },
+          "resolution_m": {
+            "default": 2.0,
+            "description": "transport resolution in metres (≈2,500–3,500 points at 2 m). Analysis always runs at 1 m; this only thins the returned arrays.",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Resolution M",
+            "type": "number"
+          },
+          "session_key": {
+            "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+            "title": "Session Key",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LapSelector"
+          }
+        },
+        "required": [
+          "session_key",
+          "reference",
+          "target"
+        ],
+        "title": "ComparisonRequest",
+        "type": "object"
+      },
+      "ComparisonResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "channels": {
+            "$ref": "#/components/schemas/ComparisonChannels"
+          },
+          "delta_s": {
+            "description": "delta_s = target elapsed time − reference elapsed time at the same distance. Positive = the target is behind (has lost time); negative = the target is ahead. delta_s[0] is 0 and delta_s[-1] equals the official lap-time gap (target − reference) within 0.02 s.",
+            "items": {
+              "type": "number"
+            },
+            "title": "Delta S",
+            "type": "array"
+          },
+          "distance_m": {
+            "description": "reference-lap distance grid, metres from the start line",
+            "items": {
+              "type": "number"
+            },
+            "title": "Distance M",
+            "type": "array"
+          },
+          "findings": {
+            "$ref": "#/components/schemas/FindingsReport",
+            "description": "Phase 3 verified findings, computed at 1 m. time_loss_s > 0 = target lost time (same sign convention as delta_s). See docs/insight_schema.md."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ComparisonMeta"
+          }
+        },
+        "required": [
+          "meta",
+          "distance_m",
+          "channels",
+          "delta_s",
+          "findings"
+        ],
+        "title": "ComparisonResponse",
+        "type": "object"
+      },
+      "CornerInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "angle": {
+            "title": "Angle",
+            "type": "number"
+          },
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "letter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Letter"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "number",
+          "letter",
+          "distance_m",
+          "x",
+          "y",
+          "angle"
+        ],
+        "title": "CornerInfo",
+        "type": "object"
+      },
+      "CornerInsight": {
+        "properties": {
+          "braking_delta_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Braking Delta M"
+          },
+          "braking_point_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Braking Point M"
+          },
+          "corner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corner Name"
+          },
+          "corner_number": {
+            "title": "Corner Number",
+            "type": "integer"
+          },
+          "distance": {
+            "title": "Distance",
+            "type": "number"
+          },
+          "entry_speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Speed"
+          },
+          "exit_speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exit Speed"
+          },
+          "min_speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Speed"
+          },
+          "min_speed_delta_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Speed Delta Kmh"
+          },
+          "throttle_delay_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Throttle Delay S"
+          },
+          "time_delta_s": {
+            "title": "Time Delta S",
+            "type": "number"
+          }
+        },
+        "required": [
+          "corner_number",
+          "distance",
+          "time_delta_s"
+        ],
+        "title": "CornerInsight",
+        "type": "object"
+      },
+      "CornersResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "circuit_rotation_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Circuit Rotation Deg"
+          },
+          "corners": {
+            "items": {
+              "$ref": "#/components/schemas/CornerInfo"
+            },
+            "title": "Corners",
+            "type": "array"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_key",
+          "corners"
+        ],
+        "title": "CornersResponse",
+        "type": "object"
+      },
+      "DeltaPoint": {
+        "properties": {
+          "delta_s": {
+            "title": "Delta S",
+            "type": "number"
+          },
+          "distance": {
+            "title": "Distance",
+            "type": "number"
+          }
+        },
+        "required": [
+          "distance",
+          "delta_s"
+        ],
+        "title": "DeltaPoint",
+        "type": "object"
+      },
+      "Driver": {
+        "properties": {
+          "driver_number": {
+            "title": "Driver Number",
+            "type": "integer"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "headshot_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headshot Url"
+          },
+          "name_acronym": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Acronym"
+          },
+          "team_colour": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Colour"
+          },
+          "team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Name"
+          }
+        },
+        "required": [
+          "driver_number"
+        ],
+        "title": "Driver",
+        "type": "object"
+      },
+      "DriverInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "grid_position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grid Position"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "q1_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q1 S"
+          },
+          "q2_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q2 S"
+          },
+          "q3_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q3 S"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          },
+          "team_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Color"
+          }
+        },
+        "required": [
+          "code",
+          "number",
+          "full_name",
+          "team",
+          "team_color"
+        ],
+        "title": "DriverInfo",
+        "type": "object"
+      },
+      "DriversResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "drivers": {
+            "items": {
+              "$ref": "#/components/schemas/DriverInfo"
+            },
+            "title": "Drivers",
+            "type": "array"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_key",
+          "drivers"
+        ],
+        "title": "DriversResponse",
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "machine-readable error code",
+            "examples": [
+              "session_not_found"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "message": {
+            "description": "human-readable explanation; never a stack trace",
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "echoes the X-Request-ID response header",
+            "title": "Request Id"
+          },
+          "status_code": {
+            "title": "Status Code",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "status_code"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "EventInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "event_date": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Date"
+          },
+          "event_format": {
+            "title": "Event Format",
+            "type": "string"
+          },
+          "event_name": {
+            "title": "Event Name",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "round": {
+            "title": "Round",
+            "type": "integer"
+          },
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/EventSession"
+            },
+            "title": "Sessions",
+            "type": "array"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "round",
+          "event_name",
+          "country",
+          "location",
+          "event_format",
+          "event_date",
+          "sessions"
+        ],
+        "title": "EventInfo",
+        "type": "object"
+      },
+      "EventSession": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "code",
+          "date"
+        ],
+        "title": "EventSession",
+        "type": "object"
+      },
+      "EventsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventInfo"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "events"
+        ],
+        "title": "EventsResponse",
+        "type": "object"
+      },
+      "FastestLap": {
+        "additionalProperties": false,
+        "properties": {
+          "driver": {
+            "title": "Driver",
+            "type": "string"
+          },
+          "lap": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LapRecord"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null when the driver has no lap valid for comparison"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          },
+          "team_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Color"
+          }
+        },
+        "required": [
+          "driver",
+          "lap"
+        ],
+        "title": "FastestLap",
+        "type": "object"
+      },
+      "FastestLapsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "laps": {
+            "description": "one entry per driver, fastest first; drivers without a valid lap last",
+            "items": {
+              "$ref": "#/components/schemas/FastestLap"
+            },
+            "title": "Laps",
+            "type": "array"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_key",
+          "laps"
+        ],
+        "title": "FastestLapsResponse",
+        "type": "object"
+      },
+      "Finding": {
+        "additionalProperties": false,
+        "properties": {
+          "apex_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "matched",
+                  "official",
+                  "detected"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apex Source"
+          },
+          "causes": {
+            "description": "triggered rules: contributing factors, not proof",
+            "items": {
+              "enum": [
+                "early_braking_loss",
+                "late_braking_gain",
+                "low_min_speed",
+                "high_min_speed",
+                "late_throttle",
+                "early_throttle",
+                "lower_exit_speed",
+                "higher_exit_speed",
+                "straight_line_deficit",
+                "straight_line_advantage",
+                "unclear"
+              ],
+              "type": "string"
+            },
+            "title": "Causes",
+            "type": "array"
+          },
+          "confidence": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "corner_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corner Number"
+          },
+          "corner_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "slow",
+                  "medium",
+                  "fast"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corner Type"
+          },
+          "entry_loss_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "corners: loss from segment start to apex",
+            "title": "Entry Loss S"
+          },
+          "exit_loss_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "corners: loss from apex to segment end",
+            "title": "Exit Loss S"
+          },
+          "id": {
+            "description": "\"<session>:<TARGET>-vs-<REFERENCE>:<code>\", e.g. \"2024-05-Q:ALO-vs-VER:T7\"",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "corner",
+              "straight",
+              "sector",
+              "lap_summary"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": "differences, target − reference",
+            "title": "Metrics",
+            "type": "object"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "corners only: 1 = largest |time_loss_s|; ties by distance",
+            "title": "Rank"
+          },
+          "reference": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Reference",
+            "type": "object"
+          },
+          "segment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SegmentSpan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Target",
+            "type": "object"
+          },
+          "time_loss_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "target − reference over the segment; > 0 = target lost time",
+            "title": "Time Loss S"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "confidence"
+        ],
+        "title": "Finding",
+        "type": "object"
+      },
+      "FindingsReport": {
+        "additionalProperties": false,
+        "properties": {
+          "comparison_id": {
+            "title": "Comparison Id",
+            "type": "string"
+          },
+          "corners": {
+            "description": "tile the lap in distance order; losses sum to the total",
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Corners",
+            "type": "array"
+          },
+          "lap_summary": {
+            "$ref": "#/components/schemas/Finding"
+          },
+          "largest_gains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Largest Gains",
+            "type": "array"
+          },
+          "largest_losses": {
+            "description": "corner ids, |loss| ≥ noise floor, biggest first",
+            "items": {
+              "type": "string"
+            },
+            "title": "Largest Losses",
+            "type": "array"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/ReportQuality"
+          },
+          "schema_version": {
+            "default": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "sectors": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Sectors",
+            "type": "array"
+          },
+          "session_context": {
+            "$ref": "#/components/schemas/SessionContext"
+          },
+          "straights": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Straights",
+            "type": "array"
+          }
+        },
+        "required": [
+          "comparison_id",
+          "session_context",
+          "lap_summary",
+          "corners",
+          "straights",
+          "sectors",
+          "largest_losses",
+          "largest_gains",
+          "quality"
+        ],
+        "title": "FindingsReport",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "IngestResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "elapsed_s": {
+            "title": "Elapsed S",
+            "type": "number"
+          },
+          "laps": {
+            "title": "Laps",
+            "type": "integer"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "string"
+          },
+          "skipped": {
+            "description": "true when the session was already stored (no network calls made)",
+            "title": "Skipped",
+            "type": "boolean"
+          },
+          "telemetry_laps": {
+            "title": "Telemetry Laps",
+            "type": "integer"
+          },
+          "valid_laps": {
+            "title": "Valid Laps",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_key",
+          "skipped",
+          "laps",
+          "telemetry_laps",
+          "valid_laps",
+          "elapsed_s"
+        ],
+        "title": "IngestResponse",
+        "type": "object"
+      },
+      "LapChannels": {
+        "additionalProperties": false,
+        "properties": {
+          "brake": {
+            "description": "on/off brake channel (no pressure)",
+            "items": {
+              "type": "boolean"
+            },
+            "title": "Brake",
+            "type": "array"
+          },
+          "drs_open": {
+            "items": {
+              "type": "boolean"
+            },
+            "title": "Drs Open",
+            "type": "array"
+          },
+          "gear": {
+            "description": "step-interpolated, never fractional; 0 = unknown",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Gear",
+            "type": "array"
+          },
+          "rpm": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Rpm",
+            "type": "array"
+          },
+          "speed_kph": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Speed Kph",
+            "type": "array"
+          },
+          "throttle_pct": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Throttle Pct",
+            "type": "array"
+          },
+          "time_s": {
+            "description": "elapsed lap time at each distance",
+            "items": {
+              "type": "number"
+            },
+            "title": "Time S",
+            "type": "array"
+          },
+          "x": {
+            "description": "FastF1 position, decimetres",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "X",
+            "type": "array"
+          },
+          "y": {
+            "description": "FastF1 position, decimetres",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Y",
+            "type": "array"
+          }
+        },
+        "required": [
+          "time_s",
+          "speed_kph",
+          "throttle_pct",
+          "brake",
+          "gear",
+          "rpm",
+          "drs_open",
+          "x",
+          "y"
+        ],
+        "title": "LapChannels",
+        "type": "object"
+      },
+      "LapComparison-Input": {
+        "properties": {
+          "corners": {
+            "items": {
+              "$ref": "#/components/schemas/CornerInsight"
+            },
+            "title": "Corners",
+            "type": "array"
+          },
+          "delta_trace": {
+            "items": {
+              "$ref": "#/components/schemas/DeltaPoint"
+            },
+            "title": "Delta Trace",
+            "type": "array"
+          },
+          "driver": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "driver_trace": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TelemetryTrace"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lap_time": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lap Time"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "reference_lap_time": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Lap Time"
+          },
+          "reference_trace": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TelemetryTrace"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sector_deltas": {
+            "items": {
+              "$ref": "#/components/schemas/SectorDelta"
+            },
+            "title": "Sector Deltas",
+            "type": "array"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "integer"
+          },
+          "time_gained_s": {
+            "title": "Time Gained S",
+            "type": "number"
+          },
+          "time_lost_s": {
+            "title": "Time Lost S",
+            "type": "number"
+          },
+          "total_delta_s": {
+            "title": "Total Delta S",
+            "type": "number"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "session_key",
+          "driver",
+          "reference",
+          "total_delta_s",
+          "time_gained_s",
+          "time_lost_s",
+          "sector_deltas",
+          "delta_trace",
+          "corners"
+        ],
+        "title": "LapComparison",
+        "type": "object"
+      },
+      "LapComparison-Output": {
+        "properties": {
+          "corners": {
+            "items": {
+              "$ref": "#/components/schemas/CornerInsight"
+            },
+            "title": "Corners",
+            "type": "array"
+          },
+          "delta_trace": {
+            "items": {
+              "$ref": "#/components/schemas/DeltaPoint"
+            },
+            "title": "Delta Trace",
+            "type": "array"
+          },
+          "driver": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "driver_trace": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TelemetryTrace"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lap_time": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lap Time"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "reference_lap_time": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Lap Time"
+          },
+          "reference_trace": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TelemetryTrace"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sector_deltas": {
+            "items": {
+              "$ref": "#/components/schemas/SectorDelta"
+            },
+            "title": "Sector Deltas",
+            "type": "array"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "integer"
+          },
+          "time_gained_s": {
+            "title": "Time Gained S",
+            "type": "number"
+          },
+          "time_lost_s": {
+            "title": "Time Lost S",
+            "type": "number"
+          },
+          "total_delta_s": {
+            "title": "Total Delta S",
+            "type": "number"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "session_key",
+          "driver",
+          "reference",
+          "total_delta_s",
+          "time_gained_s",
+          "time_lost_s",
+          "sector_deltas",
+          "delta_trace",
+          "corners"
+        ],
+        "title": "LapComparison",
+        "type": "object"
+      },
+      "LapContext": {
+        "additionalProperties": false,
+        "properties": {
+          "air_temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Air Temp C"
+          },
+          "compound": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compound"
+          },
+          "driver": {
+            "title": "Driver",
+            "type": "string"
+          },
+          "fresh_tyre": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fresh Tyre"
+          },
+          "lap_number": {
+            "title": "Lap Number",
+            "type": "integer"
+          },
+          "lap_time_s": {
+            "title": "Lap Time S",
+            "type": "number"
+          },
+          "rainfall": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rainfall"
+          },
+          "sector_s": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Sector S",
+            "type": "array"
+          },
+          "track_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Status"
+          },
+          "track_status_flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Track Status Flags",
+            "type": "array"
+          },
+          "track_temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Temp C"
+          },
+          "tyre_age_laps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tyre Age Laps"
+          }
+        },
+        "required": [
+          "driver",
+          "lap_number",
+          "lap_time_s",
+          "sector_s"
+        ],
+        "title": "LapContext",
+        "type": "object"
+      },
+      "LapMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "compound": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compound"
+          },
+          "driver": {
+            "title": "Driver",
+            "type": "string"
+          },
+          "driver_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Number"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "lap_number": {
+            "title": "Lap Number",
+            "type": "integer"
+          },
+          "lap_time_s": {
+            "title": "Lap Time S",
+            "type": "number"
+          },
+          "sector_s": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Sector S",
+            "type": "array"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          },
+          "team_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Color"
+          },
+          "tyre_age_laps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tyre Age Laps"
+          }
+        },
+        "required": [
+          "driver",
+          "lap_number",
+          "lap_time_s",
+          "sector_s"
+        ],
+        "title": "LapMeta",
+        "type": "object"
+      },
+      "LapPacePrediction": {
+        "properties": {
+          "laps_ahead": {
+            "title": "Laps Ahead",
+            "type": "integer"
+          },
+          "lower_s": {
+            "title": "Lower S",
+            "type": "number"
+          },
+          "predicted_lap_time_s": {
+            "title": "Predicted Lap Time S",
+            "type": "number"
+          },
+          "upper_s": {
+            "title": "Upper S",
+            "type": "number"
+          }
+        },
+        "required": [
+          "laps_ahead",
+          "predicted_lap_time_s",
+          "lower_s",
+          "upper_s"
+        ],
+        "title": "LapPacePrediction",
+        "type": "object"
+      },
+      "LapRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "air_temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Air Temp C"
+          },
+          "compound": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compound"
+          },
+          "deleted": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted"
+          },
+          "deleted_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted Reason"
+          },
+          "driver": {
+            "title": "Driver",
+            "type": "string"
+          },
+          "driver_number": {
+            "title": "Driver Number",
+            "type": "string"
+          },
+          "fresh_tyre": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fresh Tyre"
+          },
+          "invalid_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invalid Reason"
+          },
+          "is_accurate": {
+            "title": "Is Accurate",
+            "type": "boolean"
+          },
+          "is_valid_for_comparison": {
+            "default": false,
+            "title": "Is Valid For Comparison",
+            "type": "boolean"
+          },
+          "lap_end_session_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lap End Session Time S"
+          },
+          "lap_number": {
+            "title": "Lap Number",
+            "type": "integer"
+          },
+          "lap_start_session_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lap Start Session Time S"
+          },
+          "lap_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lap Time S"
+          },
+          "pit_in_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pit In Time S"
+          },
+          "pit_out_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pit Out Time S"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "rainfall": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rainfall"
+          },
+          "sector_s": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            ],
+            "title": "Sector S",
+            "type": "array"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "string"
+          },
+          "stint": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stint"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          },
+          "telemetry_distance_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telemetry Distance M"
+          },
+          "telemetry_samples": {
+            "default": 0,
+            "title": "Telemetry Samples",
+            "type": "integer"
+          },
+          "track_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Status"
+          },
+          "track_temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Temp C"
+          },
+          "tyre_age": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tyre Age"
+          }
+        },
+        "required": [
+          "session_key",
+          "driver",
+          "driver_number",
+          "team",
+          "lap_number",
+          "lap_time_s",
+          "sector_s",
+          "stint",
+          "compound",
+          "tyre_age",
+          "fresh_tyre",
+          "pit_in_time_s",
+          "pit_out_time_s",
+          "track_status",
+          "is_accurate",
+          "deleted",
+          "deleted_reason",
+          "position",
+          "lap_start_session_time_s",
+          "lap_end_session_time_s"
+        ],
+        "title": "LapRecord",
+        "type": "object"
+      },
+      "LapSelector": {
+        "additionalProperties": false,
+        "properties": {
+          "driver": {
+            "description": "driver code (VER) or number (1)",
+            "examples": [
+              "VER"
+            ],
+            "title": "Driver",
+            "type": "string"
+          },
+          "lap": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "const": "fastest",
+                "type": "string"
+              }
+            ],
+            "default": "fastest",
+            "description": "lap number, or \"fastest\" for the driver's fastest valid lap",
+            "title": "Lap"
+          }
+        },
+        "required": [
+          "driver"
+        ],
+        "title": "LapSelector",
+        "type": "object"
+      },
+      "LapsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "driver": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver"
+          },
+          "laps": {
+            "items": {
+              "$ref": "#/components/schemas/LapRecord"
+            },
+            "title": "Laps",
+            "type": "array"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_key",
+          "laps"
+        ],
+        "title": "LapsResponse",
+        "type": "object"
+      },
+      "Manifest": {
+        "additionalProperties": false,
+        "properties": {
+          "driver_count": {
+            "title": "Driver Count",
+            "type": "integer"
+          },
+          "fastf1_version": {
+            "title": "Fastf1 Version",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "lap_count": {
+            "title": "Lap Count",
+            "type": "integer"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "string"
+          },
+          "telemetry_count": {
+            "title": "Telemetry Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_key",
+          "ingested_at",
+          "fastf1_version",
+          "schema_version",
+          "lap_count",
+          "telemetry_count",
+          "driver_count"
+        ],
+        "title": "Manifest",
+        "type": "object"
+      },
+      "ReadyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Checks",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "title": "ReadyResponse",
+        "type": "object"
+      },
+      "ReportQuality": {
+        "additionalProperties": false,
+        "properties": {
+          "dropped_glitches": {
+            "title": "Dropped Glitches",
+            "type": "integer"
+          },
+          "final_delta_error_s": {
+            "title": "Final Delta Error S",
+            "type": "number"
+          },
+          "length_scale_factor": {
+            "title": "Length Scale Factor",
+            "type": "number"
+          },
+          "repairs": {
+            "title": "Repairs",
+            "type": "integer"
+          },
+          "sample_count_ref": {
+            "title": "Sample Count Ref",
+            "type": "integer"
+          },
+          "sample_count_target": {
+            "title": "Sample Count Target",
+            "type": "integer"
+          },
+          "sector_check_max_discrepancy_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Check Max Discrepancy S"
+          },
+          "sector_check_ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sector Check Ok"
+          },
+          "tiling_error_s": {
+            "title": "Tiling Error S",
+            "type": "number"
+          }
+        },
+        "required": [
+          "sample_count_ref",
+          "sample_count_target",
+          "length_scale_factor",
+          "final_delta_error_s",
+          "repairs",
+          "dropped_glitches",
+          "tiling_error_s",
+          "sector_check_ok",
+          "sector_check_max_discrepancy_s"
+        ],
+        "title": "ReportQuality",
+        "type": "object"
+      },
+      "Season": {
+        "additionalProperties": false,
+        "properties": {
+          "sessions_stored": {
+            "description": "sessions of this season already ingested locally",
+            "title": "Sessions Stored",
+            "type": "integer"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "sessions_stored"
+        ],
+        "title": "Season",
+        "type": "object"
+      },
+      "SeasonsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "earliest_supported": {
+            "description": "FastF1 has timing + telemetry from 2018; only 2024 is verified",
+            "title": "Earliest Supported",
+            "type": "integer"
+          },
+          "seasons": {
+            "items": {
+              "$ref": "#/components/schemas/Season"
+            },
+            "title": "Seasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "seasons",
+          "earliest_supported"
+        ],
+        "title": "SeasonsResponse",
+        "type": "object"
+      },
+      "SectorDelta": {
+        "properties": {
+          "delta_s": {
+            "title": "Delta S",
+            "type": "number"
+          },
+          "sector": {
+            "title": "Sector",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sector",
+          "delta_s"
+        ],
+        "title": "SectorDelta",
+        "type": "object"
+      },
+      "SegmentSpan": {
+        "additionalProperties": false,
+        "properties": {
+          "apex_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apex M"
+          },
+          "end_m": {
+            "title": "End M",
+            "type": "number"
+          },
+          "start_m": {
+            "title": "Start M",
+            "type": "number"
+          }
+        },
+        "required": [
+          "start_m",
+          "end_m"
+        ],
+        "title": "SegmentSpan",
+        "type": "object"
+      },
+      "SessionContext": {
+        "additionalProperties": false,
+        "properties": {
+          "event_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Name"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/LapContext"
+          },
+          "session_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Code"
+          },
+          "session_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Key"
+          },
+          "session_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Name"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LapContext"
+          }
+        },
+        "required": [
+          "reference",
+          "target"
+        ],
+        "title": "SessionContext",
+        "type": "object"
+      },
+      "SessionInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "circuit": {
+            "title": "Circuit",
+            "type": "string"
+          },
+          "circuit_rotation_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Circuit Rotation Deg"
+          },
+          "country": {
+            "title": "Country",
+            "type": "string"
+          },
+          "date": {
+            "format": "date-time",
+            "title": "Date",
+            "type": "string"
+          },
+          "event_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Format"
+          },
+          "event_name": {
+            "title": "Event Name",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "n_laps_scheduled": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "N Laps Scheduled"
+          },
+          "round": {
+            "title": "Round",
+            "type": "integer"
+          },
+          "session_code": {
+            "title": "Session Code",
+            "type": "string"
+          },
+          "session_name": {
+            "title": "Session Name",
+            "type": "string"
+          },
+          "year": {
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "year",
+          "round",
+          "event_name",
+          "circuit",
+          "country",
+          "session_code",
+          "session_name",
+          "date",
+          "n_laps_scheduled"
+        ],
+        "title": "SessionInfo",
+        "type": "object"
+      },
+      "SessionStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "info": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "manifest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Manifest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "session_key": {
+            "examples": [
+              "2024-05-Q"
+            ],
+            "title": "Session Key",
+            "type": "string"
+          },
+          "status": {
+            "description": "ready = stored with the current schema; stale_schema = stored by an older version, re-ingest",
+            "enum": [
+              "ready",
+              "not_ingested",
+              "stale_schema"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_key",
+          "status"
+        ],
+        "title": "SessionStatusResponse",
+        "type": "object"
+      },
+      "TelemetrySample": {
+        "properties": {
+          "brake": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brake"
+          },
+          "distance": {
+            "title": "Distance",
+            "type": "number"
+          },
+          "drs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drs"
+          },
+          "n_gear": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "N Gear"
+          },
+          "rpm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpm"
+          },
+          "speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed"
+          },
+          "throttle": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Throttle"
+          }
+        },
+        "required": [
+          "distance"
+        ],
+        "title": "TelemetrySample",
+        "type": "object"
+      },
+      "TelemetryTrace": {
+        "properties": {
+          "driver_number": {
+            "title": "Driver Number",
+            "type": "integer"
+          },
+          "is_anomalous_lap": {
+            "default": false,
+            "title": "Is Anomalous Lap",
+            "type": "boolean"
+          },
+          "lap_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lap Number"
+          },
+          "lap_time": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lap Time"
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/TelemetrySample"
+            },
+            "title": "Samples",
+            "type": "array"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_key",
+          "driver_number",
+          "samples"
+        ],
+        "title": "TelemetryTrace",
+        "type": "object"
+      },
+      "TireAnalysis": {
+        "properties": {
+          "compound": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compound"
+          },
+          "degradation_s_per_lap": {
+            "title": "Degradation S Per Lap",
+            "type": "number"
+          },
+          "driver_number": {
+            "title": "Driver Number",
+            "type": "integer"
+          },
+          "model_confidence": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Model Confidence",
+            "type": "number"
+          },
+          "model_name": {
+            "default": "baseline-linear",
+            "title": "Model Name",
+            "type": "string"
+          },
+          "predictions": {
+            "items": {
+              "$ref": "#/components/schemas/LapPacePrediction"
+            },
+            "title": "Predictions",
+            "type": "array"
+          },
+          "recommended_pit_window": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Pit Window"
+          },
+          "remaining_competitive_laps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Competitive Laps"
+          },
+          "session_key": {
+            "title": "Session Key",
+            "type": "integer"
+          },
+          "tyre_age_laps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tyre Age Laps"
+          }
+        },
+        "required": [
+          "session_key",
+          "driver_number",
+          "degradation_s_per_lap",
+          "model_confidence",
+          "predictions"
+        ],
+        "title": "TireAnalysis",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "AI-powered Formula 1 telemetry analytics API.",
+    "title": "RaceIQ API",
+    "version": "snapshot"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/ai/report": {
+      "post": {
+        "operationId": "report_api_ai_report_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/analysis/compare": {
+      "get": {
+        "operationId": "compare_api_analysis_compare_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_key",
+            "required": true,
+            "schema": {
+              "title": "Session Key",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_number",
+            "required": true,
+            "schema": {
+              "title": "Driver Number",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reference_driver_number",
+            "required": true,
+            "schema": {
+              "title": "Reference Driver Number",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lap_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lap Number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reference_lap_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Reference Lap Number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_traces",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Include Traces",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "prefer_fastf1",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Prefer Fastf1",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gp",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Gp"
+            }
+          },
+          {
+            "in": "query",
+            "name": "session_name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Name"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Driver Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reference_driver_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Reference Driver Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LapComparison-Output"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compare",
+        "tags": [
+          "analysis"
+        ]
+      }
+    },
+    "/api/data-status": {
+      "get": {
+        "operationId": "data_status_api_data_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Data Status Api Data Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Data Status",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/api/drivers": {
+      "get": {
+        "operationId": "list_drivers_api_drivers_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Key"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Driver Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Drivers Api Drivers Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Drivers",
+        "tags": [
+          "drivers"
+        ]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Health Api Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/api/laps": {
+      "get": {
+        "operationId": "list_laps_api_laps_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Key"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Driver Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Laps Api Laps Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Laps",
+        "tags": [
+          "laps"
+        ]
+      }
+    },
+    "/api/sessions": {
+      "get": {
+        "operationId": "get_sessions_api_sessions_get",
+        "parameters": [
+          {
+            "description": "e.g. 2024",
+            "in": "query",
+            "name": "year",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 2100,
+                  "minimum": 1950,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "e.g. 2024",
+              "title": "Year"
+            }
+          },
+          {
+            "description": "OpenF1 country_name filter",
+            "in": "query",
+            "name": "country_name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "OpenF1 country_name filter",
+              "title": "Country Name"
+            }
+          },
+          {
+            "description": "Backward-compatible country_name alias",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Backward-compatible country_name alias",
+              "title": "Country"
+            }
+          },
+          {
+            "description": "Race / Qualifying / Practice / Sprint",
+            "in": "query",
+            "name": "session_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Race / Qualifying / Practice / Sprint",
+              "title": "Session Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Sessions Api Sessions Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Sessions",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/sessions/{session_key}/drivers": {
+      "get": {
+        "operationId": "get_drivers_api_sessions__session_key__drivers_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_key",
+            "required": true,
+            "schema": {
+              "title": "Session Key",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Driver"
+                  },
+                  "title": "Response Get Drivers Api Sessions  Session Key  Drivers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Drivers",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/stints": {
+      "get": {
+        "operationId": "list_stints_api_stints_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Key"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Driver Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Stints Api Stints Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Stints",
+        "tags": [
+          "stints"
+        ]
+      }
+    },
+    "/api/telemetry": {
+      "get": {
+        "operationId": "get_telemetry_api_telemetry_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_key",
+            "required": true,
+            "schema": {
+              "title": "Session Key",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_number",
+            "required": true,
+            "schema": {
+              "title": "Driver Number",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "omit for the driver's fastest lap",
+            "in": "query",
+            "name": "lap_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "omit for the driver's fastest lap",
+              "title": "Lap Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryTrace"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Telemetry",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/telemetry/compare": {
+      "get": {
+        "operationId": "compare_lap_telemetry_api_telemetry_compare_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "maximum": 2100,
+              "minimum": 1950,
+              "title": "Year",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "grand_prix",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "title": "Grand Prix",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "session",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "title": "Session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_a",
+            "required": true,
+            "schema": {
+              "maxLength": 4,
+              "minLength": 2,
+              "title": "Driver A",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lap_a",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Lap A",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_b",
+            "required": true,
+            "schema": {
+              "maxLength": 4,
+              "minLength": 2,
+              "title": "Driver B",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lap_b",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Lap B",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sample_rate",
+            "required": false,
+            "schema": {
+              "default": "medium",
+              "pattern": "^(high|medium|low)$",
+              "title": "Sample Rate",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Compare Lap Telemetry Api Telemetry Compare Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compare Lap Telemetry",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/telemetry/lap": {
+      "get": {
+        "operationId": "get_lap_telemetry_api_telemetry_lap_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "maximum": 2100,
+              "minimum": 1950,
+              "title": "Year",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "grand_prix",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "title": "Grand Prix",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "session",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "title": "Session",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver",
+            "required": true,
+            "schema": {
+              "maxLength": 4,
+              "minLength": 2,
+              "title": "Driver",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lap",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Lap",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sample_rate",
+            "required": false,
+            "schema": {
+              "default": "medium",
+              "pattern": "^(high|medium|low)$",
+              "title": "Sample Rate",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Lap Telemetry Api Telemetry Lap Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Lap Telemetry",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/telemetry/status": {
+      "get": {
+        "operationId": "telemetry_status_api_telemetry_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Telemetry Status Api Telemetry Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Telemetry Status",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
+    "/api/tires/degradation": {
+      "get": {
+        "description": "`stint_number` defaults to the driver's current/last stint.",
+        "operationId": "degradation_api_tires_degradation_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_key",
+            "required": true,
+            "schema": {
+              "title": "Session Key",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_number",
+            "required": true,
+            "schema": {
+              "title": "Driver Number",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "horizon",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "title": "Horizon",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "stint_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Stint Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TireAnalysis"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Degradation",
+        "tags": [
+          "tires"
+        ]
+      }
+    },
+    "/api/v1/comparisons": {
+      "post": {
+        "description": "Aligns the target lap to the reference lap by distance (analysis at 1 m), then returns both laps' channels, the cumulative time delta and the Phase 3 verified findings. Every array has `meta.points` entries aligned to `distance_m`; booleans are JSON booleans; missing samples are null. Either lap may be `\"fastest\"`. Laps not valid for comparison are rejected (422) with the reason.\n\n**Sign convention:** delta_s = target elapsed time − reference elapsed time at the same distance. Positive = the target is behind (has lost time); negative = the target is ahead. delta_s[0] is 0 and delta_s[-1] equals the official lap-time gap (target − reference) within 0.02 s.\n\nResponses are gzip-compressed when the client sends `Accept-Encoding: gzip`, and memoized in-process (`meta.cached`).",
+        "operationId": "create_comparison_api_v1_comparisons_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComparisonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Session not ingested / not found"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "424": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Telemetry unavailable for a requested lap"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Compare two laps",
+        "tags": [
+          "v1: comparisons"
+        ]
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "description": "Always 200 while the process is serving requests. Does not touch storage.",
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "v1: meta"
+        ]
+      }
+    },
+    "/api/v1/ready": {
+      "get": {
+        "description": "200 when the session store is readable; 503 otherwise.",
+        "operationId": "ready_api_v1_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not ready"
+          }
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "v1: meta"
+        ]
+      }
+    },
+    "/api/v1/seasons": {
+      "get": {
+        "description": "Seasons FastF1 can serve (2018 onward), newest first, with how many sessions of each are already ingested locally.",
+        "operationId": "list_seasons_api_v1_seasons_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeasonsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Available seasons",
+        "tags": [
+          "v1: seasons"
+        ]
+      }
+    },
+    "/api/v1/seasons/{year}/events": {
+      "get": {
+        "description": "Round, name, country, location, format and per-session UTC dates. The schedule is fetched from FastF1 once and cached (past seasons forever, the current one for 24 h).",
+        "operationId": "list_events_api_v1_seasons__year__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "examples": [
+                2024
+              ],
+              "maximum": 2100,
+              "minimum": 2018,
+              "title": "Year",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Session not ingested / not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Grands Prix of a season",
+        "tags": [
+          "v1: seasons"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_key}": {
+      "get": {
+        "description": "`status` is `ready` (stored, current schema), `not_ingested`, or `stale_schema` (stored by an older version: re-ingest). `info` is present only when ready.",
+        "operationId": "get_session_api_v1_sessions__session_key__get",
+        "parameters": [
+          {
+            "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+            "in": "path",
+            "name": "session_key",
+            "required": true,
+            "schema": {
+              "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+              "examples": [
+                "2024-05-Q"
+              ],
+              "pattern": "^\\d{4}[-_]\\d{2}[-_][A-Za-z0-9]{1,3}$",
+              "title": "Session Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Session info and availability",
+        "tags": [
+          "v1: sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_key}/corners": {
+      "get": {
+        "description": "Official corners (number, letter, distance along the lap, X/Y in FastF1 decimetres, angle) and the map rotation in degrees.",
+        "operationId": "list_corners_api_v1_sessions__session_key__corners_get",
+        "parameters": [
+          {
+            "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+            "in": "path",
+            "name": "session_key",
+            "required": true,
+            "schema": {
+              "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+              "examples": [
+                "2024-05-Q"
+              ],
+              "pattern": "^\\d{4}[-_]\\d{2}[-_][A-Za-z0-9]{1,3}$",
+              "title": "Session Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CornersResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Session not ingested / not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Circuit corner table",
+        "tags": [
+          "v1: sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_key}/drivers": {
+      "get": {
+        "description": "Code, number, name, team, team colour (`#RRGGBB`) and classification.",
+        "operationId": "list_drivers_api_v1_sessions__session_key__drivers_get",
+        "parameters": [
+          {
+            "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+            "in": "path",
+            "name": "session_key",
+            "required": true,
+            "schema": {
+              "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+              "examples": [
+                "2024-05-Q"
+              ],
+              "pattern": "^\\d{4}[-_]\\d{2}[-_][A-Za-z0-9]{1,3}$",
+              "title": "Session Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriversResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Session not ingested / not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Drivers in a session",
+        "tags": [
+          "v1: sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_key}/fastest-laps": {
+      "get": {
+        "description": "Lowest lap time among laps valid for comparison, per driver, fastest first. Drivers with no valid lap are listed last with `lap: null`.",
+        "operationId": "fastest_laps_api_v1_sessions__session_key__fastest_laps_get",
+        "parameters": [
+          {
+            "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+            "in": "path",
+            "name": "session_key",
+            "required": true,
+            "schema": {
+              "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+              "examples": [
+                "2024-05-Q"
+              ],
+              "pattern": "^\\d{4}[-_]\\d{2}[-_][A-Za-z0-9]{1,3}$",
+              "title": "Session Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FastestLapsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Session not ingested / not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Fastest valid lap per driver",
+        "tags": [
+          "v1: sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_key}/ingest": {
+      "post": {
+        "description": "Downloads (FastF1) and stores the session. **Synchronous** in this version: a cold qualifying session takes ~2.5 min, a race ~7.5 min. Idempotent: an already-stored session returns `skipped: true` immediately unless `force=true`.",
+        "operationId": "ingest_session_api_v1_sessions__session_key__ingest_post",
+        "parameters": [
+          {
+            "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+            "in": "path",
+            "name": "session_key",
+            "required": true,
+            "schema": {
+              "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+              "examples": [
+                "2024-05-Q"
+              ],
+              "pattern": "^\\d{4}[-_]\\d{2}[-_][A-Za-z0-9]{1,3}$",
+              "title": "Session Key",
+              "type": "string"
+            }
+          },
+          {
+            "description": "re-ingest even if already stored",
+            "in": "query",
+            "name": "force",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "re-ingest even if already stored",
+              "title": "Force",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Session not ingested / not found"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Ingest a session",
+        "tags": [
+          "v1: sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_key}/laps": {
+      "get": {
+        "description": "Every lap with times (s), compound, tyre age, weather at lap start and `is_valid_for_comparison` / `invalid_reason`. Filter with `driver`.",
+        "operationId": "list_laps_api_v1_sessions__session_key__laps_get",
+        "parameters": [
+          {
+            "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+            "in": "path",
+            "name": "session_key",
+            "required": true,
+            "schema": {
+              "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+              "examples": [
+                "2024-05-Q"
+              ],
+              "pattern": "^\\d{4}[-_]\\d{2}[-_][A-Za-z0-9]{1,3}$",
+              "title": "Session Key",
+              "type": "string"
+            }
+          },
+          {
+            "description": "driver code (VER) or number (1)",
+            "in": "query",
+            "name": "driver",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "driver code (VER) or number (1)",
+              "examples": [
+                "VER"
+              ],
+              "title": "Driver"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LapsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Session not ingested / not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Laps",
+        "tags": [
+          "v1: sessions"
+        ]
+      }
+    },
+    "/api/weather": {
+      "get": {
+        "operationId": "get_weather_api_weather_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Weather Api Weather Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Weather",
+        "tags": [
+          "weather"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "description": "Liveness and readiness probes.",
+      "name": "v1: meta"
+    },
+    {
+      "description": "Seasons and Grand Prix schedules (FastF1 event schedule, cached per year).",
+      "name": "v1: seasons"
+    },
+    {
+      "description": "Ingestion and stored session data: drivers, laps, fastest laps, corners.",
+      "name": "v1: sessions"
+    },
+    {
+      "description": "Distance-aligned two-lap comparison with time delta and verified findings. Sign convention: positive delta / time loss = the target lost time.",
+      "name": "v1: comparisons"
+    }
+  ]
+}

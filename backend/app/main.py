@@ -6,13 +6,18 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import __version__
 from . import cache
+from .api import errors as api_errors
+from .api.routes import TAGS_METADATA as V1_TAGS
+from .api.routes import router as v1_router
 from .clients import fastf1_client
 from .clients.openf1 import (
     OpenF1Error,
@@ -62,23 +67,18 @@ def _utc_timestamp() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _error_payload(
+def _error_response(
+    request: Request,
     *,
     code: str,
     message: str,
     status_code: int,
     details: Any | None = None,
-) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "error": {
-            "code": code,
-            "message": message,
-            "status_code": status_code,
-        }
-    }
-    if details is not None:
-        payload["error"]["details"] = details
-    return payload
+) -> JSONResponse:
+    # One envelope for the whole API: {"error": {code, message, status_code, request_id[, details]}}
+    return api_errors.error_response(
+        request, code=code, message=message, status_code=status_code, details=details
+    )
 
 
 app = FastAPI(
@@ -86,7 +86,11 @@ app = FastAPI(
     version=_app_version(),
     description="AI-powered Formula 1 telemetry analytics API.",
     docs_url="/docs",
+    openapi_tags=V1_TAGS,
 )
+
+api_errors.install(app)
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
 
 app.add_middleware(
     CORSMiddleware,
@@ -110,24 +114,19 @@ async def http_exception_handler(
         code = "provider_error"
     elif status_code == 400:
         code = "bad_request"
-    return JSONResponse(
-        status_code=status_code,
-        content=_error_payload(code=code, message=message, status_code=status_code),
-    )
+    return _error_response(request, code=code, message=message, status_code=status_code)
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    return JSONResponse(
+    return _error_response(
+        request,
+        code="validation_error",
+        message="Request validation failed",
         status_code=422,
-        content=_error_payload(
-            code="validation_error",
-            message="Request validation failed",
-            status_code=422,
-            details=exc.errors(),
-        ),
+        details=jsonable_encoder(exc.errors()),
     )
 
 
@@ -138,14 +137,7 @@ async def provider_exception_handler(request: Request, exc: OpenF1Error) -> JSON
         status_code = 503
     elif isinstance(exc, ProviderBadResponseError):
         status_code = 502
-    return JSONResponse(
-        status_code=status_code,
-        content=_error_payload(
-            code="provider_error",
-            message=str(exc),
-            status_code=status_code,
-        ),
-    )
+    return _error_response(request, code="provider_error", message=str(exc), status_code=status_code)
 
 
 @app.get(f"{API_PREFIX}/health", tags=["meta"])
@@ -188,3 +180,4 @@ app.include_router(weather.router, prefix=API_PREFIX)
 app.include_router(analysis.router, prefix=API_PREFIX)
 app.include_router(tires.router, prefix=API_PREFIX)
 app.include_router(ai.router, prefix=API_PREFIX)
+app.include_router(v1_router)

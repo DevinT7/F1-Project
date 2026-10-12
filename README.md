@@ -81,6 +81,21 @@ mypy                             # strict on app/ingestion + app/storage
 ```
 
 ## API endpoints
+
+### v1 (`/api/v1`, typed, versioned: see `/docs` and `backend/openapi.json`)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/v1/health`, `/api/v1/ready` | liveness / readiness |
+| GET | `/api/v1/seasons`, `/api/v1/seasons/{year}/events` | seasons, Grands Prix schedule |
+| GET | `/api/v1/sessions/{key}` | session info + availability (`2024-05-Q`) |
+| POST | `/api/v1/sessions/{key}/ingest` | ingest via FastF1 (sync) |
+| GET | `/api/v1/sessions/{key}/drivers` · `/laps?driver=` · `/fastest-laps` · `/corners` | stored session data |
+| POST | `/api/v1/comparisons` | aligned two-lap comparison + delta + findings |
+
+Frontend types: `make gen-types` (or `python -m scripts.export_openapi` in `backend/`, then
+`npm run gen-types` in `frontend/`) writes `frontend/src/api/types.ts`.
+
+### Legacy (`/api`)
 | Method | Path | Purpose | Owner |
 |--------|------|---------|-------|
 | GET | `/api/sessions` | list sessions (year/country/type) | P1 |

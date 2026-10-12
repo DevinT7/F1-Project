@@ -154,12 +154,14 @@ class IngestionService:
         return results
 
 
-def get_fastest_valid_lap(repo: SessionRepository, key: str, driver: str) -> LapRecord:
-    """Lowest lap_time_s among the driver's laps that are valid for comparison."""
-    candidates = [
-        lap for lap in repo.list_laps(key, driver)
-        if lap.is_valid_for_comparison and lap.lap_time_s is not None
-    ]
+def fastest_valid_lap(laps: Sequence[LapRecord], driver: str, key: str) -> LapRecord:
+    """Lowest lap_time_s among `laps` (one driver's) that are valid for comparison."""
+    candidates = [lap for lap in laps if lap.is_valid_for_comparison and lap.lap_time_s is not None]
     if not candidates:
         raise LapInvalidError(f"{driver} has no lap valid for comparison in {key}.")
     return min(candidates, key=lambda lap: (lap.lap_time_s, lap.lap_number))
+
+
+def get_fastest_valid_lap(repo: SessionRepository, key: str, driver: str) -> LapRecord:
+    """Lowest lap_time_s among the driver's laps that are valid for comparison."""
+    return fastest_valid_lap(repo.list_laps(key, driver), driver, key)
