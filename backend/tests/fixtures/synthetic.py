@@ -18,7 +18,7 @@ from functools import lru_cache
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
-from app.ingestion.models import TelemetryFrame
+from app.ingestion.models import CornerInfo, TelemetryFrame
 from app.processing.models import LapData
 
 FINE_STEP_M = 0.05
@@ -48,6 +48,18 @@ KNOTS: tuple[tuple[float, float], ...] = (
     (330.0, 290.0),   # back to the line (~4820 m)
 )
 HAIRPIN_ZONE: tuple[float, float] = (2340.0, 2600.0)
+XY_PER_M = 10.0
+
+# Knot indices for corner tests. Braking for the hairpin starts at knot 8 (2280 m) and
+# reaches 80 km/h at knot 9; T2's apex plateau is around knot 6 (1360 m).
+HAIRPIN_BRAKE_KNOTS = (8, 9)
+T2_APEX_M = 1345.0
+
+# Official corner table for the synthetic track, like FastF1's circuit_info.corners:
+#   T1 ~ 900 m, T2 ~ 1345 m, T3 hairpin ~ 2470 m, T4 fast sweeper ~ 3310 m (flat out).
+#   T5 is a decoy on the main straight (no speed minimum: tests the official fallback).
+#   The chicane minimum (~4150 m) is deliberately missing (tests the detected fallback).
+OFFICIAL_CORNERS: tuple[tuple[int, float], ...] = ((1, 900.0), (2, 1345.0), (3, 2470.0), (4, 3310.0), (5, 350.0))
 
 
 @dataclass(frozen=True)
@@ -77,8 +89,16 @@ def make_profile(
     speed_scale: float = 1.0,
     slow_zone: tuple[float, float] | None = None,
     slow_factor: float = 1.0,
+    knot_shifts: tuple[tuple[int, float], ...] = (),
+    speed_offset: tuple[float, float, float] | None = None,
 ) -> Profile:
+    """knot_shifts moves knot i by shift metres (e.g. a braking zone 18 m earlier).
+    speed_offset (centre_m, half_width_m, kph) adds kph on a flat plateau of
+    ±half_width with 30 m cosine tapers, applied after smoothing so the change
+    at the plateau is exact (e.g. a minimum speed exactly 7 km/h lower)."""
     knot_d = np.cumsum([k[0] for k in KNOTS])
+    for index, shift in knot_shifts:
+        knot_d[index] += shift
     knot_v = np.array([k[1] for k in KNOTS])
     d = np.arange(0.0, knot_d[-1] + FINE_STEP_M / 2, FINE_STEP_M)
     v = np.interp(d, knot_d, knot_v)
@@ -89,6 +109,11 @@ def make_profile(
         # smooth bump so the slow zone has no step in speed
         bump = np.clip(np.sin(np.pi * (d - lo) / (hi - lo)), 0, None) * ((d >= lo) & (d <= hi))
         v = v * (1.0 - (1.0 - slow_factor) * bump)
+    if speed_offset is not None:
+        centre, half, kph = speed_offset
+        dist = np.abs(d - centre) - half
+        taper = np.where(dist <= 0, 1.0, np.where(dist < 30.0, 0.5 * (1 + np.cos(np.pi * dist / 30.0)), 0.0))
+        v = v + kph * taper
     v_ms = v / 3.6
     t = np.concatenate(([0.0], np.cumsum(np.diff(d) * 2.0 / (v_ms[1:] + v_ms[:-1]))))
     return Profile(distance_m=d, speed_kph=v, time_s=t)
@@ -116,6 +141,7 @@ def sample_lap(
     d_true = np.interp(t, profile.time_s, profile.distance_m)
     speed = profile.speed_at(d_true)
     accel = np.gradient(speed, t)
+    radius = profile.length_m / (2 * np.pi)
     gear = np.digitize(speed, [80, 120, 160, 195, 230, 260, 290]) + 1
     sector_s = (None, None, None)
     if sectors:
@@ -132,8 +158,9 @@ def sample_lap(
         "rpm": 7000.0 + 18.0 * speed,
         "drs_code": np.where((d_true > 100) & (d_true < 700), 12, 8),
         "drs_open": (d_true > 100) & (d_true < 700),
-        "x": 1000.0 * np.cos(2 * np.pi * d_true / profile.length_m),
-        "y": 1000.0 * np.sin(2 * np.pi * d_true / profile.length_m),
+        # FastF1 X/Y are decimetres: a circle whose circumference is the lap length
+        "x": XY_PER_M * radius * np.cos(2 * np.pi * d_true / profile.length_m),
+        "y": XY_PER_M * radius * np.sin(2 * np.pi * d_true / profile.length_m),
     })
     return LapData(
         telemetry=frame,
@@ -149,3 +176,15 @@ def make_lap(**kwargs: object) -> LapData:
     profile_keys = {"speed_scale", "slow_zone", "slow_factor"}
     profile = make_profile(**{k: v for k, v in kwargs.items() if k in profile_keys})  # type: ignore[arg-type]
     return sample_lap(profile, **{k: v for k, v in kwargs.items() if k not in profile_keys})  # type: ignore[arg-type]
+
+
+def official_corners(profile: Profile) -> list[CornerInfo]:
+    radius = profile.length_m / (2 * np.pi)
+    corners = []
+    for number, dist in OFFICIAL_CORNERS:
+        angle = 2 * np.pi * dist / profile.length_m
+        corners.append(CornerInfo(
+            number=number, letter=None, distance_m=dist, angle=0.0,
+            x=float(XY_PER_M * radius * np.cos(angle)), y=float(XY_PER_M * radius * np.sin(angle)),
+        ))
+    return sorted(corners, key=lambda c: c.distance_m)
