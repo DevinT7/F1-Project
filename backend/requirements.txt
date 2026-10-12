@@ -10,6 +10,9 @@ python-dotenv==1.0.1
 
 # Secondary data source (heavier; used by analysis + ml)
 fastf1==3.5.3
+# Phase 1 ingestion store (Parquet) + CLI progress logging
+pyarrow==26.0.0
+structlog==26.1.0
 
 # ML (Person 3). Needed to unpickle ml/models/tire_model.pkl in tires.py — must match
 # the version ml/requirements.txt trained with. Without it the endpoint still works,
@@ -25,3 +28,6 @@ openai==1.59.6
 
 # Dev / test
 pytest==8.3.4
+hypothesis==6.169.0
+mypy==2.4.0
+pandas-stubs==2.2.3.250308

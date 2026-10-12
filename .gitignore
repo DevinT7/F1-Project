@@ -5,12 +5,17 @@ __pycache__/
 venv/
 .env
 .fastf1_cache/
+.hypothesis/
+.mypy_cache/
+# Phase 1 normalized session store (python -m app.ingestion)
+/data/
 *.egg-info/
 
 # ML artifacts / data
 ml/data/
 ml/models/
 *.parquet
+!backend/tests/fixtures/ingestion/**/*.parquet
 *.pkl
 
 # Node / frontend

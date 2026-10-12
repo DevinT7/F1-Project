@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     # FastF1 on-disk cache (speeds up repeat telemetry/training pulls)
     fastf1_cache_dir: str = ".fastf1_cache"
     enable_fastf1: bool = True
+    # Normalized session store written by `python -m app.ingestion` (Parquet + JSON)
+    data_dir: str = str(_REPO_ROOT / "data")
 
     # --- App cache (in-memory dev default; point at Redis in prod) ---
     cache_ttl_seconds: int = 60 * 60  # historical data is immutable, cache hard

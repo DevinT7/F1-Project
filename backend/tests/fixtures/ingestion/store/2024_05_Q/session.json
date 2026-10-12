@@ -1,0 +1,14 @@
+{
+  "circuit": "Shanghai",
+  "circuit_rotation_deg": 237.0,
+  "country": "China",
+  "date": "2024-04-20T07:00:00Z",
+  "event_format": "sprint_qualifying",
+  "event_name": "Chinese Grand Prix",
+  "key": "2024_05_Q",
+  "n_laps_scheduled": null,
+  "round": 5,
+  "session_code": "Q",
+  "session_name": "Qualifying",
+  "year": 2024
+}

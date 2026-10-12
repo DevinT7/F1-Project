@@ -113,15 +113,16 @@ def _ensure_cache() -> Any:
     if not _fastf1_enabled():
         raise FastF1DisabledError("FastF1 is disabled.")
 
-    import fastf1  # noqa: WPS433  (lazy on purpose)
+    # Single FastF1 import site: the ingestion adapter (enables the cache once).
+    from ..ingestion.fastf1_client import import_fastf1
 
     if not _initialised:
         cache_dir = _fastf1_cache_dir()
-        os.makedirs(cache_dir, exist_ok=True)
-        fastf1.Cache.enable_cache(cache_dir)
+        fastf1 = import_fastf1(cache_dir)
         _initialised = True
         logger.info("FastF1 cache enabled at %s", cache_dir)
-    return fastf1
+        return fastf1
+    return import_fastf1()
 
 
 def _session_key(year: int, grand_prix: str, session_type: str) -> tuple[int, str, str]:

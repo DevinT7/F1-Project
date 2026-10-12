@@ -61,9 +61,23 @@ npm run dev                     # http://localhost:5173 (proxies /api to :8000)
 ```
 No backend yet? Click **Demo data** in the UI to preview with sample telemetry.
 
+### Ingestion (FastF1 → local Parquet store)
+```bash
+cd backend
+python -m app.ingestion ingest --year 2024 --round 5 --session Q   # ~2.5 min cold, ~1 s re-run
+python -m app.ingestion season --year 2024 --sessions Q,R          # every completed round
+python -m app.ingestion events --year 2024                         # cached schedule
+```
+Normalized sessions land in `data/` (gitignored; `RACEIQ_DATA_DIR` overrides). Only
+`app/ingestion/fastf1_client.py` imports FastF1; everything else uses the domain models
+in `app/ingestion/models.py`. Schemas, the DRS decoding, validity rules and plan
+deviations are recorded in [docs/decisions.md](docs/decisions.md).
+
 ### Tests (run offline — no network)
 ```bash
 cd backend && pytest -q
+pytest -m network                # opt-in live FastF1 integration (~3 min)
+mypy                             # strict on app/ingestion + app/storage
 ```
 
 ## API endpoints
