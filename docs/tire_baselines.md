@@ -1,0 +1,252 @@
+# Tire baselines (Phase 6B)
+
+This phase builds two interpretable degradation baselines and checks them against synthetic
+races whose true degradation is known, before they are trusted on real data. Throughout,
+"degradation" means a **combined adjusted trend**: tire wear plus any residual track evolution
+after the fuel adjustment. It is not pure tire wear.
+
+Code: `backend/app/tires/synthetic.py`, `models/base.py`, `models/baseline_fixed.py` (B),
+`models/baseline_stint.py` (A), and `recovery.py`. Tests:
+`tests/test_tires_synthetic.py` and `tests/test_tires_baselines.py`.
+
+## The identification problem, and two deviations from the plan
+
+Within one stint, **`tyre_age = constant − fuel_proxy` exactly**. Tyre age goes up by one each
+lap and fuel goes down by one each lap, regardless of which laps were excluded. Any model that
+only looks inside a stint can therefore never tell fuel burn-off from tyre wear.
+
+| Plan | Problem | What we built | Proof (test) |
+|---|---|---|---|
+| **A:** per stint, `lap_time ~ fuel_proxy + tyre_age` when ≥ 8 laps | The design has 3 columns but rank 2. The fuel/wear split is arbitrary. | Per stint, `lap_time − β_fuel·fuel_proxy ~ tyre_age`, with `β_fuel` taken from Baseline B fitted on the same race. | `test_a_specs_two_regressor_form_is_rank_deficient_within_a_stint` |
+| **B:** intercept `α` per (driver, stint) | Each stint intercept absorbs the only information that could separate fuel from wear. The design is rank-deficient, and its own noise-free test (β_fuel within 5%) can never pass. | `α` per **driver**, plus a compound pace offset `δ_compound`. Tyre age resets at every stop while fuel keeps falling, and staggered stops across drivers identify the slope for each compound. | `test_the_specs_driver_stint_intercepts_cannot_identify_fuel` (rank deficit ≥ 1 with (driver, stint) intercepts, 0 with driver intercepts) |
+
+Everything else follows the plan.
+
+## Baseline B: pooled fixed effects (statsmodels OLS)
+
+`lap_time = α_driver + δ_compound + β_fuel·fuel_proxy + Σ_c β_age,c·tyre_age (+ γ_c·tyre_age²) + β_temp·track_temp_c`
+
+- **Fit scope:** one fit per race (circuit-season) by default. `pooled=True` fits across races
+  with one intercept per (race, driver).
+- **Intercepts:** implemented as dummy variables (`C(driver)`), not by demeaning, so
+  `predict()` works directly on new rows from the same race.
+- **Standard errors:** cluster-robust by (driver, stint).
+- **Degradation at age `a`:** `β_age,c + 2·γ_c·a`, with a 95% CI by the delta method. The CI
+  uses a **t critical value with G_c − 1 degrees of freedom** (G_c = stints run on compound c)
+  and **the larger of the cluster-robust and conventional standard errors**.
+
+  Plain cluster-robust intervals with a normal critical value under-covered on 1,000 synthetic
+  races (MEDIUM 0.91). Cluster-robust variance is biased low when a coefficient rests on few
+  clusters, and softs often have only about 10 stints in a race. This rule restores 0.96–0.98
+  coverage for every compound, with intervals about 0.005 s/lap wide. It was tuned only on
+  synthetic truth, never on real data.
+- **`track_temp_c`:** included only when it varies within the fit. In the synthetic races it
+  is a seeded random walk. A temperature series that is exactly linear in lap number would be
+  collinear with fuel, which was a real bug in the first draft of the generator: it made
+  noise-free β_fuel come out at −0.12.
+- **Flags, never silent:** `confounded_fuel_age` fires when any of these hold:
+  - the design is rank-deficient
+  - β_fuel ≤ 0 (more fuel must mean slower)
+  - |corr(tyre_age, fuel_proxy)| > 0.95, a correlation recorded on every fit
+
+  The warnings carry the reason.
+
+## Baseline A: per-stint linear, fuel-adjusted
+
+- **Model:** for each stint with ≥ 5 clean laps, OLS of the fuel-adjusted lap time on tyre
+  age. The slope is the degradation; its 95% CI comes from the t distribution; forecasts are
+  linear extrapolation.
+- **High variance:** a stint is flagged `high_variance` when its CI is wider than 0.1 s/lap.
+- **Short stints:** with fewer than 5 clean laps there is **no estimate**: the value is null
+  and the `insufficient_laps` flag is set. `predict()` returns NaN for those laps.
+- **No usable fuel estimate:** when B's fit for the race is confounded, A reports the
+  unadjusted slope with `fuel_not_adjusted` / `fuel_from_confounded_fit`.
+- **Expected weakness:** A uses one stint's 10–20 laps, so it is far noisier than B. The 95%
+  CI also ignores the uncertainty in the fuel slope it borrows from B, which is why its
+  coverage dips below 95% (see below).
+
+## Parameter recovery (synthetic, known truth)
+
+Each synthetic race has 20 drivers and 57 laps, with mixed staggered 1- and 2-stop strategies.
+Lap 1, in/out laps and any safety-car laps are removed by the **real** 6A exclusion rules.
+Each scenario was run over 50 seeds. The B and A columns are evaluated on one stint per
+compound at tyre age 10.
+
+<!-- recovery:start -->
+Generated by `python -m app.tires.recovery --seeds 50 --write` (seeds 42…91).
+Truth: SOFT 0.12, MEDIUM 0.08, HARD 0.05 s/lap linear; fuel 0.06 s per lap of fuel; 20 drivers × 57 laps.
+
+**default (noise 0.15 s, staggered stops)** · 50 seeds · `confounded_fuel_age` flagged in 0/50 fits · recovered β_fuel mean +0.0600 (true +0.0600)
+
+| Compound | True (s/lap) | B mean | B bias | B SD | B 95% coverage | A mean | A bias | A 95% coverage |
+|---|---|---|---|---|---|---|---|---|
+| SOFT | 0.120 | 0.1197 | -0.0003 | 0.0018 | 96% | 0.1174 | -0.0026 | 88% |
+| MEDIUM | 0.080 | 0.0800 | -0.0000 | 0.0013 | 96% | 0.0820 | +0.0020 | 98% |
+| HARD | 0.050 | 0.0498 | -0.0002 | 0.0009 | 98% | 0.0489 | -0.0011 | 96% |
+
+**noise-free** · 50 seeds · `confounded_fuel_age` flagged in 0/50 fits · recovered β_fuel mean +0.0600 (true +0.0600)
+
+| Compound | True (s/lap) | B mean | B bias | B SD | B 95% coverage | A mean | A bias | A 95% coverage |
+|---|---|---|---|---|---|---|---|---|
+| SOFT | 0.120 | 0.1200 | -0.0000 | 0.0000 | n/a (σ = 0) | 0.1200 | -0.0000 | n/a (σ = 0) |
+| MEDIUM | 0.080 | 0.0800 | +0.0000 | 0.0000 | n/a (σ = 0) | 0.0800 | -0.0000 | n/a (σ = 0) |
+| HARD | 0.050 | 0.0500 | -0.0000 | 0.0000 | n/a (σ = 0) | 0.0500 | -0.0000 | n/a (σ = 0) |
+
+**heavy noise (0.6 s)** · 50 seeds · `confounded_fuel_age` flagged in 0/50 fits · recovered β_fuel mean +0.0600 (true +0.0600)
+
+| Compound | True (s/lap) | B mean | B bias | B SD | B 95% coverage | A mean | A bias | A 95% coverage |
+|---|---|---|---|---|---|---|---|---|
+| SOFT | 0.120 | 0.1179 | -0.0021 | 0.0071 | 94% | 0.1091 | -0.0109 | 86% |
+| MEDIUM | 0.080 | 0.0800 | +0.0000 | 0.0053 | 94% | 0.0914 | +0.0114 | 98% |
+| HARD | 0.050 | 0.0491 | -0.0009 | 0.0037 | 96% | 0.0464 | -0.0036 | 96% |
+
+**hidden track evolution (−0.02 s/lap)** · 50 seeds · `confounded_fuel_age` flagged in 0/50 fits · recovered β_fuel mean +0.0800 (true +0.0600; with track evolution the identifiable value is +0.0800)
+
+| Compound | True (s/lap) | B mean | B bias | B SD | B 95% coverage | A mean | A bias | A 95% coverage |
+|---|---|---|---|---|---|---|---|---|
+| SOFT | 0.120 | 0.1197 | -0.0003 | 0.0018 | 96% | 0.1175 | -0.0025 | 88% |
+| MEDIUM | 0.080 | 0.0801 | +0.0001 | 0.0013 | 94% | 0.0828 | +0.0028 | 98% |
+| HARD | 0.050 | 0.0498 | -0.0002 | 0.0010 | 94% | 0.0491 | -0.0009 | 96% |
+
+**collinear: no staggered stops** · 50 seeds · `confounded_fuel_age` flagged in 50/50 fits · recovered β_fuel mean +1.7055 (true +0.0600)
+
+| Compound | True (s/lap) | B mean | B bias | B SD | B 95% coverage | A mean | A bias | A 95% coverage |
+|---|---|---|---|---|---|---|---|---|
+| SOFT | 0.120 | not run in this scenario | | | | | | |
+| MEDIUM | 0.080 | 1.7250 | +1.6450 | 0.0099 | 0% | 0.0203 | -0.0597 | 0% |
+| HARD | 0.050 | 1.6956 | +1.6456 | 0.0095 | 0% | -0.0093 | -0.0593 | 0% |
+
+<!-- recovery:end -->
+
+### Reading the table
+
+- **Baseline B meets every plan tolerance:**
+  - noise-free: degradation exact and β_fuel exact (tolerances ±0.002 s/lap and ±5%)
+  - default noise: mean within 0.001 s/lap of the truth (tolerance ±0.01), 95% coverage
+    94–98% (target 90–99%)
+  - heavy noise: still unbiased within 0.0021 s/lap
+- **Hidden linear track evolution** lands entirely in β_fuel (+0.08 = 0.06 + 0.02), while the
+  degradation slopes stay correct. That is what "combined adjusted trend" means in practice.
+  Track evolution that is linear in lap number cannot be separated from fuel burn-off by any
+  model. It is reported as part of the fuel term, not hidden in the degradation.
+- **Collinear races** (everyone stops on the same lap) are flagged `confounded_fuel_age` in
+  50 of 50 fits. Their estimates are nonsense (β_fuel ≈ +1.7), which is exactly why the flag
+  must stop downstream use.
+- **Baseline A** is unbiased on average at default noise (within 0.003 s/lap, inside its own
+  sampling error), but noisier than B. Its coverage dips to about 88% for softs because the
+  borrowed fuel slope's uncertainty is not propagated. Under heavy noise its bias reaches about
+  ±0.011 s/lap. That is acceptable for an interpretable per-stint view, and it is the reason B
+  is the primary baseline.
+
+## Real data (24 races, dataset `6681d16a0b57`)
+
+Run on every race of the 6A dataset with **no thresholds tuned on real data**. Every rule above
+was fixed on synthetic truth first.
+
+<!-- real:start -->
+Generated by `python -m app.tires.baseline_report --write` on dataset `6681d16a0b57` (24 races).
+
+- **Ran without crashing:** 24/24 races
+- **Baseline B flags:** `confounded_fuel_age` in 1/24 races (2023_03_R)
+- **Baseline A:** 1120 stint estimates, 0 null (flags: high_variance 334, fuel_from_confounded_fit 20, fuel_not_adjusted 20)
+- **Compound ordering (B, at tyre age 10):** SOFT ≥ MEDIUM ≥ HARD holds in 8 races; reversed but within uncertainty (overlapping 95% CIs) in 16; **clear exception** (reversed, non-overlapping CIs) in 0
+
+Baseline B per race: degradation in s/lap at tyre age 10, with 95% CI. β_fuel in s per lap of fuel (must be > 0). Stints per compound in brackets. A = median of Baseline A per-stint slopes.
+
+| Race | Event | Laps | β_fuel | SOFT | MEDIUM | HARD | Order | A median S / M / H | Flags |
+|---|---|---|---|---|---|---|---|---|---|
+| 2023_01_R | Bahrain Grand Prix | 839 | +0.0208 | +0.140 [+0.111, +0.169] (32) | +0.127 [-1.030, +1.285] (1) | +0.120 [+0.102, +0.137] (31) | expected | +0.125 / +0.105 / +0.056 | — |
+| 2023_02_R | Saudi Arabian Grand Prix | 750 | +0.0546 | +0.023 [-0.836, +0.883] (2) | +0.006 [-0.015, +0.026] (20) | +0.007 [-0.018, +0.031] (17) | inconclusive | +0.034 / +0.018 / -0.011 | — |
+| 2023_03_R | Australian Grand Prix | 666 | +0.8413 | +0.713 [-1.288, +2.714] (1) | +0.882 [+0.200, +1.563] (2) | +0.816 [+0.702, +0.930] (17) | inconclusive | -0.154 / +0.002 / -0.060 | confounded_fuel_age |
+| 2023_04_R | Azerbaijan Grand Prix | 762 | +0.0825 | — | +0.037 [+0.002, +0.072] (15) | +0.026 [+0.016, +0.036] (21) | expected | — / +0.039 / +0.033 | — |
+| 2023_05_R | Miami Grand Prix | 1034 | +0.0501 | — | +0.021 [+0.002, +0.041] (17) | +0.024 [+0.016, +0.031] (20) | inconclusive | — / +0.010 / +0.021 | — |
+| 2023_07_R | Spanish Grand Prix | 1136 | +0.0532 | +0.049 [+0.031, +0.067] (22) | +0.055 [+0.043, +0.068] (17) | +0.048 [+0.026, +0.070] (22) | inconclusive | +0.042 / +0.060 / +0.068 | — |
+| 2023_08_R | Canadian Grand Prix | 996 | +0.0395 | -0.031 [-0.847, +0.786] (1) | +0.033 [+0.017, +0.048] (20) | +0.022 [+0.012, +0.032] (28) | inconclusive | -0.032 / +0.037 / +0.040 | — |
+| 2023_09_R | Austrian Grand Prix | 1014 | +0.0334 | — | +0.058 [+0.047, +0.070] (26) | +0.058 [+0.049, +0.066] (29) | expected | — / +0.051 / +0.053 | — |
+| 2023_10_R | British Grand Prix | 759 | +0.0546 | +0.027 [+0.011, +0.043] (17) | +0.019 [+0.010, +0.028] (17) | +0.021 [-0.007, +0.050] (8) | inconclusive | +0.035 / +0.021 / +0.060 | — |
+| 2023_11_R | Hungarian Grand Prix | 1062 | +0.0602 | +0.038 [-0.088, +0.164] (3) | +0.049 [+0.033, +0.065] (23) | +0.061 [+0.049, +0.073] (28) | inconclusive | +0.036 / +0.060 / +0.083 | — |
+| 2023_12_R | Belgian Grand Prix | 540 | +0.0877 | +0.140 [+0.104, +0.176] (20) | +0.195 [+0.154, +0.237] (24) | +0.381 [-0.562, +1.324] (1) | inconclusive | +0.133 / +0.205 / +0.353 | — |
+| 2023_15_R | Singapore Grand Prix | 775 | +0.0402 | +0.051 [-0.062, +0.165] (3) | +0.063 [+0.030, +0.095] (21) | +0.029 [+0.009, +0.049] (18) | inconclusive | +0.035 / +0.001 / +0.032 | — |
+| 2024_01_R | Bahrain Grand Prix | 957 | +0.0561 | +0.123 [+0.106, +0.140] (25) | — | +0.110 [+0.101, +0.119] (37) | expected | +0.119 / — / +0.094 | — |
+| 2024_02_R | Saudi Arabian Grand Prix | 712 | +0.1141 | +0.109 [+0.040, +0.179] (4) | +0.056 [+0.032, +0.080] (6) | +0.054 [+0.034, +0.073] (15) | expected | +0.119 / +0.046 / +0.046 | — |
+| 2024_03_R | Australian Grand Prix | 791 | +0.0526 | -0.077 [-1.583, +1.429] (1) | +0.060 [+0.041, +0.079] (14) | +0.046 [+0.038, +0.054] (36) | inconclusive | -0.077 / +0.041 / +0.049 | — |
+| 2024_04_R | Japanese Grand Prix | 722 | +0.0956 | +0.143 [+0.067, +0.219] (4) | +0.124 [+0.094, +0.154] (17) | +0.117 [+0.100, +0.135] (27) | expected | +0.128 / +0.170 / +0.136 | — |
+| 2024_05_R | Chinese Grand Prix | 710 | +0.0749 | +0.105 [-0.018, +0.228] (6) | +0.135 [+0.100, +0.170] (24) | +0.114 [+0.098, +0.130] (23) | inconclusive | +0.184 / +0.170 / +0.114 | — |
+| 2024_06_R | Miami Grand Prix | 870 | +0.0570 | +0.036 [-0.174, +0.246] (2) | +0.025 [+0.011, +0.040] (24) | +0.031 [+0.021, +0.041] (19) | inconclusive | +0.064 / +0.030 / +0.037 | — |
+| 2024_07_R | Emilia Romagna Grand Prix | 1085 | +0.0313 | -0.085 [-1.477, +1.308] (1) | +0.067 [+0.056, +0.077] (23) | +0.042 [+0.033, +0.052] (19) | inconclusive | -0.116 / +0.074 / +0.036 | — |
+| 2024_08_R | Monaco Grand Prix | 1123 | +0.0571 | +0.083 [-0.291, +0.457] (2) | +0.029 [+0.012, +0.047] (8) | +0.044 [+0.036, +0.052] (12) | inconclusive | -0.300 / -0.013 / +0.005 | — |
+| 2024_10_R | Spanish Grand Prix | 1136 | +0.0627 | +0.091 [+0.075, +0.106] (30) | +0.082 [+0.068, +0.095] (19) | +0.080 [+0.065, +0.095] (13) | expected | +0.093 / +0.080 / +0.079 | — |
+| 2024_11_R | Austrian Grand Prix | 1194 | +0.0264 | — | +0.076 [+0.067, +0.085] (34) | +0.058 [+0.052, +0.065] (27) | expected | — / +0.080 / +0.058 | — |
+| 2024_13_R | Hungarian Grand Prix | 1142 | +0.0499 | +0.045 [-0.961, +1.052] (2) | +0.071 [+0.049, +0.093] (20) | +0.073 [+0.062, +0.084] (30) | inconclusive | +0.075 / +0.065 / +0.087 | — |
+| 2024_14_R | Belgian Grand Prix | 698 | +0.0926 | +0.030 [-1.189, +1.250] (1) | +0.105 [+0.082, +0.128] (25) | +0.054 [+0.044, +0.065] (26) | inconclusive | +0.023 / +0.107 / +0.064 | — |
+
+Warnings from flagged fits:
+
+- 2023_03_R: design is rank-deficient by 1: fuel and tyre-age effects are not separately identified
+
+<!-- real:end -->
+
+### Three races in detail
+
+**2024 Bahrain: clean and well identified.** The race ran SOFT (25 stints) and HARD (37 stints),
+with no safety car. Baseline B gives SOFT +0.123 [+0.106, +0.140] s/lap and HARD +0.110
+[+0.101, +0.119], both tight and in the expected order. β_fuel is +0.056 s per lap of fuel,
+squarely in the usual few-hundredths range. Baseline A's per-stint medians agree (SOFT +0.119,
+HARD +0.094). Bahrain's abrasive surface is known for high degradation, and both baselines see
+it. This is what a trustworthy fit looks like.
+
+**2023 Australia: correctly refused.** Three red flags mean restarts and free tyre changes, so
+most drivers' stints line up and the fixed-effects design is **rank-deficient by 1**. B flags
+`confounded_fuel_age`, and its numbers are nonsense: β_fuel +0.84, degradation about
++0.8 s/lap. That is the same failure mode as the synthetic collinear scenario. A sees the flag
+and reports `fuel_from_confounded_fit` on all 20 stints rather than borrowing that fuel slope.
+Downstream phases must treat this race's estimates as unavailable, and the flag makes that
+mechanical.
+
+**2024 Monaco: numbers that are not tire wear.** After a lap-1 red flag, almost everyone ran
+one set to the end. B finds low HARD degradation, +0.044 [+0.036, +0.052], and MEDIUM
++0.029 over 8 stints. Baseline A's per-stint medians, however, are **negative** for SOFT
+(−0.300, 2 stints) and MEDIUM (−0.013). At Monaco, lap times are driven by pace management
+and queueing (drivers deliberately backing up the field to protect track position), not by the
+tyres. With `traffic_known = False` there is no way to model that, so these slopes describe
+"how lap time evolved", which is exactly the combined adjusted trend caveat. A negative
+per-stint slope is a signal to distrust the stint, not evidence that tyres got faster.
+
+### Compound ordering: SOFT ≥ MEDIUM ≥ HARD
+
+The expected ordering holds in 8 races. It is reversed in 16, but **only within uncertainty**:
+in every reversal the 95% intervals overlap, and in none does the data clearly contradict the
+ordering. The reasons are structural, not model failures:
+
+- **Few stints on one compound.** In many races a compound was used by 1–3 drivers (2023
+  Bahrain MEDIUM: 1 stint, CI ±1.2 s/lap; most SOFT cells). With G_c − 1 degrees of freedom
+  the interval is honestly huge, and the point estimate means little.
+- **Compound names are relative to each event.** SOFT/MEDIUM/HARD map to different Pirelli
+  C1–C5 compounds at every event, so the softest compound at one race can be harder than the
+  "HARD" at another. Orderings only make sense within a race, and even there the gaps can be
+  small (2023 Spain: SOFT +0.049, MEDIUM +0.055, HARD +0.048, all overlapping).
+- **Strategy selection.** Softs are run short and early, on heavy fuel, often in traffic.
+  Hards cover long stints where drivers manage pace. Some of each compound's "degradation" is
+  therefore driving style rather than rubber.
+- **Combined adjusted trend.** Track evolution and temperature drift that the fuel and
+  temperature terms do not fully capture end up in the slopes. This is the same reason
+  β_fuel ranges from +0.021 (2023 Bahrain) to +0.114 (2024 Saudi Arabia). Jeddah's
+  rapidly rubbering-in street circuit plausibly adds track evolution to the "fuel" term, as
+  in the hidden-track-evolution synthetic scenario.
+
+### Coefficient magnitudes against expectations
+
+- **β_fuel:** positive in all 24 races. That includes Australia, where the value is meaningless
+  because of the flag. The plausible range is about 0.03–0.06 s per lap of fuel, and most races
+  fall at 0.03–0.09. The high values (2024 Saudi Arabia, Japan, Belgium) are where we would
+  expect track evolution to be folded in.
+- **Degradation:** typically +0.02 to +0.14 s/lap at tyre age 10 for well-identified
+  compounds. It is highest at Bahrain (abrasive), China, Japan and Belgium, and lowest at
+  Saudi Arabia 2023, Miami and Monaco. That broadly matches the known circuit characters.
+- **Baseline A:** 1,120 stint estimates. 334 (30%) carry `high_variance` (CI > 0.1 s/lap),
+  which is expected from single-stint fits. All 20 Australia stints carry the
+  confounded-fuel flags. No stint produced an estimate from fewer than 5 clean laps.
+
+**Gate (human):** the magnitudes and ordering above are plausible. The exceptions are explained
+by uncertainty, relative compound naming and strategy, and the one unidentifiable race is
+flagged rather than reported.

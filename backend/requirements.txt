@@ -22,6 +22,8 @@ matplotlib==3.11.2
 # the version ml/requirements.txt trained with. Without it the endpoint still works,
 # it just logs the load failure and serves baseline-linear.
 scikit-learn==1.6.0
+# Phase 6B Baseline B (fixed-effects OLS, cluster-robust SEs)
+statsmodels==0.15.0
 # Only needed if a booster wins in train.py; the shipped artifact is random_forest.
 # xgboost==2.1.4
 # lightgbm==4.5.0
