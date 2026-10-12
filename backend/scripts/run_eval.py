@@ -2,7 +2,8 @@
 
     cd backend && python -m scripts.run_eval [--write-doc] [--allow-dirty]
 
-Logs to the MLflow experiment "raceiq-tires" (tracking store: <repo>/mlruns, gitignored;
+Logs to the MLflow experiment "raceiq-tires" (SQLite store <repo>/mlruns/mlflow.db, artifacts in
+<repo>/mlruns/artifacts, both gitignored;
 override with MLFLOW_TRACKING_URI): parameters, dataset hash, git SHA, FastF1 version, every
 summary metric, the result tables, and three plots (error vs horizon step, error vs tyre age,
 per-race MAE). Refuses to run on a dirty git tree unless --allow-dirty is given, so every
@@ -157,7 +158,12 @@ def main(argv: list[str] | None = None) -> int:
             os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
             import mlflow
 
-            mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", (REPO / "mlruns").as_uri()))
+            store = REPO / "mlruns"
+            store.mkdir(exist_ok=True)
+            # MLflow 3 retired the plain-directory store; SQLite keeps it local and file-based.
+            mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", f"sqlite:///{(store / 'mlflow.db').as_posix()}"))
+            if mlflow.get_experiment_by_name(EXPERIMENT) is None:
+                mlflow.create_experiment(EXPERIMENT, artifact_location=(store / "artifacts").as_uri())
             mlflow.set_experiment(EXPERIMENT)
             with mlflow.start_run(run_name=f"benchmarks-{meta['hash'][:12]}") as run:
                 run_id = run.info.run_id
