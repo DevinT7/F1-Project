@@ -24,6 +24,8 @@ matplotlib==3.11.2
 scikit-learn==1.6.0
 # Phase 6B Baseline B (fixed-effects OLS, cluster-robust SEs)
 statsmodels==0.15.0
+# Phase 6C experiment tracking (python -m scripts.run_eval)
+mlflow==3.17.0
 # Only needed if a booster wins in train.py; the shipped artifact is random_forest.
 # xgboost==2.1.4
 # lightgbm==4.5.0

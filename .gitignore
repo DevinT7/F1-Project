@@ -8,6 +8,9 @@ venv/
 .hypothesis/
 .mypy_cache/
 .coverage
+# MLflow tracking store (python -m scripts.run_eval)
+/mlruns/
+mlruns/
 # Phase 1 normalized session store (python -m app.ingestion)
 /data/
 # schedule cache the API writes when served from the fixture repo (e2e, demo export)
