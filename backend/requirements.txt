@@ -13,6 +13,8 @@ fastf1==3.5.3
 # Phase 1 ingestion store (Parquet) + CLI progress logging
 pyarrow==26.0.0
 structlog==26.1.0
+# Phase 2 delta engine: Savitzky-Golay smoothing (already pulled in by scikit-learn)
+scipy==1.17.1
 
 # ML (Person 3). Needed to unpickle ml/models/tire_model.pkl in tires.py — must match
 # the version ml/requirements.txt trained with. Without it the endpoint still works,
@@ -31,3 +33,4 @@ pytest==8.3.4
 hypothesis==6.169.0
 mypy==2.4.0
 pandas-stubs==2.2.3.250308
+pytest-cov==7.1.0
