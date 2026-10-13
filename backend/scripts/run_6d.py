@@ -287,6 +287,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base", default="lightgbm", help="intervals/explain: the point model spec")
     parser.add_argument("--ship", default="pooled_fixed_effects", help="final: the model spec to ship")
     parser.add_argument("--tuned", action="store_true", help="use the full-development tuned hyperparameters")
+    parser.add_argument("--compare", nargs="*", default=[],
+                        help="final: reference specs evaluated alongside (point model + 80/95%% conformal); never shipped")
     args = parser.parse_args(argv)
 
     dirty = git("status", "--porcelain")
@@ -340,9 +342,13 @@ def main(argv: list[str] | None = None) -> int:
         hp = load_best(meta, args.ship, args.tuned)
         models = [PersistenceModel(), point_model(args.ship, hp),
                   *[SplitConformal(point_model(args.ship, hp), alpha=a) for a in (0.2, 0.05)]]
-        if args.ship != "pooled_fixed_effects":
-            models += [SplitConformal(PooledFixedEffects(), alpha=a) for a in (0.2, 0.05)]
-        stage("final", frame, models, ("holdout",), {"ship": args.ship, "tuned": args.tuned},
+        for spec in ([] if args.ship == "pooled_fixed_effects" else ["pooled_fixed_effects"]) + args.compare:
+            ref_hp = load_best(meta, spec, args.tuned and spec not in ("persistence", "pooled_fixed_effects"))
+            if spec != "persistence":
+                models.append(point_model(spec, ref_hp))
+            models += [SplitConformal(point_model(spec, ref_hp), alpha=a) for a in (0.2, 0.05)]
+        stage("final", frame, models, ("holdout",), {"ship": args.ship, "tuned": args.tuned,
+                                                     "compare": ",".join(args.compare)},
               lambda r: comparison_table(r) + "\n\n" + verdict_table(r, check_holdout(r.summary, r.by_race)))
         shipped = SplitConformal(point_model(args.ship, hp), alpha=0.2)
         shipped.fit(frame)  # the shipped model sees all 24 races; the holdout numbers above are its estimate
