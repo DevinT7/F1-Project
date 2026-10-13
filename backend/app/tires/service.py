@@ -56,6 +56,27 @@ class PredictedLap:
 
 
 @dataclass(frozen=True)
+class HistoryLap:
+    """One lap of the current stint up to the cut: what the panel plots as observed."""
+    lap: int
+    lap_time_s: float | None
+    clean: bool
+    excluded_reason: str | None      # the 6A rule that dropped it (None when clean)
+    fitted_s: float | None           # the model's in-sample value for a clean lap (status ok only)
+
+
+@dataclass(frozen=True)
+class ThresholdPoint:
+    lap: int
+    threshold_s: float               # best pace + X on the RAW lap-time scale at this lap
+
+
+# machine-readable insufficient_data causes (the UI picks its message from these)
+REASON_CODES = ("too_few_clean_laps", "wet_compound", "unknown_stint", "unsupported_compound", "race_over",
+                "non_finite_forecast")
+
+
+@dataclass(frozen=True)
 class Prediction:
     """Service-level result; the API schema mirrors it field for field."""
     status: str                                  # "ok" | "insufficient_data"
@@ -64,6 +85,9 @@ class Prediction:
     lap: int
     horizon: int
     reason: str | None = None
+    reason_code: str | None = None               # one of REASON_CODES when status is insufficient_data
+    clean_laps_required: int = 5
+    race_laps_total: int | None = None
     stint: int | None = None
     compound: str | None = None
     tyre_age: int | None = None
@@ -75,6 +99,9 @@ class Prediction:
     pit_window_reason: str | None = None
     remaining_competitive_laps: int | None = None
     model: dict[str, str] | None = None
+    rainfall_in_stint: bool | None = None
+    history: tuple[HistoryLap, ...] | None = None
+    threshold_curve: tuple[ThresholdPoint, ...] | None = None
     warnings: tuple[str, ...] = ()
 
 
@@ -149,32 +176,48 @@ class TireService:
     def _predict(self, session: _Session, code: str, lap: int, horizon: int, x: float, model: ServedModel,
                  entry: RegistryEntry) -> Prediction:
         info = session.info
+        total = int(info.n_laps_scheduled or session.laps["lap_number"].max())
         base = Prediction(status="ok", session_key=info.key, driver=code, lap=lap, horizon=horizon,
+                          clean_laps_required=self.config.min_clean_laps, race_laps_total=total,
                           model={"name": entry.name, "version": entry.version, "trained_through": entry.trained_through})
         cut = session.laps[session.laps["lap_number"] <= lap]          # THE cut: nothing after `lap`
         raw = cut[(cut["driver"] == code) & (cut["lap_number"] == lap)].iloc[0]
         stint_no, compound, age_now = raw["stint"], raw["compound"], raw["tyre_age"]
         if pd.isna(stint_no) or compound is None or pd.isna(age_now):
-            return replace(base, status="insufficient_data",
+            return replace(base, status="insufficient_data", reason_code="unknown_stint",
                            reason="stint, compound or tyre age unknown at this lap (FastF1 timing gap)")
         stint_no, age_now, compound = int(stint_no), int(age_now), str(compound)
-        base = replace(base, stint=stint_no, compound=compound, tyre_age=age_now)
-        if compound in WET_COMPOUNDS:
-            return replace(base, status="insufficient_data", reason=f"{compound} tyres are not modelled (dry races only)")
-        if not model.point_model.supports(compound):
-            return replace(base, status="insufficient_data", reason=f"model has no estimate for {compound}")
-        total = int(info.n_laps_scheduled or session.laps["lap_number"].max())
-        if lap >= total:
-            return replace(base, status="insufficient_data", reason="no laps left in the race")
-
+        stint_raw = cut[(cut["driver"] == code) & (cut["stint"] == stint_no)].sort_values("lap_number")
+        rain = bool(stint_raw["rainfall"].fillna(False).astype(bool).any())
         cfg = ExclusionConfig(min_clean_stint_laps=self.config.min_clean_laps, keep_short_stints=True)
-        rows = build_rows(info, apply_rules(cut, cfg).kept, cut)
+        excl = apply_rules(cut, cfg)
+        rows = build_rows(info, excl.kept, cut)
         history = rows[(rows["driver"] == code) & (rows["stint"] == stint_no)].sort_values("lap_number")
         clean = len(history)
-        base = replace(base, clean_laps_used=clean)
+
+        def observed(fitted: dict[int, float] | None = None) -> tuple[HistoryLap, ...]:
+            out: list[HistoryLap] = []
+            reasons = excl.reasons.to_dict()
+            for idx, r in stint_raw.iterrows():
+                n, why = int(r["lap_number"]), reasons.get(idx)
+                t = None if pd.isna(r["lap_time_s"]) else round(float(r["lap_time_s"]), 3)
+                fit = None if fitted is None or n not in fitted else round(fitted[n], 3)
+                out.append(HistoryLap(n, t, why is None, None if why is None else str(why), fit))
+            return tuple(out)
+
+        base = replace(base, stint=stint_no, compound=compound, tyre_age=age_now, clean_laps_used=clean,
+                       rainfall_in_stint=rain, history=observed())
+        if compound in WET_COMPOUNDS:
+            return replace(base, status="insufficient_data", reason_code="wet_compound",
+                           reason=f"{compound} tyres are not modelled (dry races only)")
+        if not model.point_model.supports(compound):
+            return replace(base, status="insufficient_data", reason_code="unsupported_compound",
+                           reason=f"model has no estimate for {compound}")
         if clean < self.config.min_clean_laps:
-            return replace(base, status="insufficient_data",
+            return replace(base, status="insufficient_data", reason_code="too_few_clean_laps",
                            reason=f"{clean} clean laps in this stint so far; at least {self.config.min_clean_laps} needed")
+        if lap >= total:
+            return replace(base, status="insufficient_data", reason_code="race_over", reason="no laps left in the race")
         warnings: list[str] = []
         if pd.notna(raw["pit_in_time_s"]):
             warnings.append(f"{code} entered the pits at the end of lap {lap}: the forecast assumes the stint continues")
@@ -188,7 +231,10 @@ class TireService:
         })
         fc = model.forecast(history, future)
         if not (np.isfinite(fc.mean).all() and np.isfinite(fc.lo).all() and np.isfinite(fc.hi).all()):
-            return replace(base, status="insufficient_data", reason="model produced a non-finite forecast")
+            return replace(base, status="insufficient_data", reason_code="non_finite_forecast",
+                           reason="model produced a non-finite forecast")
+        if rain:
+            warnings.append("rainfall was reported during this stint: the model is trained on dry races only")
         if fc.extrapolated_steps:
             warnings.append(f"interval for steps {fc.extrapolated_steps[0]}–{fc.extrapolated_steps[-1]} reuses the largest "
                             "calibrated step (no calibration data that far ahead)")
@@ -230,13 +276,19 @@ class TireService:
             window = {"earliest_lap": w.earliest_lap, "central_lap": w.central_lap, "latest_lap": w.latest_lap,
                       "threshold_s": x, "threshold_pace_s": round(w.threshold_s, 3), "best_pace_s": round(best, 3),
                       "pace_basis": basis, "method": w.method, "confidence": w.confidence,
+                      "confidence_reasons": list(pw.confidence_reasons(w, clean)),
                       "assumptions": list(w.assumptions), "notes": list(w.notes)}
         remaining = res.remaining_competitive_laps
         if remaining is None and window is not None:
             warnings.append("remaining_competitive_laps: the forecast never reaches the threshold within the horizon")
+        fitted = model.point_model.point(history, history)  # in-sample, history only
+        fitted_by_lap = dict(zip(history["lap_number"].astype(int), fitted.astype(float), strict=True))
+        threshold = best + x
+        first = int(stint_raw["lap_number"].min())
+        curve = tuple(ThresholdPoint(n, round(threshold + beta * (total - n), 3)) for n in range(first, laps[-1] + 1))
         return replace(base, degradation_s_per_lap=degradation, degradation_ci=ci, predicted_laps=predicted,
                        pit_window=window, pit_window_reason=reason, remaining_competitive_laps=remaining,
-                       warnings=tuple(warnings))
+                       history=observed(fitted_by_lap), threshold_curve=curve, warnings=tuple(warnings))
 
     def models(self) -> list[RegistryEntry]:
         return self.registry.entries()

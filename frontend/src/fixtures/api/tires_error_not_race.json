@@ -1,0 +1,8 @@
+{
+ "error": {
+  "code": "not_a_race_session",
+  "message": "tire forecasting requires a race session; 2024-05-Q is Qualifying",
+  "status_code": 422,
+  "request_id": "fixture-tires_error_not_race"
+ }
+}

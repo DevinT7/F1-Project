@@ -1,0 +1,101 @@
+{
+ "session_key": "2024-99-R",
+ "min_clean_laps": 5,
+ "drivers": [
+  {
+   "driver": "AAA",
+   "team": "Synthetic Racing",
+   "stints": [
+    {
+     "stint": 1,
+     "compound": "MEDIUM",
+     "first_lap": 1,
+     "last_lap": 22,
+     "tyre_age_at_start": 1,
+     "fresh_tyre": true,
+     "total_laps": 22,
+     "clean_laps": 20,
+     "model_eligible": true
+    },
+    {
+     "stint": 2,
+     "compound": "HARD",
+     "first_lap": 23,
+     "last_lap": 50,
+     "tyre_age_at_start": 1,
+     "fresh_tyre": true,
+     "total_laps": 28,
+     "clean_laps": 17,
+     "model_eligible": true
+    }
+   ]
+  },
+  {
+   "driver": "BBB",
+   "team": "Synthetic Racing",
+   "stints": [
+    {
+     "stint": 1,
+     "compound": "SOFT",
+     "first_lap": 1,
+     "last_lap": 15,
+     "tyre_age_at_start": 1,
+     "fresh_tyre": true,
+     "total_laps": 15,
+     "clean_laps": 13,
+     "model_eligible": true
+    },
+    {
+     "stint": 2,
+     "compound": "MEDIUM",
+     "first_lap": 16,
+     "last_lap": 46,
+     "tyre_age_at_start": 1,
+     "fresh_tyre": true,
+     "total_laps": 31,
+     "clean_laps": 29,
+     "model_eligible": true
+    },
+    {
+     "stint": 3,
+     "compound": "SOFT",
+     "first_lap": 47,
+     "last_lap": 50,
+     "tyre_age_at_start": 1,
+     "fresh_tyre": true,
+     "total_laps": 4,
+     "clean_laps": 3,
+     "model_eligible": false
+    }
+   ]
+  },
+  {
+   "driver": "CCC",
+   "team": "Model Motorsport",
+   "stints": [
+    {
+     "stint": 1,
+     "compound": "INTERMEDIATE",
+     "first_lap": 1,
+     "last_lap": 8,
+     "tyre_age_at_start": 1,
+     "fresh_tyre": true,
+     "total_laps": 8,
+     "clean_laps": 0,
+     "model_eligible": false
+    },
+    {
+     "stint": 2,
+     "compound": "MEDIUM",
+     "first_lap": 9,
+     "last_lap": 50,
+     "tyre_age_at_start": 1,
+     "fresh_tyre": true,
+     "total_laps": 42,
+     "clean_laps": 40,
+     "model_eligible": true
+    }
+   ]
+  }
+ ]
+}

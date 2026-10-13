@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 
 import type { Api, ComparisonRequest } from "./api/endpoints";
+import { HANDLED_CODES } from "./tires";
 import type { LapRef } from "./url-state";
 
 export const ApiContext = createContext<{ api: Api; demo: boolean } | null>(null);
@@ -80,6 +81,23 @@ export const useFastestLaps = (key: string | null, ready: boolean) =>
   useSessionData(key, ready, "fastest", (api, k) => api.fastestLaps(k));
 export const useCorners = (key: string | null, ready: boolean) =>
   useSessionData(key, ready, "corners", (api, k) => api.corners(k));
+
+export const useStints = (key: string | null, ready: boolean) =>
+  useSessionData(key, ready, "stints", (api, k) => api.stints(k));
+
+/** The tyre forecast "as of" a lap. Expected panel states (503, non-race) are not toasted. */
+export function useTirePrediction(session: string | null, driver: string | null, lap: number | null, horizon: number,
+  enabled = true) {
+  const { api, demo } = useApi();
+  return useQuery({
+    queryKey: ["tires", demo, session, driver, lap, horizon] as const,
+    queryFn: () => api.tirePredict(session!, driver!, lap!, horizon),
+    enabled: enabled && session !== null && driver !== null && lap !== null,
+    retry: false,
+    meta: { handledCodes: HANDLED_CODES },
+    ...forever,
+  });
+}
 
 export function comparisonRequest(session: string, ref: LapRef, tgt: LapRef, resolution: number): ComparisonRequest {
   return { session_key: session, reference: { ...ref }, target: { ...tgt }, resolution_m: resolution };

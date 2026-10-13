@@ -260,3 +260,61 @@ renders from the URL alone, and every selection writes back to it.
 - `agentRules: false` in `next.config.ts` stops `next dev` from writing an `AGENTS.md` into the repo.
 - TypeScript is pinned to 5.x. The newest release (7, the native port) conflicts with
   `openapi-typescript`'s peer range.
+
+## Phase 6F — Frontend tyre panel (P1, 2026-10-13)
+
+Code: `frontend/src/lib/tires.ts` (state selection, formatters, window geometry, slider bounds,
+text summary), `components/tire-section.tsx`, `tire-panel.tsx`, `tire-chart.tsx`,
+`stint-timeline.tsx`, `qualifying-tire-chart.tsx`. Hooks: `useTirePrediction` and `useStints` in
+`lib/queries.ts`. URL: `&tyre=AAA&asof=40` (shareable like comparisons). The tyre flag is on by
+default; `NEXT_PUBLIC_FEATURE_TIRES=0` turns it off. The Phase 7 input contract is
+`docs/tire_facts_contract.md`.
+
+### What the panel shows
+
+- **StintTimeline:** one bar per stint in the standard compound colours *and* labelled with the
+  compound letter and name, laps and tyre age. Clicking a stint selects it and sets "as of" to its
+  last lap, never the race's final lap.
+- **Race sessions:**
+  - **Header:** compound badge, tyre age, clean laps used.
+  - **"As of lap N" slider:** limited to laps with at least 5 clean laps. Its note says the forecast
+    only uses laps up to N.
+  - **Degradation card:** "0.034 s/lap, 95% CI 0.029–0.039", with the combined-adjusted-trend
+    explanation.
+  - **Pit-window card:** labelled a heuristic, and the window is also available as text.
+  - **Chart:** observed clean laps, hollow excluded laps (toggle), model fit, forecast with its
+    80% band, the threshold line, the shaded window with the central lap, and the current-lap
+    marker. A text summary is attached via `aria-describedby`.
+  - **Footer:** confidence with its reasons, assumptions, remaining competitive laps, and model
+    name/version/trained-through.
+- **Other sessions:** "Tire forecasting requires a race; showing raw stint data", plus the stints.
+  Qualifying sessions also get the lap-time-vs-tyre-age chart ("Observed laps — not a
+  prediction"), with fresh and used sets marked.
+- **States:** loading skeleton, insufficient data ("2/5 clean laps" progress), wet conditions,
+  model unavailable (503, with request id), non-race session, and error (panel card plus the
+  global toast with request id). The expected 503 and non-race responses are panel states, so they
+  don't raise toasts (`meta.handledCodes`).
+
+### Backend additions
+
+These are additive fields on `TirePrediction` (`docs/tire_api.md`). The synthetic race fixture
+`2024_99_R` (`scripts/build_synthetic_race_fixture.py`) gives every state a real source, and its
+"distinctive later laps" back the cut-rule checks: AAA's laps from 41 on are about 4 s slower. The
+frontend fixtures for all of it are real API responses (`scripts/export_frontend_fixtures.py`).
+
+### Acceptance
+
+- **Five panel states, plus loading, verified visually:**
+  `docs/screenshots/tires/0-loading.png` … `5-wet.png`. Regenerate with
+  `SCREENSHOTS=1 npx playwright test tire-screenshots`. The 503 state replays the API's exported
+  503 body; the rest are live.
+- **"As of" never shows later laps.** This is checked at three levels:
+  - Vitest checks all 25 exported "as of" responses: no lap after N, and no distinctive lap time
+    while N ≤ 40.
+  - A component test moves the slider and checks the listed observed laps.
+  - Playwright reads the plotted trace at N = 40 and N = 35: max x equals N and every y is under
+    94 s.
+- **The contract matches the API.** `tests/test_tire_facts_contract.py` diffs field names in
+  both directions and proves it catches drift.
+- **`make check`:** a new target (`test typecheck openapi-check check-frontend`). This machine has
+  no `make`, so its commands were run directly and are green.

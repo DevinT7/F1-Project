@@ -1,10 +1,10 @@
 /**
- * Feature flags for panels that belong to later phases. Both default to off, so their cards
- * render the "coming in a later phase" state. Set NEXT_PUBLIC_FEATURE_TIRES=1 /
- * NEXT_PUBLIC_FEATURE_ENGINEER=1 once those phases ship real components.
+ * Feature flags for panels that belong to later phases. The tyre panel shipped in Phase 6F and is
+ * on unless NEXT_PUBLIC_FEATURE_TIRES=0. The AI engineer is off until its phase ships
+ * (NEXT_PUBLIC_FEATURE_ENGINEER=1), so its card renders the "coming in a later phase" state.
  */
 export const features = {
-  tires: process.env.NEXT_PUBLIC_FEATURE_TIRES === "1",
+  tires: process.env.NEXT_PUBLIC_FEATURE_TIRES !== "0",
   engineer: process.env.NEXT_PUBLIC_FEATURE_ENGINEER === "1",
 } as const;
 

@@ -1,0 +1,27 @@
+{
+ "session_key": "2024-99-R",
+ "status": "ready",
+ "info": {
+  "key": "2024_99_R",
+  "year": 2024,
+  "round": 99,
+  "event_name": "RaceIQ Synthetic Grand Prix",
+  "circuit": "Testville",
+  "country": "Nowhere",
+  "session_code": "R",
+  "session_name": "Race",
+  "date": "2024-12-31T14:00:00Z",
+  "n_laps_scheduled": 50,
+  "event_format": "conventional",
+  "circuit_rotation_deg": null
+ },
+ "manifest": {
+  "session_key": "2024_99_R",
+  "ingested_at": "2026-10-13T18:43:02.397864Z",
+  "fastf1_version": "synthetic",
+  "schema_version": 1,
+  "lap_count": 150,
+  "telemetry_count": 0,
+  "driver_count": 3
+ }
+}

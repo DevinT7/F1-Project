@@ -1,0 +1,14 @@
+{
+  "circuit": "Testville",
+  "circuit_rotation_deg": null,
+  "country": "Nowhere",
+  "date": "2024-12-31T14:00:00Z",
+  "event_format": "conventional",
+  "event_name": "RaceIQ Synthetic Grand Prix",
+  "key": "2024_99_R",
+  "n_laps_scheduled": 50,
+  "round": 99,
+  "session_code": "R",
+  "session_name": "Race",
+  "year": 2024
+}

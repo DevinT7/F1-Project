@@ -115,7 +115,7 @@ async def test_seasons(client):
     body = (await client.get("/api/v1/seasons")).json()
     years = [s["year"] for s in body["seasons"]]
     assert years == sorted(years, reverse=True) and years[-1] == 2018 and body["earliest_supported"] == 2018
-    assert next(s for s in body["seasons"] if s["year"] == 2024)["sessions_stored"] == 1
+    assert next(s for s in body["seasons"] if s["year"] == 2024)["sessions_stored"] == 2  # 2024_05_Q + synthetic 2024_99_R (6F)
 
 
 async def test_events_uses_cached_schedule(client, source, tmp_path):

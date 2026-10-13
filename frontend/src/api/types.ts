@@ -969,6 +969,31 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** HistoryLap */
+        HistoryLap: {
+            /**
+             * Clean
+             * @description survived every Phase 6A exclusion rule (judged on laps up to the cut)
+             */
+            clean: boolean;
+            /**
+             * Excluded Reason
+             * @description the 6A rule that excluded the lap, e.g. in_or_out_lap
+             */
+            excluded_reason: string | null;
+            /**
+             * Fitted S
+             * @description the model's in-sample value for a clean lap (status ok only)
+             */
+            fitted_s: number | null;
+            /** Lap */
+            lap: number;
+            /**
+             * Lap Time S
+             * @description raw lap time; null when FastF1 has none
+             */
+            lap_time_s: number | null;
+        };
         /** IngestResponse */
         IngestResponse: {
             /** Elapsed S */
@@ -1284,6 +1309,11 @@ export interface components {
              */
             confidence: "high" | "medium" | "low";
             /**
+             * Confidence Reasons
+             * @description why this confidence, in the terms of the rule
+             */
+            confidence_reasons: string[];
+            /**
              * Earliest Lap
              * @description first lap the pessimistic curve reaches the threshold
              */
@@ -1561,6 +1591,16 @@ export interface components {
             /** Session Key */
             session_key: number;
         };
+        /** ThresholdPoint */
+        ThresholdPoint: {
+            /** Lap */
+            lap: number;
+            /**
+             * Threshold S
+             * @description best pace + X on the raw lap-time scale (fuel term added back)
+             */
+            threshold_s: number;
+        };
         /** TireAnalysis */
         TireAnalysis: {
             /** Compound */
@@ -1628,6 +1668,11 @@ export interface components {
         };
         /** TirePrediction */
         TirePrediction: {
+            /**
+             * Clean Laps Required
+             * @description clean laps the stint needs before a forecast is made
+             */
+            clean_laps_required: number;
             /** Clean Laps Used */
             clean_laps_used?: number | null;
             /** Compound */
@@ -1641,6 +1686,11 @@ export interface components {
             degradation_s_per_lap?: number | null;
             /** Driver */
             driver: string;
+            /**
+             * History
+             * @description every lap of the current stint up to the cut
+             */
+            history?: components["schemas"]["HistoryLap"][] | null;
             /** Horizon */
             horizon: number;
             /**
@@ -1661,10 +1711,25 @@ export interface components {
              */
             predicted_laps?: components["schemas"]["PredictedLap"][] | null;
             /**
+             * Race Laps Total
+             * @description scheduled race distance in laps
+             */
+            race_laps_total?: number | null;
+            /**
+             * Rainfall In Stint
+             * @description rain was reported on a lap of this stint up to the cut
+             */
+            rainfall_in_stint?: boolean | null;
+            /**
              * Reason
              * @description why status is insufficient_data
              */
             reason?: string | null;
+            /**
+             * Reason Code
+             * @description machine-readable cause of insufficient_data
+             */
+            reason_code?: ("too_few_clean_laps" | "wet_compound" | "unknown_stint" | "unsupported_compound" | "race_over" | "non_finite_forecast") | null;
             /**
              * Remaining Competitive Laps
              * @description central_lap − lap, when defined
@@ -1679,6 +1744,11 @@ export interface components {
             status: "ok" | "insufficient_data";
             /** Stint */
             stint?: number | null;
+            /**
+             * Threshold Curve
+             * @description the pit-window threshold per lap on the raw lap-time scale, stint start to horizon end
+             */
+            threshold_curve?: components["schemas"]["ThresholdPoint"][] | null;
             /** Tyre Age */
             tyre_age?: number | null;
             /**

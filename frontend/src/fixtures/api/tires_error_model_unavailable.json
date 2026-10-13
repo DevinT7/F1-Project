@@ -1,0 +1,8 @@
+{
+ "error": {
+  "code": "model_not_available",
+  "message": "tyre model registry no-registry.json not found on the server",
+  "status_code": 503,
+  "request_id": "fixture-tires_error_model_unavailable"
+ }
+}

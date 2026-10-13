@@ -1,0 +1,87 @@
+{
+ "status": "insufficient_data",
+ "reason": "INTERMEDIATE tyres are not modelled (dry races only)",
+ "reason_code": "wet_compound",
+ "clean_laps_required": 5,
+ "race_laps_total": 50,
+ "session_key": "2024-99-R",
+ "driver": "CCC",
+ "lap": 8,
+ "horizon": 25,
+ "stint": 1,
+ "compound": "INTERMEDIATE",
+ "tyre_age": 8,
+ "clean_laps_used": 0,
+ "degradation_s_per_lap": null,
+ "degradation_ci": null,
+ "predicted_laps": null,
+ "pit_window": null,
+ "pit_window_reason": null,
+ "remaining_competitive_laps": null,
+ "model": {
+  "name": "baseline_b_recent_conformal",
+  "version": "2024-07-28.6681d16a",
+  "trained_through": "2024-07-28"
+ },
+ "rainfall_in_stint": true,
+ "history": [
+  {
+   "lap": 1,
+   "lap_time_s": 108.284,
+   "clean": false,
+   "excluded_reason": "lap_1_or_restart",
+   "fitted_s": null
+  },
+  {
+   "lap": 2,
+   "lap_time_s": 102.238,
+   "clean": false,
+   "excluded_reason": "wet_conditions",
+   "fitted_s": null
+  },
+  {
+   "lap": 3,
+   "lap_time_s": 102.144,
+   "clean": false,
+   "excluded_reason": "wet_conditions",
+   "fitted_s": null
+  },
+  {
+   "lap": 4,
+   "lap_time_s": 102.368,
+   "clean": false,
+   "excluded_reason": "wet_conditions",
+   "fitted_s": null
+  },
+  {
+   "lap": 5,
+   "lap_time_s": 101.859,
+   "clean": false,
+   "excluded_reason": "wet_conditions",
+   "fitted_s": null
+  },
+  {
+   "lap": 6,
+   "lap_time_s": 101.892,
+   "clean": false,
+   "excluded_reason": "wet_conditions",
+   "fitted_s": null
+  },
+  {
+   "lap": 7,
+   "lap_time_s": 102.014,
+   "clean": false,
+   "excluded_reason": "wet_conditions",
+   "fitted_s": null
+  },
+  {
+   "lap": 8,
+   "lap_time_s": 119.899,
+   "clean": false,
+   "excluded_reason": "in_or_out_lap",
+   "fitted_s": null
+  }
+ ],
+ "threshold_curve": null,
+ "warnings": []
+}

@@ -109,6 +109,17 @@ def confidence(width: int | None, clean_laps: int) -> Confidence:
     return "medium" if width <= MEDIUM_MAX_WIDTH else "low"
 
 
+def confidence_reasons(window: PitWindow, clean_laps: int) -> tuple[str, ...]:
+    """Why the window got its confidence, in the terms of the rule (for the UI's popover)."""
+    if window.latest_lap is None or window.earliest_lap is None:
+        return ("the optimistic forecast never reaches the threshold within the horizon: the window is open-ended",
+                f"{clean_laps} clean laps in the stint so far")
+    width = window.latest_lap - window.earliest_lap
+    plural = "" if width == 1 else "s"
+    return (f"window is {width} lap{plural} wide (high needs ≤ {HIGH_MAX_WIDTH}, medium ≤ {MEDIUM_MAX_WIDTH})",
+            f"{clean_laps} clean laps in the stint so far (high needs ≥ {HIGH_MIN_CLEAN_LAPS})")
+
+
 def interval_crossing(
     laps: Sequence[int],
     mean: Curve,

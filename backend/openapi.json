@@ -1301,6 +1301,65 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "HistoryLap": {
+        "additionalProperties": false,
+        "properties": {
+          "clean": {
+            "description": "survived every Phase 6A exclusion rule (judged on laps up to the cut)",
+            "title": "Clean",
+            "type": "boolean"
+          },
+          "excluded_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the 6A rule that excluded the lap, e.g. in_or_out_lap",
+            "title": "Excluded Reason"
+          },
+          "fitted_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the model's in-sample value for a clean lap (status ok only)",
+            "title": "Fitted S"
+          },
+          "lap": {
+            "title": "Lap",
+            "type": "integer"
+          },
+          "lap_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "raw lap time; null when FastF1 has none",
+            "title": "Lap Time S"
+          }
+        },
+        "required": [
+          "lap",
+          "lap_time_s",
+          "clean",
+          "excluded_reason",
+          "fitted_s"
+        ],
+        "title": "HistoryLap",
+        "type": "object"
+      },
       "IngestResponse": {
         "additionalProperties": false,
         "properties": {
@@ -2414,6 +2473,14 @@
             "title": "Confidence",
             "type": "string"
           },
+          "confidence_reasons": {
+            "description": "why this confidence, in the terms of the rule",
+            "items": {
+              "type": "string"
+            },
+            "title": "Confidence Reasons",
+            "type": "array"
+          },
           "earliest_lap": {
             "anyOf": [
               {
@@ -2479,6 +2546,7 @@
           "pace_basis",
           "method",
           "confidence",
+          "confidence_reasons",
           "assumptions",
           "notes"
         ],
@@ -3169,6 +3237,26 @@
         "title": "TelemetryTrace",
         "type": "object"
       },
+      "ThresholdPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "lap": {
+            "title": "Lap",
+            "type": "integer"
+          },
+          "threshold_s": {
+            "description": "best pace + X on the raw lap-time scale (fuel term added back)",
+            "title": "Threshold S",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lap",
+          "threshold_s"
+        ],
+        "title": "ThresholdPoint",
+        "type": "object"
+      },
       "TireAnalysis": {
         "properties": {
           "compound": {
@@ -3361,6 +3449,11 @@
       "TirePrediction": {
         "additionalProperties": false,
         "properties": {
+          "clean_laps_required": {
+            "description": "clean laps the stint needs before a forecast is made",
+            "title": "Clean Laps Required",
+            "type": "integer"
+          },
           "clean_laps_used": {
             "anyOf": [
               {
@@ -3414,6 +3507,21 @@
           "driver": {
             "title": "Driver",
             "type": "string"
+          },
+          "history": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/HistoryLap"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "every lap of the current stint up to the cut",
+            "title": "History"
           },
           "horizon": {
             "title": "Horizon",
@@ -3471,6 +3579,30 @@
             "description": "consecutive laps from lap + 1",
             "title": "Predicted Laps"
           },
+          "race_laps_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "scheduled race distance in laps",
+            "title": "Race Laps Total"
+          },
+          "rainfall_in_stint": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "rain was reported on a lap of this stint up to the cut",
+            "title": "Rainfall In Stint"
+          },
           "reason": {
             "anyOf": [
               {
@@ -3482,6 +3614,26 @@
             ],
             "description": "why status is insufficient_data",
             "title": "Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "too_few_clean_laps",
+                  "wet_compound",
+                  "unknown_stint",
+                  "unsupported_compound",
+                  "race_over",
+                  "non_finite_forecast"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "machine-readable cause of insufficient_data",
+            "title": "Reason Code"
           },
           "remaining_competitive_laps": {
             "anyOf": [
@@ -3518,6 +3670,21 @@
             ],
             "title": "Stint"
           },
+          "threshold_curve": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ThresholdPoint"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the pit-window threshold per lap on the raw lap-time scale, stint start to horizon end",
+            "title": "Threshold Curve"
+          },
           "tyre_age": {
             "anyOf": [
               {
@@ -3540,6 +3707,7 @@
         },
         "required": [
           "status",
+          "clean_laps_required",
           "session_key",
           "driver",
           "lap",
@@ -5648,9 +5816,23 @@
                   "insufficient_data": {
                     "summary": "too few clean laps",
                     "value": {
+                      "clean_laps_required": 5,
                       "clean_laps_used": 1,
                       "compound": "HARD",
                       "driver": "LEC",
+                      "history": [
+                        {
+                          "clean": false,
+                          "excluded_reason": "in_or_out_lap",
+                          "lap": 13,
+                          "lap_time_s": 122.667
+                        },
+                        {
+                          "clean": true,
+                          "lap": 14,
+                          "lap_time_s": 108.227
+                        }
+                      ],
                       "horizon": 5,
                       "lap": 14,
                       "model": {
@@ -5658,7 +5840,10 @@
                         "trained_through": "2024-07-28",
                         "version": "2024-07-28.6681d16a"
                       },
+                      "race_laps_total": 44,
+                      "rainfall_in_stint": false,
                       "reason": "1 clean laps in this stint so far; at least 5 needed",
+                      "reason_code": "too_few_clean_laps",
                       "session_key": "2024-14-R",
                       "status": "insufficient_data",
                       "stint": 2,
@@ -5669,6 +5854,7 @@
                   "ok": {
                     "summary": "forecast with a pit window",
                     "value": {
+                      "clean_laps_required": 5,
                       "clean_laps_used": 11,
                       "compound": "HARD",
                       "degradation_ci": [
@@ -5677,6 +5863,92 @@
                       ],
                       "degradation_s_per_lap": 0.0338,
                       "driver": "LEC",
+                      "history": [
+                        {
+                          "clean": false,
+                          "excluded_reason": "in_or_out_lap",
+                          "lap": 26,
+                          "lap_time_s": 121.972
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.716,
+                          "lap": 27,
+                          "lap_time_s": 107.034
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.649,
+                          "lap": 28,
+                          "lap_time_s": 107.039
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.636,
+                          "lap": 29,
+                          "lap_time_s": 107.517
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.63,
+                          "lap": 30,
+                          "lap_time_s": 107.311
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.63,
+                          "lap": 31,
+                          "lap_time_s": 107.018
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.61,
+                          "lap": 32,
+                          "lap_time_s": 107.064
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.564,
+                          "lap": 33,
+                          "lap_time_s": 107.013
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.537,
+                          "lap": 34,
+                          "lap_time_s": 107.023
+                        },
+                        {
+                          "clean": false,
+                          "excluded_reason": "stint_outlier",
+                          "lap": 35,
+                          "lap_time_s": 108.321
+                        },
+                        {
+                          "clean": false,
+                          "excluded_reason": "stint_outlier",
+                          "lap": 36,
+                          "lap_time_s": 109.289
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.431,
+                          "lap": 37,
+                          "lap_time_s": 107.601
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.438,
+                          "lap": 38,
+                          "lap_time_s": 107.142
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.412,
+                          "lap": 39,
+                          "lap_time_s": 107.539
+                        }
+                      ],
                       "horizon": 3,
                       "lap": 39,
                       "model": {
@@ -5696,6 +5968,10 @@
                         "best_pace_s": 106.183,
                         "central_lap": 41,
                         "confidence": "low",
+                        "confidence_reasons": [
+                          "the optimistic forecast never reaches the threshold within the horizon: the window is open-ended",
+                          "11 clean laps in the stint so far"
+                        ],
                         "earliest_lap": 40,
                         "method": "interval_crossing_v2",
                         "notes": [
@@ -5725,10 +6001,90 @@
                           "pred_s": 107.353
                         }
                       ],
+                      "race_laps_total": 44,
+                      "rainfall_in_stint": false,
                       "remaining_competitive_laps": 2,
                       "session_key": "2024-14-R",
                       "status": "ok",
                       "stint": 3,
+                      "threshold_curve": [
+                        {
+                          "lap": 26,
+                          "threshold_s": 108.146
+                        },
+                        {
+                          "lap": 27,
+                          "threshold_s": 108.093
+                        },
+                        {
+                          "lap": 28,
+                          "threshold_s": 108.039
+                        },
+                        {
+                          "lap": 29,
+                          "threshold_s": 107.985
+                        },
+                        {
+                          "lap": 30,
+                          "threshold_s": 107.932
+                        },
+                        {
+                          "lap": 31,
+                          "threshold_s": 107.878
+                        },
+                        {
+                          "lap": 32,
+                          "threshold_s": 107.825
+                        },
+                        {
+                          "lap": 33,
+                          "threshold_s": 107.771
+                        },
+                        {
+                          "lap": 34,
+                          "threshold_s": 107.718
+                        },
+                        {
+                          "lap": 35,
+                          "threshold_s": 107.664
+                        },
+                        {
+                          "lap": 36,
+                          "threshold_s": 107.611
+                        },
+                        {
+                          "lap": 37,
+                          "threshold_s": 107.557
+                        },
+                        {
+                          "lap": 38,
+                          "threshold_s": 107.504
+                        },
+                        {
+                          "lap": 39,
+                          "threshold_s": 107.45
+                        },
+                        {
+                          "lap": 40,
+                          "threshold_s": 107.397
+                        },
+                        {
+                          "lap": 41,
+                          "threshold_s": 107.343
+                        },
+                        {
+                          "lap": 42,
+                          "threshold_s": 107.29
+                        },
+                        {
+                          "lap": 43,
+                          "threshold_s": 107.236
+                        },
+                        {
+                          "lap": 44,
+                          "threshold_s": 107.183
+                        }
+                      ],
                       "tyre_age": 14,
                       "warnings": []
                     }
@@ -5736,6 +6092,7 @@
                   "uncertain": {
                     "summary": "pit window null: too uncertain",
                     "value": {
+                      "clean_laps_required": 5,
                       "clean_laps_used": 6,
                       "compound": "HARD",
                       "degradation_ci": [
@@ -5744,6 +6101,62 @@
                       ],
                       "degradation_s_per_lap": 0.0338,
                       "driver": "LEC",
+                      "history": [
+                        {
+                          "clean": false,
+                          "excluded_reason": "in_or_out_lap",
+                          "lap": 26,
+                          "lap_time_s": 121.972
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.178,
+                          "lap": 27,
+                          "lap_time_s": 107.034
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.112,
+                          "lap": 28,
+                          "lap_time_s": 107.039
+                        },
+                        {
+                          "clean": false,
+                          "excluded_reason": "stint_outlier",
+                          "lap": 29,
+                          "lap_time_s": 107.517
+                        },
+                        {
+                          "clean": false,
+                          "excluded_reason": "stint_outlier",
+                          "lap": 30,
+                          "lap_time_s": 107.311
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.093,
+                          "lap": 31,
+                          "lap_time_s": 107.018
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.073,
+                          "lap": 32,
+                          "lap_time_s": 107.064
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.027,
+                          "lap": 33,
+                          "lap_time_s": 107.013
+                        },
+                        {
+                          "clean": true,
+                          "fitted_s": 107.0,
+                          "lap": 34,
+                          "lap_time_s": 107.023
+                        }
+                      ],
                       "horizon": 3,
                       "lap": 34,
                       "model": {
@@ -5772,9 +6185,89 @@
                           "pred_s": 106.941
                         }
                       ],
+                      "race_laps_total": 44,
+                      "rainfall_in_stint": false,
                       "session_key": "2024-14-R",
                       "status": "ok",
                       "stint": 3,
+                      "threshold_curve": [
+                        {
+                          "lap": 26,
+                          "threshold_s": 108.146
+                        },
+                        {
+                          "lap": 27,
+                          "threshold_s": 108.093
+                        },
+                        {
+                          "lap": 28,
+                          "threshold_s": 108.039
+                        },
+                        {
+                          "lap": 29,
+                          "threshold_s": 107.985
+                        },
+                        {
+                          "lap": 30,
+                          "threshold_s": 107.932
+                        },
+                        {
+                          "lap": 31,
+                          "threshold_s": 107.878
+                        },
+                        {
+                          "lap": 32,
+                          "threshold_s": 107.825
+                        },
+                        {
+                          "lap": 33,
+                          "threshold_s": 107.771
+                        },
+                        {
+                          "lap": 34,
+                          "threshold_s": 107.718
+                        },
+                        {
+                          "lap": 35,
+                          "threshold_s": 107.664
+                        },
+                        {
+                          "lap": 36,
+                          "threshold_s": 107.611
+                        },
+                        {
+                          "lap": 37,
+                          "threshold_s": 107.557
+                        },
+                        {
+                          "lap": 38,
+                          "threshold_s": 107.504
+                        },
+                        {
+                          "lap": 39,
+                          "threshold_s": 107.45
+                        },
+                        {
+                          "lap": 40,
+                          "threshold_s": 107.397
+                        },
+                        {
+                          "lap": 41,
+                          "threshold_s": 107.343
+                        },
+                        {
+                          "lap": 42,
+                          "threshold_s": 107.29
+                        },
+                        {
+                          "lap": 43,
+                          "threshold_s": 107.236
+                        },
+                        {
+                          "lap": 44,
+                          "threshold_s": 107.183
+                        }
+                      ],
                       "tyre_age": 9,
                       "warnings": [
                         "pit_window: forecast_uncertainty_too_high (interval width 2.06 s at lap 44 exceeds 2 × 1 s)"

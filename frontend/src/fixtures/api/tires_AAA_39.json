@@ -1,0 +1,336 @@
+{
+ "status": "ok",
+ "reason": null,
+ "reason_code": null,
+ "clean_laps_required": 5,
+ "race_laps_total": 50,
+ "session_key": "2024-99-R",
+ "driver": "AAA",
+ "lap": 39,
+ "horizon": 25,
+ "stint": 2,
+ "compound": "HARD",
+ "tyre_age": 17,
+ "clean_laps_used": 16,
+ "degradation_s_per_lap": 0.0338,
+ "degradation_ci": [
+  0.0289,
+  0.0387
+ ],
+ "predicted_laps": [
+  {
+   "lap": 40,
+   "pred_s": 91.648,
+   "lo_s": 91.094,
+   "hi_s": 92.203
+  },
+  {
+   "lap": 41,
+   "pred_s": 91.629,
+   "lo_s": 90.991,
+   "hi_s": 92.266
+  },
+  {
+   "lap": 42,
+   "pred_s": 91.609,
+   "lo_s": 90.896,
+   "hi_s": 92.321
+  },
+  {
+   "lap": 43,
+   "pred_s": 91.589,
+   "lo_s": 90.832,
+   "hi_s": 92.346
+  },
+  {
+   "lap": 44,
+   "pred_s": 91.569,
+   "lo_s": 90.779,
+   "hi_s": 92.36
+  },
+  {
+   "lap": 45,
+   "pred_s": 91.55,
+   "lo_s": 90.687,
+   "hi_s": 92.413
+  },
+  {
+   "lap": 46,
+   "pred_s": 91.53,
+   "lo_s": 90.635,
+   "hi_s": 92.425
+  },
+  {
+   "lap": 47,
+   "pred_s": 91.51,
+   "lo_s": 90.588,
+   "hi_s": 92.432
+  },
+  {
+   "lap": 48,
+   "pred_s": 91.491,
+   "lo_s": 90.508,
+   "hi_s": 92.473
+  },
+  {
+   "lap": 49,
+   "pred_s": 91.471,
+   "lo_s": 90.439,
+   "hi_s": 92.503
+  },
+  {
+   "lap": 50,
+   "pred_s": 91.451,
+   "lo_s": 90.279,
+   "hi_s": 92.623
+  }
+ ],
+ "pit_window": null,
+ "pit_window_reason": "forecast_uncertainty_too_high",
+ "remaining_competitive_laps": null,
+ "model": {
+  "name": "baseline_b_recent_conformal",
+  "version": "2024-07-28.6681d16a",
+  "trained_through": "2024-07-28"
+ },
+ "rainfall_in_stint": false,
+ "history": [
+  {
+   "lap": 23,
+   "lap_time_s": 111.935,
+   "clean": false,
+   "excluded_reason": "in_or_out_lap",
+   "fitted_s": null
+  },
+  {
+   "lap": 24,
+   "lap_time_s": 91.944,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.964
+  },
+  {
+   "lap": 25,
+   "lap_time_s": 91.703,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.944
+  },
+  {
+   "lap": 26,
+   "lap_time_s": 91.672,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.924
+  },
+  {
+   "lap": 27,
+   "lap_time_s": 91.908,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.905
+  },
+  {
+   "lap": 28,
+   "lap_time_s": 91.747,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.885
+  },
+  {
+   "lap": 29,
+   "lap_time_s": 91.98,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.865
+  },
+  {
+   "lap": 30,
+   "lap_time_s": 91.867,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.845
+  },
+  {
+   "lap": 31,
+   "lap_time_s": 91.842,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.826
+  },
+  {
+   "lap": 32,
+   "lap_time_s": 91.815,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.806
+  },
+  {
+   "lap": 33,
+   "lap_time_s": 91.882,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.786
+  },
+  {
+   "lap": 34,
+   "lap_time_s": 91.742,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.767
+  },
+  {
+   "lap": 35,
+   "lap_time_s": 91.875,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.747
+  },
+  {
+   "lap": 36,
+   "lap_time_s": 91.667,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.727
+  },
+  {
+   "lap": 37,
+   "lap_time_s": 91.688,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.707
+  },
+  {
+   "lap": 38,
+   "lap_time_s": 91.618,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.688
+  },
+  {
+   "lap": 39,
+   "lap_time_s": 91.757,
+   "clean": true,
+   "excluded_reason": null,
+   "fitted_s": 91.668
+  }
+ ],
+ "threshold_curve": [
+  {
+   "lap": 23,
+   "threshold_s": 92.833
+  },
+  {
+   "lap": 24,
+   "threshold_s": 92.779
+  },
+  {
+   "lap": 25,
+   "threshold_s": 92.726
+  },
+  {
+   "lap": 26,
+   "threshold_s": 92.672
+  },
+  {
+   "lap": 27,
+   "threshold_s": 92.618
+  },
+  {
+   "lap": 28,
+   "threshold_s": 92.565
+  },
+  {
+   "lap": 29,
+   "threshold_s": 92.511
+  },
+  {
+   "lap": 30,
+   "threshold_s": 92.458
+  },
+  {
+   "lap": 31,
+   "threshold_s": 92.404
+  },
+  {
+   "lap": 32,
+   "threshold_s": 92.351
+  },
+  {
+   "lap": 33,
+   "threshold_s": 92.297
+  },
+  {
+   "lap": 34,
+   "threshold_s": 92.244
+  },
+  {
+   "lap": 35,
+   "threshold_s": 92.19
+  },
+  {
+   "lap": 36,
+   "threshold_s": 92.137
+  },
+  {
+   "lap": 37,
+   "threshold_s": 92.083
+  },
+  {
+   "lap": 38,
+   "threshold_s": 92.03
+  },
+  {
+   "lap": 39,
+   "threshold_s": 91.976
+  },
+  {
+   "lap": 40,
+   "threshold_s": 91.923
+  },
+  {
+   "lap": 41,
+   "threshold_s": 91.869
+  },
+  {
+   "lap": 42,
+   "threshold_s": 91.816
+  },
+  {
+   "lap": 43,
+   "threshold_s": 91.762
+  },
+  {
+   "lap": 44,
+   "threshold_s": 91.709
+  },
+  {
+   "lap": 45,
+   "threshold_s": 91.655
+  },
+  {
+   "lap": 46,
+   "threshold_s": 91.602
+  },
+  {
+   "lap": 47,
+   "threshold_s": 91.548
+  },
+  {
+   "lap": 48,
+   "threshold_s": 91.495
+  },
+  {
+   "lap": 49,
+   "threshold_s": 91.441
+  },
+  {
+   "lap": 50,
+   "threshold_s": 91.388
+  }
+ ],
+ "warnings": [
+  "only 11 laps remain in the race; horizon shortened",
+  "pit_window: forecast_uncertainty_too_high (interval width 2.06 s at lap 49 exceeds 2 \u00d7 1 s)"
+ ]
+}

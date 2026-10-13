@@ -1,9 +1,15 @@
 # RaceIQ developer tasks. Windows without make: run the commands under each target directly.
 
-.PHONY: test openapi openapi-check gen-types check-frontend e2e
+.PHONY: check test typecheck openapi openapi-check gen-types check-frontend e2e
+
+# Everything CI runs (except e2e): backend tests + mypy, OpenAPI drift, frontend typecheck/lint/tests.
+check: test typecheck openapi-check check-frontend
 
 test:
 	cd backend && python -m pytest -q
+
+typecheck:
+	cd backend && python -m mypy
 
 # Export the reviewed OpenAPI snapshot (backend/openapi.json).
 openapi:

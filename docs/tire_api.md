@@ -52,6 +52,28 @@ The schema is extended in three ways beyond the plan's example: `reason`, `pit_w
 a few extra pit-window fields (`threshold_pace_s`, `best_pace_s`, `pace_basis`, `notes`). Without
 them, a null value or a pace number couldn't be explained.
 
+#### Fields added for the dashboard panel (Phase 6F)
+
+All of these are computed from laps ≤ `lap` only. The cut-rule test compares whole responses, so
+it covers them too.
+
+| Field | Meaning |
+|---|---|
+| `reason_code` | machine-readable cause of `insufficient_data`: `too_few_clean_laps`, `wet_compound`, `unknown_stint`, `unsupported_compound`, `race_over`, `non_finite_forecast` |
+| `clean_laps_required` | the clean-lap requirement (5), so the UI can show progress, e.g. "2/5 clean laps" |
+| `race_laps_total` | scheduled race distance |
+| `rainfall_in_stint` | rain was reported on a lap of this stint up to the cut (drives the wet notice) |
+| `history` | every lap of the current stint up to the cut: `lap`, raw `lap_time_s`, `clean`, the 6A `excluded_reason`, and the model's in-sample `fitted_s` for clean laps |
+| `threshold_curve` | the pit-window threshold per lap on the **raw** lap-time scale (fuel term added back), from stint start to horizon end, so the chart can draw it next to raw lap times |
+| `pit_window.confidence_reasons` | why the window got its confidence, in the terms of the rule |
+
+When the stint lacks clean laps **and** the race is on its last lap, `too_few_clean_laps` is
+reported (the more useful of the two). The panel requests `horizon = min(25, laps left)`, so its
+responses never carry the "horizon shortened" warning.
+
+The contract for Phase 7 is in `docs/tire_facts_contract.md`, and a test keeps it in step with this
+schema.
+
 ### `GET /api/v1/tires/models`
 
 Lists every registered version with its status, dataset hash, git SHA, trained-through date,

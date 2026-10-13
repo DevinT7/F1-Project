@@ -1,0 +1,90 @@
+{
+ "session_key": "2024-05-Q",
+ "min_clean_laps": 5,
+ "drivers": [
+  {
+   "driver": "VER",
+   "team": "Red Bull Racing",
+   "stints": [
+    {
+     "stint": 1,
+     "compound": "SOFT",
+     "first_lap": 1,
+     "last_lap": 1,
+     "tyre_age_at_start": 1,
+     "fresh_tyre": true,
+     "total_laps": 1,
+     "clean_laps": 0,
+     "model_eligible": false
+    },
+    {
+     "stint": 6,
+     "compound": "SOFT",
+     "first_lap": 17,
+     "last_lap": 18,
+     "tyre_age_at_start": 2,
+     "fresh_tyre": true,
+     "total_laps": 2,
+     "clean_laps": 1,
+     "model_eligible": false
+    }
+   ]
+  },
+  {
+   "driver": "PER",
+   "team": "Red Bull Racing",
+   "stints": [
+    {
+     "stint": 1,
+     "compound": "SOFT",
+     "first_lap": 1,
+     "last_lap": 2,
+     "tyre_age_at_start": 1,
+     "fresh_tyre": true,
+     "total_laps": 2,
+     "clean_laps": 0,
+     "model_eligible": false
+    },
+    {
+     "stint": 6,
+     "compound": "SOFT",
+     "first_lap": 18,
+     "last_lap": 18,
+     "tyre_age_at_start": 2,
+     "fresh_tyre": true,
+     "total_laps": 1,
+     "clean_laps": 1,
+     "model_eligible": false
+    }
+   ]
+  },
+  {
+   "driver": "ALO",
+   "team": "Aston Martin",
+   "stints": [
+    {
+     "stint": 1,
+     "compound": "SOFT",
+     "first_lap": 1,
+     "last_lap": 1,
+     "tyre_age_at_start": 1,
+     "fresh_tyre": true,
+     "total_laps": 1,
+     "clean_laps": 0,
+     "model_eligible": false
+    },
+    {
+     "stint": 5,
+     "compound": "SOFT",
+     "first_lap": 14,
+     "last_lap": 15,
+     "tyre_age_at_start": 2,
+     "fresh_tyre": true,
+     "total_laps": 2,
+     "clean_laps": 1,
+     "model_eligible": false
+    }
+   ]
+  }
+ ]
+}

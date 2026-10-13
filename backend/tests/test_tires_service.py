@@ -203,3 +203,37 @@ def test_recent_anchored_fixed_effects_takes_its_level_from_the_last_three_laps(
     assert recent.point(hist, fut)[0] == pytest.approx(92.0 + 2 * step)  # level = last 3 laps (centred on lap 7)
     assert full.point(hist, fut)[0] < recent.point(hist, fut)[0]      # all-history level lags the jump
     assert recent.kind == "pooled_fixed_effects_recent" and full.kind == "pooled_fixed_effects"
+
+
+# ---------------------------------------------------------------- 6F additions: what the panel plots
+def test_history_is_the_stint_up_to_the_cut_with_exclusions_and_fits(tmp_path):
+    p = service(tmp_path).predict(RACE, "AAA", 30, 5)
+    assert p.history is not None and [h.lap for h in p.history] == list(range(19, 31))  # stint 2 = laps 19…
+    out_lap = p.history[0]
+    assert not out_lap.clean and out_lap.excluded_reason == "in_or_out_lap" and out_lap.fitted_s is None
+    assert all(h.clean and h.fitted_s is not None for h in p.history[1:])
+    assert p.clean_laps_used == sum(h.clean for h in p.history) and p.race_laps_total == TOTAL_LAPS
+
+
+def test_threshold_curve_spans_stint_start_to_horizon_end_on_the_raw_scale(tmp_path):
+    p = service(tmp_path).predict(RACE, "BBB", 12, 5)
+    curve = p.threshold_curve
+    assert curve is not None and curve[0].lap == 1 and curve[-1].lap == 12 + 25
+    w = p.pit_window
+    assert w is not None
+    # raw threshold(l) = best + X + β_fuel·fuel(l): it falls by β_fuel (0.05) per lap as fuel burns
+    assert curve[1].threshold_s - curve[0].threshold_s == pytest.approx(-0.05, abs=1e-3)
+    at_cut = next(c for c in curve if c.lap == 12)
+    assert at_cut.threshold_s == pytest.approx(w["threshold_pace_s"] + 0.05 * (TOTAL_LAPS - 12), abs=2e-3)
+    assert w["confidence_reasons"]
+
+
+def test_insufficient_data_carries_a_reason_code_and_the_requirement(tmp_path):
+    p = service(tmp_path).predict(RACE, "AAA", 22, 5)
+    assert p.status == "insufficient_data" and p.reason_code == "too_few_clean_laps"
+    assert (p.clean_laps_used, p.clean_laps_required) == (3, 5)
+    assert p.history is not None and p.threshold_curve is None and p.predicted_laps is None
+    wet = [r.model_copy(update={"compound": "INTERMEDIATE"}) if r.driver == "BBB" and 1 <= r.lap_number <= 40 else r
+           for r in lap_records()]
+    q = TireService(FakeRepo(wet), ModelRegistry(tmp_path / "registry.json")).predict(RACE, "BBB", 20, 5)
+    assert q.status == "insufficient_data" and q.reason_code == "wet_compound"

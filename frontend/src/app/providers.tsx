@@ -8,9 +8,12 @@ import { createApi } from "@/lib/api/endpoints";
 import { ApiContext } from "@/lib/queries";
 import { useUiStore } from "@/lib/store";
 
-/** Every failed API call surfaces as a toast with its error code and request id. */
-function toastFor(error: unknown) {
+/** Every failed API call surfaces as a toast with its error code and request id, except codes a
+ * query declares it handles itself (meta.handledCodes: e.g. the tyre panel's 503 state). */
+function toastFor(error: unknown, meta?: Record<string, unknown>) {
   const err = error instanceof ApiError ? error : null;
+  const handled = meta?.handledCodes;
+  if (err && Array.isArray(handled) && handled.includes(err.code)) return;
   useUiStore.getState().pushToast({
     title: err?.status === 0 ? "Backend unreachable" : "Request failed",
     message: err?.message ?? (error instanceof Error ? error.message : String(error)),
@@ -21,8 +24,8 @@ function toastFor(error: unknown) {
 
 export function makeQueryClient() {
   return new QueryClient({
-    queryCache: new QueryCache({ onError: toastFor }),
-    mutationCache: new MutationCache({ onError: toastFor }),
+    queryCache: new QueryCache({ onError: (error, query) => toastFor(error, query.meta) }),
+    mutationCache: new MutationCache({ onError: (error) => toastFor(error) }),
     defaultOptions: {
       queries: {
         refetchOnWindowFocus: false,

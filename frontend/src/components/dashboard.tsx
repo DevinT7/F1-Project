@@ -19,6 +19,7 @@ import { LapPicker } from "./lap-picker";
 import { SessionSelector } from "./session-selector";
 import { PlaceholderCard, Sidebar, Toaster, Topbar } from "./shell";
 import { TelemetryStack } from "./telemetry-stack";
+import { TireSection } from "./tire-section";
 import { TrackMap } from "./track-map";
 
 export function Dashboard() {
@@ -68,7 +69,7 @@ export function Dashboard() {
 
         <div className="flex flex-col gap-3">
           <SessionSelector value={state.session} demo={state.demo}
-            onChange={(session) => update({ session, ref: null, tgt: null })} />
+            onChange={(session) => update({ session, ref: null, tgt: null, tyre: null, asof: null })} />
           {ready && (
             <div className="strip" role="group" aria-label="Laps to compare">
               <LapPicker role="reference" value={state.ref} drivers={drivers.data?.drivers ?? []}
@@ -110,13 +111,22 @@ export function Dashboard() {
                 <div className="md:col-span-2"><FindingsList comparison={comparison.data} /></div>
                 <SectorCard comparison={comparison.data} />
                 <div className="flex flex-col gap-5">
-                  <PlaceholderCard id="tires" kick="Tire analysis" title="Degradation & pit window" enabled={features.tires} />
                   <PlaceholderCard id="engineer" kick="✦ AI engineer" title="Race engineer report" enabled={features.engineer} />
                 </div>
               </div>
             </div>
           )}
         </div>
+        {ready && features.tires && status.data?.info && state.session && (
+          <div className="mt-5">
+            <ErrorBoundary label="Tire analysis">
+              <TireSection session={state.session} sessionCode={status.data.info.session_code}
+                raceLaps={status.data.info.n_laps_scheduled ?? null} drivers={drivers.data?.drivers ?? []}
+                laps={laps.data?.laps ?? []} tyre={state.tyre ?? null} asof={state.asof ?? null}
+                onChange={update} />
+            </ErrorBoundary>
+          </div>
+        )}
         <p className="mt-8 text-center text-[11px] text-muted">Data: FastF1 · every figure is computed by the RaceIQ backend</p>
       </main>
       <Toaster />

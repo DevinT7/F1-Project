@@ -217,3 +217,16 @@ Full contract: `docs/tire_api.md`.
 - **The reviewed findings snapshot was regenerated deliberately.**
 - **The comparison latency test now excludes 2 warm-up requests and times 60 samples, not
   20.** It was flaky with or without X/Y.
+
+## Phase 6F — Frontend tyre panel (P1, 2026-10-13)
+
+- **The tyre section is independent of the lap comparison.** It renders for any ready session:
+  races get the panel, other sessions the non-race notice with stints.
+- **The panel's data comes only from the `/tires/predict` response for "as of" lap N.**
+  Observed laps, fit and threshold are added to that response rather than taken from the
+  whole-race laps endpoint, so the UI cannot leak a later lap by construction.
+- **The non-race state is decided from the session code** (no request is made). The API's 422 is
+  still handled if it ever arrives.
+- **The synthetic race uses round 99 of 2024,** a round that doesn't exist. It sits in the
+  shared fixture store, so the stored-session count test now expects 2.
+- **Screenshots are opt-in** (`SCREENSHOTS=1`), so ordinary e2e runs never rewrite binaries.

@@ -38,8 +38,16 @@ describe("lap refs", () => {
 describe("URL state", () => {
   const full: UrlState = {
     session: "2024-05-Q", ref: { driver: "NOR", lap: "fastest" }, tgt: { driver: "VER", lap: 15 },
-    resolution: 2, demo: false,
+    resolution: 2, demo: false, tyre: null, asof: null,
   };
+
+  it("carries the tyre panel's driver and as-of lap, and drops as-of without a driver", () => {
+    const tyre = { ...full, session: "2024-99-R", tyre: "AAA", asof: 35 };
+    expect(serializeUrlState(tyre)).toContain("tyre=AAA&asof=35");
+    expect(parseUrlState(serializeUrlState(tyre))).toEqual(tyre);
+    expect(serializeUrlState({ ...full, asof: 35 })).not.toContain("asof");
+    expect(parseUrlState("?s=2024-99-R&tyre=aaa&asof=0")).toMatchObject({ tyre: "AAA", asof: null });
+  });
 
   it("serializes to the documented shareable form", () => {
     expect(serializeUrlState(full)).toBe("s=2024-05-Q&ref=NOR:fastest&tgt=VER:15");

@@ -21,6 +21,8 @@ export type ComparisonResponse = Schemas["ComparisonResponse"];
 export type FindingsReport = Schemas["FindingsReport"];
 export type Finding = Schemas["Finding"];
 export type LapChannels = Schemas["LapChannels"];
+export type StintsResponse = Schemas["StintsResponse"];
+export type TirePrediction = Schemas["TirePrediction"];
 
 export const DEMO_SESSION = "2024-05-Q";
 export const DEMO_REFERENCE = { driver: "VER", lap: "fastest" } as const;
@@ -100,6 +102,14 @@ export function createApi(demoMode: boolean) {
     corners: (key: string): Promise<CornersResponse> =>
       demoMode ? isDemoSession(key) ? demo("corners") : demoOnly(key)
         : apiGet("/api/v1/sessions/{session_key}/corners", { path: { session_key: key } }),
+
+    stints: (key: string): Promise<StintsResponse> =>
+      demoMode ? demoOnly("tyre analysis needs the backend")
+        : apiGet("/api/v1/sessions/{session_key}/stints", { path: { session_key: key } }),
+
+    tirePredict: (session: string, driver: string, lap: number, horizon = 25): Promise<TirePrediction> =>
+      demoMode ? demoOnly("tyre forecasts need the backend")
+        : apiGet("/api/v1/tires/predict", { query: { session, driver, lap, horizon } }),
 
     compare: (body: ComparisonRequest): Promise<ComparisonResponse> => {
       if (!demoMode) return apiPost("/api/v1/comparisons", { body });
