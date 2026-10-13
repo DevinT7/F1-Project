@@ -67,7 +67,18 @@ forecast, cannot be compared, not reached, not measured, unknown, no window.
 
 ### Direction (rule 5)
 
-Reports describe the **target**: "LEC lost 0.311 s" means a positive time loss. The lexicon
+A direction word describes whoever is its **subject**. "LEC lost 0.311 s" (the target) needs a
+positive time loss; "PIA was 0.311 s faster than LEC" (the reference) needs the same positive loss,
+because the expected sign flips. The subject is the driver named last before the word in its
+sentence, by code or by team (teams only when they differ). A name right after a comparison
+preposition is the object, not the subject: "gained 0.131 s **on PIA**", "slower **than PIA**".
+With no subject named, the target is assumed. Two more inputs adjust the expected sign:
+- **Negation** flips it: "LEC did not lose time" needs a negative or zero loss.
+- **Counts:** "lost time in 11 corners" must be grounded by `LAP.corners_lost`, and "gained in 3"
+  by `LAP.corners_gained`. A time word whose nearest number is a corner count is checked this
+  way, instead of against a time fact.
+
+The lexicon
 (`direction_lexicon.yaml`) maps descriptive phrases to a fact family and an expected sign.
 - **Families:** time, braking, throttle, minimum, entry, exit and top speed, and any speed
   difference.
@@ -116,7 +127,10 @@ consider, possible, heuristic, likely, potential.
 
 ## Corpus
 
-75 hand-labelled cases: 30 good and 45 bad, against four real FactSheets from the 7A fixtures.
+85 hand-labelled cases: 35 good and 50 bad, against four real FactSheets from the 7A fixtures.
+Ten of them (`h01`–`h10`) were added at the human gate. They cover reference-perspective
+phrasing, negation, corner counts, a plausible but unlisted cause ("weaker slipstream") and a
+degradation value invented when the forecast has too few clean laps.
 - **Good:** correct roundings, citations, null handling, hedged causal statements.
 - **Bad:** each lists `expect` (the rule), optionally `detail` (a substring of the violation)
   and `expect_bullet`. **Every rule has at least two bad cases and is exercised by at least
@@ -139,6 +153,9 @@ false positive is found.
 | g12 | "no time loss is attributed to traffic" — negated attribution |
 | g17 | "Straight 1 (0-475 m)" — digits inside a segment label |
 | g22 | "because the tyre model was unavailable" — causal word about data, not about lap time |
+| h01, h02, h05 | "PIA was 0.311 s faster than LEC", "PIA gained 0.200 s on LEC", "PIA's minimum speed … higher" — phrased from the reference's side |
+| h03 | "LEC did not lose time at Turn 18" — negated direction word |
+| g04, g30 | "gained 0.131 s on PIA, braking 24 m later", "slower than PIA …, losing" — the reference named as the object, not the subject (found while adding perspective) |
 
 Found while building the corpus: masking the label "Turn 2" consumed the "2" of "Turn 23" and
 left a stray "3". Masks now match whole occurrences only (regression test in
@@ -157,7 +174,8 @@ left a stray "3". Masks now match whole occurrences only (regression test in
 | Run | Mutants | Killed | Kill rate |
 |---|---|---|---|
 | First run | 201 | 189 | 94.0% |
-| After fixing the rule gaps below | 200 | 198 | **99.0%** (digit 100%, unit 100%, sign 93.5%) |
+| After fixing the rule gaps below | 200 | 198 | 99.0% (digit 100%, unit 100%, sign 93.5%) |
+| With perspective, negation and count rules, 85-case corpus | 226 | 224 | **99.1%** (digit 100%, unit 100%, sign 94.6%) |
 
 ### Survivors of the first run, and what changed
 
@@ -177,15 +195,23 @@ left a stray "3". Masks now match whole occurrences only (regression test in
 
 The test allows survivors only from g19. Any new survivor fails it and must be analysed here.
 
-## Known limitations
+## Limitations addressed at the 7B gate (2026-10-13)
 
-- **Perspective:** reports must describe the target. "PIA was faster by 0.311 s" is a correct
-  fact phrased from the reference's side and fails `direction_mismatch`. The 7D prompt states
-  the convention, and the retry explanation repeats it.
-- **Negation:** only negated *causal* markers are recognised. "LEC did not lose time" with a
-  positive loss is not caught; the corpus has no such case yet.
-- **Counts:** direction words next to count facts ("lost time in 7 corners") are not checked
-  (see the survivors above).
+The three limitations of the first version are now rules, so 7D needs no workaround for them:
+
+| Was | Now |
+|---|---|
+| Reports had to be phrased from the target's side; "PIA was faster" was rejected | the subject is detected and the expected sign flips for the reference (h01, h02, h05 pass; h06 fails) |
+| Negation was ignored ("LEC did not lose time" with a positive loss passed) | negation flips the expected sign (h03 passes; h07 fails) |
+| Direction words next to corner counts were not checked | counts must match `corners_lost` / `corners_gained` (h04 passes; h08 fails) |
+
+## Remaining limitations
+
+- **Pronouns:** "he gained 0.131 s" counts as having no named subject, so the target is assumed.
+  The 7D prompt should ask for driver codes, not pronouns.
+- **Subjects:** only the nearest named subject in the same sentence is considered. Long
+  sentences with two clauses about different drivers should be split; the prompt asks for one
+  claim per sentence.
 - **Sentences:** boundaries are `;`, `!`, `?` and a period not followed by a digit.
 
 ## Retry explanation

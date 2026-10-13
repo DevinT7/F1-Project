@@ -105,6 +105,10 @@ CAUSAL_MARKER = re.compile(
     r"\b(?:because(?: of)?|due to|caused by|as a result of|thanks to|owing to|stem(?:s|med|ming)? from|"
     r"attributable to|attributed to|explained by|explains?|led to|leads to|resulting from|down to|the reason|"
     r"contributing factor|related to|linked to)\b", re.IGNORECASE)
+DIRECTION_NEGATION = re.compile(r"\b(?:not|never|didn't|did not|wasn't|was not|no longer)$", re.IGNORECASE)
+OBJECT_PREPOSITION = re.compile(r"\b(?:on|to|than|over|against|behind|from|versus|vs\.?|with|of|for|ahead of)\s+$",
+                                re.IGNORECASE)
+COUNT_FACT = re.compile(r"\.(corners_lost|corners_gained)$")
 HEDGE_BEFORE = re.compile(r"\b(?:may|might|could|possibly|likely|perhaps|probably)\b", re.IGNORECASE)
 NEGATION_BEFORE = re.compile(r"\b(?:not|no|never|cannot|can't|isn't|aren't|wasn't)\b", re.IGNORECASE)
 UNAVAILABLE_MARKER = re.compile(
@@ -158,6 +162,7 @@ class _Index:
     masks: tuple[str, ...]
     context_laps: set[int]
     factsheet_hash: str
+    subjects: tuple[tuple[re.Pattern[str], str], ...] = ()   # (driver code / team, "target" | "reference")
 
 
 _INDEX_CACHE: dict[str, _Index] = {}
@@ -179,7 +184,14 @@ def _index(fs: FactSheet) -> _Index:
     masks += [s for s in (fs.session.key, fs.session.event, fs.session.date) if s]
     masks.sort(key=len, reverse=True)  # longest first, so a label is masked before any substring
     laps = {int(v) for i in CONTEXT_LAPS if i in facts and (v := facts[i].value) is not None}
-    idx = _Index(facts, categorical, prefixes, causes, tuple(masks), laps, fs.factsheet_hash)
+    subjects: list[tuple[re.Pattern[str], str]] = []
+    for side, drv in (("target", fs.drivers.target), ("reference", fs.drivers.reference)):
+        subjects.append((re.compile(rf"\b{re.escape(drv.code)}\b"), side))      # codes: case-sensitive
+    teams = (fs.drivers.target.team, fs.drivers.reference.team)
+    if all(teams) and teams[0] != teams[1]:                                       # teams only if they tell them apart
+        subjects += [(re.compile(rf"\b{re.escape(str(t))}\b", re.IGNORECASE), side)
+                     for t, side in zip(teams, ("target", "reference"), strict=True)]
+    idx = _Index(facts, categorical, prefixes, causes, tuple(masks), laps, fs.factsheet_hash, tuple(subjects))
     if len(_INDEX_CACHE) > 256:
         _INDEX_CACHE.clear()
     _INDEX_CACHE[fs.factsheet_hash] = idx
@@ -214,6 +226,20 @@ def _sentence_bounds(text: str, pos: int) -> tuple[int, int]:
     start = max((e for e in ends if e <= pos), default=0)
     end = min((e for e in ends if e > pos), default=len(text))
     return start, end
+
+
+def _subject(before: str, idx: _Index) -> str | None:
+    """Who a direction word describes: the driver (code or team) named last before it in its
+    sentence as a SUBJECT. A name right after a comparison preposition ("on PIA", "than PIA",
+    "to PIA") is the object and is skipped. None when no subject is named: the target, by default."""
+    last: tuple[int, str] | None = None
+    for pattern, side in idx.subjects:
+        for m in pattern.finditer(before):
+            if OBJECT_PREPOSITION.search(before[:m.start()]):
+                continue
+            if last is None or m.start() > last[0]:
+                last = (m.start(), side)
+    return None if last is None else last[1]
 
 
 def direction_matches(text: str) -> list[tuple[DirectionEntry, re.Match[str]]]:
@@ -312,19 +338,37 @@ def _check_bullet(bullet: Bullet, section: str, i: int, idx: _Index) -> tuple[li
     lex = lexicon()
     for entry, m in direction_matches(text):
         s, e = m.span()
+        lo, hi = _sentence_bounds(text, s)
+        sign, how = entry.sign, list[str]()
+        if DIRECTION_NEGATION.search(" ".join(text[lo:s].split()[-2:])):      # "did not lose time"
+            sign, how = -sign, how + ["negated"]
+        if _subject(text[lo:s], idx) == "reference":                          # "PIA was faster than LEC"
+            sign, how = -sign, how + ["said of the reference"]
         family = lex.families[entry.family]
         fam = [f for f in cited if family.search(f.id) and f.value]
+        counts = [g for g in grounded if lo <= g.token.start < hi and any(COUNT_FACT.search(f.id) for f in g.facts)]
+        timed = [g for g in grounded if lo <= g.token.start < hi and any(f in fam for f in g.facts)]
+
+        def dist(g: _Grounded) -> int:
+            return min(abs(g.token.start - s), abs(g.token.start - e))
+
+        if entry.family == "time" and counts and (not timed or min(map(dist, counts)) < min(map(dist, timed))):
+            # "lost time in 11 corners": the count must be the corners-lost count, "gained in 3" corners-gained
+            best_count = min(counts, key=dist)
+            want = "corners_lost" if sign > 0 else "corners_gained"
+            if not any(f.id.endswith(want) for f in best_count.facts):
+                v("direction_mismatch", f"'{m.group(0)} … {best_count.token.raw}' does not match LAP.{want}")
+            continue
         if not fam:
             continue
-        lo, hi = _sentence_bounds(text, s)
-        near = [g for g in grounded if lo <= g.token.start < hi and any(f in fam for f in g.facts)]
-        if near:
-            best = min(near, key=lambda g: min(abs(g.token.start - s), abs(g.token.start - e)))
+        if timed:
+            best = min(timed, key=dist)
             check = [f for f in best.facts if f in fam]
         else:
             check = fam
-        if all((float(f.value) > 0) != (entry.sign > 0) for f in check):  # type: ignore[arg-type]
-            v("direction_mismatch", f"'{m.group(0)}' contradicts {check[0].id} "
+        if all((float(f.value) > 0) != (sign > 0) for f in check):  # type: ignore[arg-type]
+            qualifier = f" ({', '.join(how)})" if how else ""
+            v("direction_mismatch", f"'{m.group(0)}'{qualifier} contradicts {check[0].id} "
                                     f"({'positive' if float(check[0].value) > 0 else 'negative'})")  # type: ignore[arg-type]
 
     # 6 causal claims (only about performance: the bullet cites a segment)

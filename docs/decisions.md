@@ -243,3 +243,18 @@ Full contract: `docs/tire_api.md`.
 - **Prompt size (for 7D/7E).** A FactSheet holds about 1,000 numeric facts (~300 KB). The model
   receives a compact rendering or the relevant slices; the validator checks against the full
   FactSheet.
+
+## Phase 7B — Validator (P1, 2026-10-13)
+
+- **Human gate (corpus review plus 10 added cases) completed 2026-10-13.** The user delegated
+  the 10 cases (`h01`–`h10`). The corpus is 85 cases: 35 good and 50 bad.
+- **The three first-version limitations are now rules,** so 7D needs no workaround:
+  - subject-aware direction ("PIA was faster than LEC" is correct);
+  - negation ("did not lose time");
+  - corner counts tied to `corners_lost` / `corners_gained`.
+- **Mutation kill rate is 99.1% (224/226).** The only survivors are two equivalent mutants
+  (corners lost = corners gained = 7).
+- **The 7A masking bug ("Turn 2" consuming the "2" of "Turn 23") is fixed** in `parse_numbers`,
+  with a regression test.
+- **For 7D's prompt:** use driver codes rather than pronouns, and one claim per sentence (the
+  remaining limitations in `docs/validator_rules.md`).
