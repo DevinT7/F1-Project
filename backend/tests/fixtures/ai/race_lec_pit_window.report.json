@@ -1,6 +1,6 @@
 {
  "headline": {
-  "text": "LEC was 1.094 s slower than PIA over the lap and lost the most in Sector 2 (0.688 s).",
+  "text": "LEC was 1.094 s slower than PIA over the lap, losing the most in Sector 2 (0.688 s).",
   "fact_ids": [
    "LAP.time_loss_s",
    "LAP.sector_2_delta_s"
@@ -34,7 +34,7 @@
  ],
  "strongest_areas": [
   {
-   "text": "Turn 18: LEC gained 0.131 s (braked 24.0 m later; carried 5.0 km/h less minimum speed; exited 9.9 km/h slower).",
+   "text": "Turn 18: LEC gained 0.131 s (braked 24.0 m later), despite carrying 5.0 km/h less minimum speed and exiting 9.9 km/h slower.",
    "fact_ids": [
     "T18.time_loss_s",
     "T18.braking_start_diff_m",
@@ -43,7 +43,7 @@
    ]
   },
   {
-   "text": "Turn 5: LEC gained 0.039 s (braked 25.0 m later; exited 13.0 km/h slower).",
+   "text": "Turn 5: LEC gained 0.039 s (braked 25.0 m later), despite exiting 13.0 km/h slower.",
    "fact_ids": [
     "T5.time_loss_s",
     "T5.braking_start_diff_m",
@@ -90,13 +90,13 @@
    ]
   },
   {
-   "text": "Work on minimum speed in Turn 13; PIA carried 7.6 km/h more minimum speed.",
+   "text": "Aim for full throttle sooner out of Turn 13; LEC took 0.311 s longer to reach full throttle.",
    "fact_ids": [
-    "T13.min_speed_diff_kph"
+    "T13.time_to_full_throttle_diff_s"
    ]
   },
   {
-   "text": "Work on minimum speed in Turn 14; PIA carried 4.1 km/h more minimum speed.",
+   "text": "Carry more speed through the middle of Turn 14; PIA carried 4.1 km/h more minimum speed.",
    "fact_ids": [
     "T14.min_speed_diff_kph"
    ]

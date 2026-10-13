@@ -258,3 +258,16 @@ Full contract: `docs/tire_api.md`.
   with a regression test.
 - **For 7D's prompt:** use driver codes rather than pronouns, and one claim per sentence (the
   remaining limitations in `docs/validator_rules.md`).
+
+## Phase 7C — Template report (P1, 2026-10-13)
+
+- **Review (2026-10-13).** All points raised at the review were applied:
+  - Segment bullets separate the metrics that explain the result from the ones that went the
+    other way ("…, despite …").
+  - The headline names the biggest sector in the lap's own direction.
+  - Driving suggestions prefer different causes and vary the wording when a cause repeats.
+- **Faster property test.** It draws one Hypothesis seed per FactSheet and generates values with
+  `random.Random`. 1,000 examples now run in about 23 s instead of about 100 s, with the same
+  distributions.
+- **The validator masks system text quoted verbatim** (notes, the tyre "unavailable" reason).
+  Exact copies of FactSheet text are grounded; everything else is still checked.

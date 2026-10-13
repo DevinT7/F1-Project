@@ -1,9 +1,9 @@
 {
  "headline": {
-  "text": "ALO was 0.033 s slower than ALB over the lap and gained the most in Sector 2 (0.519 s).",
+  "text": "ALO was 0.033 s slower than ALB over the lap, losing the most in Sector 1 (0.515 s).",
   "fact_ids": [
    "LAP.time_loss_s",
-   "LAP.sector_2_delta_s"
+   "LAP.sector_1_delta_s"
   ]
  },
  "biggest_time_loss": [
@@ -16,7 +16,7 @@
    ]
   },
   {
-   "text": "Turn 5: ALO lost 0.123 s (braked 17.0 m later).",
+   "text": "Turn 5: ALO lost 0.123 s, despite braking 17.0 m later.",
    "fact_ids": [
     "T5.time_loss_s",
     "T5.braking_start_diff_m"
@@ -43,7 +43,7 @@
    ]
   },
   {
-   "text": "Turn 8: ALO gained 0.100 s (carried 6.0 km/h less minimum speed; reached full throttle 0.370 s earlier; exited 3.9 km/h faster).",
+   "text": "Turn 8: ALO gained 0.100 s (reached full throttle 0.370 s earlier; exited 3.9 km/h faster), despite carrying 6.0 km/h less minimum speed.",
    "fact_ids": [
     "T8.time_loss_s",
     "T8.min_speed_diff_kph",
@@ -76,9 +76,9 @@
    ]
   },
   {
-   "text": "Work on minimum speed in Turn 17; ALB carried 3.0 km/h more minimum speed.",
+   "text": "Prioritise the exit of Turn 17; ALB exited 3.6 km/h faster.",
    "fact_ids": [
-    "T17.min_speed_diff_kph"
+    "T17.exit_speed_diff_kph"
    ]
   }
  ],

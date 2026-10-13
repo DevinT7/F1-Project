@@ -1,6 +1,6 @@
 {
  "headline": {
-  "text": "ALO was 0.488 s slower than VER over the lap and lost the most in Sector 3 (0.272 s).",
+  "text": "ALO was 0.488 s slower than VER over the lap, losing the most in Sector 3 (0.272 s).",
   "fact_ids": [
    "LAP.time_loss_s",
    "LAP.sector_3_delta_s"
@@ -23,7 +23,7 @@
    ]
   },
   {
-   "text": "Turn 6: ALO lost 0.098 s (braked 5.0 m later; reached full throttle 0.567 s later; exited 7.3 km/h slower).",
+   "text": "Turn 6: ALO lost 0.098 s (reached full throttle 0.567 s later; exited 7.3 km/h slower), despite braking 5.0 m later.",
    "fact_ids": [
     "T6.time_loss_s",
     "T6.braking_start_diff_m",
@@ -71,13 +71,13 @@
    ]
   },
   {
-   "text": "Work on minimum speed in Turn 15; VER carried 6.0 km/h more minimum speed.",
+   "text": "Carry more speed through the middle of Turn 15; VER carried 6.0 km/h more minimum speed.",
    "fact_ids": [
     "T15.min_speed_diff_kph"
    ]
   },
   {
-   "text": "Aim for full throttle sooner out of Turn 6; ALO took 0.567 s longer to reach it.",
+   "text": "Aim for full throttle sooner out of Turn 6; ALO took 0.567 s longer to reach full throttle.",
    "fact_ids": [
     "T6.time_to_full_throttle_diff_s"
    ]

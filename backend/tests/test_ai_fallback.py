@@ -82,8 +82,8 @@ def swapped(fs: FactSheet) -> FactSheet:
 def test_swapping_target_and_reference_flips_the_wording():
     fs = fixture("race_lec_pit_window")
     a, b = build_template_report(fs), build_template_report(swapped(fs))
-    assert a.headline.text.startswith("LEC was 1.094 s slower than PIA over the lap and lost the most in Sector 2")
-    assert b.headline.text.startswith("PIA was 1.094 s faster than LEC over the lap and gained the most in Sector 2")
+    assert a.headline.text.startswith("LEC was 1.094 s slower than PIA over the lap, losing the most in Sector 2")
+    assert b.headline.text.startswith("PIA was 1.094 s faster than LEC over the lap, gaining the most in Sector 2")
     assert validate_report(b, swapped(fs)).ok
     # Turn 19 was LEC's biggest loss, so it is PIA's biggest gain once the roles swap
     assert "Turn 19" in a.biggest_time_loss[0].text and "Turn 19" in b.strongest_areas[0].text
@@ -115,3 +115,22 @@ def test_tyre_unavailable_and_qualifying():
     assert q.strategy_options == [] and "unavailable" in q.tire_notes[0].text
     r = build_template_report(fixture("race_alo_tire_model_unavailable"))
     assert "503" in r.tire_notes[0].text  # the reason is quoted verbatim (and masked by the validator)
+
+
+def test_mixed_metrics_separate_the_explanation_from_what_went_the_other_way():
+    report = build_template_report(fixture("race_lec_pit_window"))
+    turn18 = next(b.text for b in report.strongest_areas if b.text.startswith("Turn 18"))
+    assert turn18 == ("Turn 18: LEC gained 0.131 s (braked 24.0 m later), despite carrying 5.0 km/h less minimum speed "
+                      "and exiting 9.9 km/h slower.")
+
+
+def test_suggestions_prefer_different_causes_and_vary_repeated_wording():
+    report = build_template_report(fixture("race_lec_pit_window"))
+    texts = [b.text for b in report.driving_suggestions]
+    assert len(texts) == 3 and len({t.split(";")[0].replace(t.split(" in ")[-1], "") for t in texts}) >= 2
+    assert len({t.split(";")[0].rsplit(" ", 2)[0] for t in texts}) == 3, texts  # three different openings
+
+
+def test_headline_names_a_sector_in_the_laps_direction():
+    head = build_template_report(fixture("race_alo_tire_model_unavailable")).headline.text
+    assert head.startswith("ALO was 0.033 s slower than ALB over the lap, losing the most in Sector")

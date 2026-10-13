@@ -39,15 +39,34 @@ FRAGMENTS: dict[str, Callable[[str, bool], str]] = {     # (display, positive?) 
     "exit_speed_diff_kph": lambda d, pos: f"exited {d} km/h {'faster' if pos else 'slower'}",
     "top_speed_diff_kph": lambda d, pos: f"reached a top speed {d} km/h {'higher' if pos else 'lower'}",
 }
-# driving suggestions for loss causes: (advice, evidence as a function of (target, reference, display))
-SUGGESTIONS: dict[str, tuple[str, Callable[[str, str, str], str]]] = {
-    "early_braking_loss": ("Test a later brake point in {label}", lambda tgt, ref, d: f"{ref} braked {d} m later"),
-    "low_min_speed": ("Work on minimum speed in {label}",
+GERUNDS: dict[str, Callable[[str, bool], str]] = {       # the same, for a "despite …" clause
+    "braking_start_diff_m": lambda d, pos: f"braking {d} m {'later' if pos else 'earlier'}",
+    "min_speed_diff_kph": lambda d, pos: f"carrying {d} km/h {'more' if pos else 'less'} minimum speed",
+    "time_to_full_throttle_diff_s": lambda d, pos: f"reaching full throttle {d} s {'later' if pos else 'earlier'}",
+    "exit_speed_diff_kph": lambda d, pos: f"exiting {d} km/h {'faster' if pos else 'slower'}",
+    "top_speed_diff_kph": lambda d, pos: f"with a top speed {d} km/h {'higher' if pos else 'lower'}",
+}
+# does a POSITIVE difference help the target? (braking later, more minimum/exit/top speed help;
+# reaching full throttle later does not)
+POSITIVE_HELPS = {"braking_start_diff_m": True, "min_speed_diff_kph": True, "time_to_full_throttle_diff_s": False,
+                  "exit_speed_diff_kph": True, "top_speed_diff_kph": True}
+# driving suggestions for loss causes: advice variants (used in turn when a cause repeats) and the
+# evidence as a function of (target, reference, display)
+SUGGESTIONS: dict[str, tuple[tuple[str, ...], Callable[[str, str, str], str]]] = {
+    "early_braking_loss": (("Test a later brake point in {label}", "Experiment with a later brake point into {label}",
+                            "Review the brake point for {label}"),
+                           lambda tgt, ref, d: f"{ref} braked {d} m later"),
+    "low_min_speed": (("Work on minimum speed in {label}", "Carry more speed through the middle of {label}",
+                       "Focus on the slowest point of {label}"),
                       lambda tgt, ref, d: f"{ref} carried {d} km/h more minimum speed"),
-    "late_throttle": ("Aim for full throttle sooner out of {label}",
-                      lambda tgt, ref, d: f"{tgt} took {d} s longer to reach it"),
-    "lower_exit_speed": ("Prioritise the exit of {label}", lambda tgt, ref, d: f"{ref} exited {d} km/h faster"),
-    "straight_line_deficit": ("Check straight-line speed on {label}",
+    "late_throttle": (("Aim for full throttle sooner out of {label}", "Look for an earlier full-throttle point out of {label}",
+                       "Review throttle application out of {label}"),
+                      lambda tgt, ref, d: f"{tgt} took {d} s longer to reach full throttle"),
+    "lower_exit_speed": (("Prioritise the exit of {label}", "Work on exit speed out of {label}",
+                          "Focus on the run out of {label}"),
+                         lambda tgt, ref, d: f"{ref} exited {d} km/h faster"),
+    "straight_line_deficit": (("Check straight-line speed on {label}", "Review straight-line speed on {label}",
+                               "Look at the run along {label}"),
                               lambda tgt, ref, d: f"{ref} reached a top speed {d} km/h higher"),
 }
 SUGGESTION_SIGN = {"early_braking_loss": -1, "low_min_speed": -1, "late_throttle": 1, "lower_exit_speed": -1,
@@ -94,13 +113,15 @@ class _Sheet:
 
 
 def _segment_bullet(s: _Sheet, prefix: str, target: str) -> Bullet | None:
+    """`{label}: {T} lost|gained {d} s ({what explains it})[, despite {what went the other way}].`"""
     loss_id = f"{prefix}.time_loss_s"
     loss = s.value(loss_id)
     if loss is None or loss == 0:
         return None
-    verb = "lost" if loss > 0 else "gained"
+    gained = loss < 0
     ids = [loss_id]
-    parts: list[str] = []
+    explain: list[str] = []
+    despite: list[str] = []
     seen: set[str] = set()
     for cause in s.causes(prefix):
         field = CAUSE_METRIC.get(cause)
@@ -111,58 +132,71 @@ def _segment_bullet(s: _Sheet, prefix: str, target: str) -> Bullet | None:
         v = s.value(fid)
         if v is None or v == 0:
             continue
-        parts.append(FRAGMENTS[field](s.shown(fid), v > 0))
+        helps = (v > 0) == POSITIVE_HELPS[field]
+        if helps == gained:                     # in line with the result: it is part of the explanation
+            explain.append(FRAGMENTS[field](s.shown(fid), v > 0))
+        else:                                   # went the other way: said as "despite …"
+            despite.append(GERUNDS[field](s.shown(fid), v > 0))
         ids.append(fid)
-    head = f"{s.label(prefix)}: {target} {verb} {s.shown(loss_id)} s"
-    if parts:
-        text = f"{head} ({'; '.join(parts)})."
-    elif isinstance(raw := s.cat(f"{prefix}.causes"), list) and "unclear" in raw:
-        noun = "loss" if loss > 0 else "gain"
-        text = f"{head}; the time {noun} has no single clear driving cause in the available data."
-    else:
-        text = f"{head}."
-    return Bullet(text=text, fact_ids=ids)
+    text = f"{s.label(prefix)}: {target} {'gained' if gained else 'lost'} {s.shown(loss_id)} s"
+    if explain:
+        text += f" ({'; '.join(explain)})"
+    if despite:
+        text += f", despite {_join(despite)}"
+    if not explain and not despite and isinstance(raw := s.cat(f"{prefix}.causes"), list) and "unclear" in raw:
+        text += f"; the time {'gain' if gained else 'loss'} has no single clear driving cause in the available data"
+    return Bullet(text=text + ".", fact_ids=ids)
 
 
 def _headline(s: _Sheet, target: str, reference: str) -> Bullet:
+    """The lap delta, then the biggest sector that went the SAME way as the lap; only when no sector
+    did is the biggest opposite sector given, as a contrast ("despite gaining the most in …")."""
     fid = "LAP.time_loss_s"
     v = s.value(fid)
     if v is None:
         return Bullet(text=f"The lap time difference between {target} and {reference} is unavailable.", fact_ids=[fid])
     shown = s.shown(fid)
     if float(shown) == 0.0:
-        text = f"{target} and {reference} set the same lap time ({shown} s apart)."
-        return Bullet(text=text, fact_ids=[fid])
-    text = f"{target} was {shown} s {'slower' if v > 0 else 'faster'} than {reference} over the lap"
+        return Bullet(text=f"{target} and {reference} set the same lap time ({shown} s apart).", fact_ids=[fid])
+    slower = v > 0
+    text = f"{target} was {shown} s {'slower' if slower else 'faster'} than {reference} over the lap"
     ids = [fid]
-    sectors = [(abs(float(x)), i) for i in (1, 2, 3)
+    sectors = [(abs(float(x)), i, x > 0) for i in (1, 2, 3)
                if (x := s.value(f"LAP.sector_{i}_delta_s")) is not None and x != 0]
-    if sectors:
-        _, i = max(sectors)
-        sid = f"LAP.sector_{i}_delta_s"
-        sector_value = s.value(sid)
-        verb = "lost" if sector_value is not None and sector_value > 0 else "gained"
-        text += f" and {verb} the most in Sector {i} ({s.shown(sid)} s)"
-        ids.append(sid)
+    same = [t for t in sectors if t[2] == slower]
+    if same:
+        _, i, _ = max(same)
+        text += f", {'losing' if slower else 'gaining'} the most in Sector {i} ({s.shown(f'LAP.sector_{i}_delta_s')} s)"
+        ids.append(f"LAP.sector_{i}_delta_s")
+    elif sectors:
+        _, i, _ = max(sectors)
+        text += (f", despite {'gaining' if slower else 'losing'} the most time in Sector {i} "
+                 f"({s.shown(f'LAP.sector_{i}_delta_s')} s)")
+        ids.append(f"LAP.sector_{i}_delta_s")
     return Bullet(text=text + ".", fact_ids=ids)
 
 
 def _suggestions(s: _Sheet, target: str, reference: str) -> list[Bullet]:
-    out: list[Bullet] = []
+    """One per top-loss segment. Each picks a cause not used yet when it can (so three corners that
+    all lack minimum speed do not give three identical tips); a repeated cause gets the next
+    wording variant."""
+    candidates: list[tuple[str, list[str]]] = []
     for prefix in s.fs.rankings.largest_losses:
-        for cause in s.causes(prefix):
-            if cause not in SUGGESTIONS:
-                continue
-            fid = f"{prefix}.{CAUSE_METRIC[cause]}"
-            v = s.value(fid)
-            if v is None or v == 0 or (v > 0) != (SUGGESTION_SIGN[cause] > 0):
-                continue
-            advice, what = SUGGESTIONS[cause]
-            out.append(Bullet(text=f"{advice.format(label=s.label(prefix))}; {what(target, reference, s.shown(fid))}.",
-                              fact_ids=[fid]))
-            break
-        if len(out) == MAX_SEGMENTS:
-            break
+        usable = [c for c in s.causes(prefix) if c in SUGGESTIONS
+                  and (v := s.value(f"{prefix}.{CAUSE_METRIC[c]}")) is not None and v != 0
+                  and (v > 0) == (SUGGESTION_SIGN[c] > 0)]
+        if usable:
+            candidates.append((prefix, usable))
+    out: list[Bullet] = []
+    used: dict[str, int] = {}
+    for prefix, usable in candidates[:MAX_SEGMENTS]:
+        cause = next((c for c in usable if c not in used), usable[0])
+        variants, evidence = SUGGESTIONS[cause]
+        advice = variants[used.get(cause, 0) % len(variants)]
+        used[cause] = used.get(cause, 0) + 1
+        fid = f"{prefix}.{CAUSE_METRIC[cause]}"
+        out.append(Bullet(text=f"{advice.format(label=s.label(prefix))}; {evidence(target, reference, s.shown(fid))}.",
+                          fact_ids=[fid]))
     return out
 
 

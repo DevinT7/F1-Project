@@ -37,20 +37,30 @@ strategy is in `tests/ai_strategies.py`. Print the reports: `python -m scripts.p
 
 | Case | Text |
 |---|---|
-| lap delta > 0 | `{T} was {Δ} s slower than {R} over the lap and lost the most in Sector {n} ({δ} s).` |
-| lap delta < 0 | `{T} was {Δ} s faster than {R} over the lap and gained the most in Sector {n} ({δ} s).` |
+| lap delta > 0 | `{T} was {Δ} s slower than {R} over the lap, losing the most in Sector {n} ({δ} s).` |
+| lap delta < 0 | `{T} was {Δ} s faster than {R} over the lap, gaining the most in Sector {n} ({δ} s).` |
+| no sector went the lap's way | `…, despite gaining (losing) the most time in Sector {n} ({δ} s).` |
 | Δ displays as 0.000 | `{T} and {R} set the same lap time (0.000 s apart).` |
 | lap delta null | `The lap time difference between {T} and {R} is unavailable.` |
 
-"Lost" or "gained" for the sector follows that sector's own sign. It can differ from the lap's
-(race_alo: 0.033 s slower overall, but gained the most in Sector 2). The sector clause is omitted
-when no sector delta exists.
+The headline names the biggest sector that went **the same way as the lap**. Only when no sector
+did is the biggest opposite sector given, as an explicit contrast. This changed at the 7C review:
+"0.033 s slower … gained the most in Sector 2" was accurate but read as a contradiction. The
+sector clause is omitted when no sector delta exists.
 
 ### Segment fragments (biggest time loss / strongest areas)
 
-`{label}: {T} lost|gained {loss} s ({fragment}; {fragment}).` uses the top 3 of
-`rankings.largest_losses` or `largest_gains`. Each triggered cause contributes one fragment for
-its metric:
+`{label}: {T} lost|gained {loss} s ({explaining fragments}), despite {opposing fragments}.` uses
+the top 3 of `rankings.largest_losses` or `largest_gains`. Each triggered cause contributes one
+fragment for its metric.
+- **In parentheses:** the fragments in line with the result. For a loss, the metrics that hurt;
+  for a gain, the metrics that helped.
+- **"despite …":** the metrics that went the other way. They are written as gerunds ("braking …
+  later", "carrying … less minimum speed").
+
+Braking later, more minimum/exit/top speed, and reaching full throttle earlier count as helping.
+This changed at the 7C review: "gained 0.131 s (braked 24.0 m later; carried 5.0 km/h less
+minimum speed; …)" listed a hindrance as if it explained the gain.
 
 | Causes | Metric | Positive value | Negative value |
 |---|---|---|---|
@@ -71,14 +81,27 @@ The other cases:
 
 ### Driving suggestions
 
-One suggestion per top-loss segment: the first loss-type cause whose metric has the expected
-sign. At most 3.
+One suggestion per top-loss segment, at most 3. Each picks a loss-type cause (with the expected
+metric sign) **not used yet** when it can. A repeated cause gets the next wording variant, so
+three corners that all lack minimum speed do not give three identical tips (a 7C review change).
+Variants, in order:
+- **braking:** "Test a later brake point in", "Experiment with a later brake point into", "Review
+  the brake point for"
+- **minimum speed:** "Work on minimum speed in", "Carry more speed through the middle of", "Focus
+  on the slowest point of"
+- **throttle:** "Aim for full throttle sooner out of", "Look for an earlier full-throttle point out
+  of", "Review throttle application out of"
+- **exit:** "Prioritise the exit of", "Work on exit speed out of", "Focus on the run out of"
+- **straight:** "Check straight-line speed on", "Review straight-line speed on", "Look at the run
+  along"
+
+The evidence clauses are below.
 
 | Cause | Text |
 |---|---|
 | `early_braking_loss` | `Test a later brake point in {label}; {R} braked {d} m later.` |
 | `low_min_speed` | `Work on minimum speed in {label}; {R} carried {d} km/h more minimum speed.` |
-| `late_throttle` | `Aim for full throttle sooner out of {label}; {T} took {d} s longer to reach it.` |
+| `late_throttle` | `Aim for full throttle sooner out of {label}; {T} took {d} s longer to reach full throttle.` |
 | `lower_exit_speed` | `Prioritise the exit of {label}; {R} exited {d} km/h faster.` |
 | `straight_line_deficit` | `Check straight-line speed on {label}; {R} reached a top speed {d} km/h higher.` |
 
@@ -118,7 +141,8 @@ bullet notes that the model is trained on dry races only.
 
 ## Tests
 
-- **Property:** 1,000 random valid FactSheets (`tests/ai_strategies.py`) all produce a report
+- **Property:** 1,000 random valid FactSheets (`tests/ai_strategies.py`, about 23 s: one Hypothesis
+  seed per FactSheet, with values from `random.Random`) all produce a report
   that passes the validator, within the 60-word bullet and 450-word report limits. The
   strategy builds findings the way the engine does: random metrics, signs and nulls, causes
   from the engine's own attribution functions, rankings from the losses, and every tyre state.

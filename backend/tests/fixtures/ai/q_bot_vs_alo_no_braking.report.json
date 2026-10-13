@@ -1,6 +1,6 @@
 {
  "headline": {
-  "text": "BOT was 0.412 s slower than ALO over the lap and lost the most in Sector 3 (0.189 s).",
+  "text": "BOT was 0.412 s slower than ALO over the lap, losing the most in Sector 3 (0.189 s).",
   "fact_ids": [
    "LAP.time_loss_s",
    "LAP.sector_3_delta_s"
@@ -17,7 +17,7 @@
    ]
   },
   {
-   "text": "Turn 16: BOT lost 0.130 s (carried 3.0 km/h less minimum speed; reached full throttle 0.404 s earlier).",
+   "text": "Turn 16: BOT lost 0.130 s (carried 3.0 km/h less minimum speed), despite reaching full throttle 0.404 s earlier.",
    "fact_ids": [
     "T16.time_loss_s",
     "T16.min_speed_diff_kph",
@@ -48,7 +48,7 @@
    ]
   },
   {
-   "text": "Turn 6: BOT gained 0.071 s (braked 10.0 m earlier; reached full throttle 0.177 s earlier).",
+   "text": "Turn 6: BOT gained 0.071 s (reached full throttle 0.177 s earlier), despite braking 10.0 m earlier.",
    "fact_ids": [
     "T6.time_loss_s",
     "T6.braking_start_diff_m",
