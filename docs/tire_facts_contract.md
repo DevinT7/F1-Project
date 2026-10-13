@@ -73,7 +73,7 @@ These response fields support the panel but are not FactSheet facts.
 
 | Field | Reason |
 |---|---|
-| `predicted_laps` | the full per-lap curve is chart data; only the next lap is a fact (above) |
+| `predicted_laps` | the full per-lap curve is chart data; only the next lap is a fact (above), and its lap number is always `tire.as_of_lap` + 1 |
 | `history` | observed laps of the stint are chart data, already summarised by `tire.clean_laps_used` |
 | `threshold_curve` | per-lap threshold on the raw scale, for drawing only; the fact is `tire.threshold_s` |
 | `warnings` | explanations of nulls, cited by the FactSheet rather than stated as facts |

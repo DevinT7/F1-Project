@@ -1,0 +1,1710 @@
+{
+ "findings": {
+  "schema_version": 1,
+  "comparison_id": "2024-14-R:LEC-vs-PIA",
+  "session_context": {
+   "session_key": "2024_14_R",
+   "event_name": "Belgian Grand Prix",
+   "session_name": "Race",
+   "session_code": "R",
+   "reference": {
+    "driver": "PIA",
+    "lap_number": 28,
+    "lap_time_s": 107.609,
+    "sector_s": [
+     31.07,
+     47.484,
+     29.055
+    ],
+    "compound": "HARD",
+    "tyre_age_laps": 17,
+    "fresh_tyre": true,
+    "air_temp_c": 21.9,
+    "track_temp_c": 43.5,
+    "rainfall": false,
+    "track_status": "1",
+    "track_status_flags": [
+     "green"
+    ]
+   },
+   "target": {
+    "driver": "LEC",
+    "lap_number": 28,
+    "lap_time_s": 107.039,
+    "sector_s": [
+     31.157,
+     47.005,
+     28.877
+    ],
+    "compound": "HARD",
+    "tyre_age_laps": 3,
+    "fresh_tyre": true,
+    "air_temp_c": 21.9,
+    "track_temp_c": 43.4,
+    "rainfall": false,
+    "track_status": "1",
+    "track_status_flags": [
+     "green"
+    ]
+   },
+   "notes": [
+    "traffic data unavailable: do not attribute time loss to traffic"
+   ]
+  },
+  "lap_summary": {
+   "id": "2024-14-R:LEC-vs-PIA:LAP",
+   "kind": "lap_summary",
+   "label": "Lap",
+   "segment": {
+    "start_m": 0.0,
+    "end_m": 6940.570621754818,
+    "apex_m": null
+   },
+   "time_loss_s": -0.5699999999999932,
+   "entry_loss_s": null,
+   "exit_loss_s": null,
+   "metrics": {
+    "total_delta_s": -0.5699999999999932,
+    "official_gap_s": -0.5699999999999932,
+    "sector_1_delta_s": 0.08699999999999974,
+    "sector_2_delta_s": -0.4789999999999992,
+    "sector_3_delta_s": -0.17800000000000082,
+    "top_speed_diff_kph": 1.9990148554686584,
+    "corner_count": 20,
+    "corners_lost": 5,
+    "corners_gained": 11,
+    "corners_unclear": 5
+   },
+   "target": {
+    "lap_time_s": 107.039,
+    "top_speed_kph": 323.99901485546866
+   },
+   "reference": {
+    "lap_time_s": 107.609,
+    "top_speed_kph": 322.0
+   },
+   "causes": [],
+   "rank": null,
+   "confidence": "high",
+   "notes": [],
+   "corner_number": null,
+   "corner_type": null,
+   "apex_source": null
+  },
+  "corners": [
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T1",
+    "kind": "corner",
+    "label": "Turn 1",
+    "segment": {
+     "start_m": 0.0,
+     "end_m": 719.117701373529,
+     "apex_m": 385.0
+    },
+    "time_loss_s": 0.06013825610460053,
+    "entry_loss_s": -0.08851067789851985,
+    "exit_loss_s": 0.14864893400312038,
+    "metrics": {
+     "braking_start_diff_m": 21.0,
+     "entry_speed_diff_kph": 6.5977493981700945,
+     "min_speed_diff_kph": -4.0839391417494255,
+     "exit_speed_diff_kph": -5.276014836034932,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": 0.3596550867445325,
+     "braking_duration_diff_s": 0.06667144819073956,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": 272.0,
+     "braking_duration_s": 3.0586682358320134,
+     "peak_decel_ms2": 45.264398907898794,
+     "entry_speed_kph": 267.87651369537355,
+     "min_speed_kph": 73.0,
+     "min_speed_m": 380.0,
+     "exit_speed_kph": 178.55811922204649,
+     "throttle_reapply_m": 385.0,
+     "full_throttle_m": 454.0,
+     "time_to_full_throttle_s": 2.261443673303055,
+     "gear_min": 2,
+     "gear_at_apex": 2
+    },
+    "reference": {
+     "braking_start_m": 251.0,
+     "braking_duration_s": 2.991996787641274,
+     "peak_decel_ms2": 44.48756779147175,
+     "entry_speed_kph": 261.27876429720345,
+     "min_speed_kph": 77.08393914174943,
+     "min_speed_m": 385.0,
+     "exit_speed_kph": 183.83413405808142,
+     "throttle_reapply_m": 385.0,
+     "full_throttle_m": 443.0,
+     "time_to_full_throttle_s": 1.9017885865585225,
+     "gear_min": 2,
+     "gear_at_apex": 2
+    },
+    "causes": [
+     "late_braking_gain",
+     "low_min_speed",
+     "late_throttle",
+     "lower_exit_speed"
+    ],
+    "rank": 9,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": 1,
+    "corner_type": "slow",
+    "apex_source": "matched"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T2",
+    "kind": "corner",
+    "label": "Turn 2",
+    "segment": {
+     "start_m": 719.117701373529,
+     "end_m": 1122.6177013735291,
+     "apex_m": 1053.235402747058
+    },
+    "time_loss_s": 0.05320256373699394,
+    "entry_loss_s": 0.03221320588160096,
+    "exit_loss_s": 0.02098935785539298,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": -2.6357190907520476,
+     "min_speed_diff_kph": -1.03216631249893,
+     "exit_speed_diff_kph": -2.477545669955987,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": 3.5550699891473414e-05,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 307.4312209450275,
+     "min_speed_kph": 308.57601838455855,
+     "min_speed_m": 1134.0,
+     "exit_speed_kph": 305.0,
+     "throttle_reapply_m": 1054.0,
+     "full_throttle_m": 1054.0,
+     "time_to_full_throttle_s": 0.008774350650245566,
+     "gear_min": 7,
+     "gear_at_apex": 8
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 310.06694003577957,
+     "min_speed_kph": 309.6081846970575,
+     "min_speed_m": 1134.0,
+     "exit_speed_kph": 307.477545669956,
+     "throttle_reapply_m": 1054.0,
+     "full_throttle_m": 1054.0,
+     "time_to_full_throttle_s": 0.008738799950354093,
+     "gear_min": 7,
+     "gear_at_apex": 8
+    },
+    "causes": [
+     "unclear"
+    ],
+    "rank": 11,
+    "confidence": "medium",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance"
+    ],
+    "corner_number": 2,
+    "corner_type": "fast",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T3",
+    "kind": "corner",
+    "label": "Turn 3",
+    "segment": {
+     "start_m": 1122.6177013735291,
+     "end_m": 1222.3354450251438,
+     "apex_m": 1192.0
+    },
+    "time_loss_s": 0.03970549895241665,
+    "entry_loss_s": 0.036231057819902684,
+    "exit_loss_s": 0.003474441132513967,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": -1.1848590029790103,
+     "min_speed_diff_kph": -0.019151100069620952,
+     "exit_speed_diff_kph": 1.8727743409241953,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": 0.0,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 312.83061157683784,
+     "min_speed_kph": 305.0,
+     "min_speed_m": 1152.0,
+     "exit_speed_kph": 308.8727743409242,
+     "throttle_reapply_m": 1192.0,
+     "full_throttle_m": 1192.0,
+     "time_to_full_throttle_s": 0.0,
+     "gear_min": 8,
+     "gear_at_apex": 8
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 314.01547057981685,
+     "min_speed_kph": 305.0191511000696,
+     "min_speed_m": 1192.0,
+     "exit_speed_kph": 307.0,
+     "throttle_reapply_m": 1192.0,
+     "full_throttle_m": 1192.0,
+     "time_to_full_throttle_s": 0.0,
+     "gear_min": 8,
+     "gear_at_apex": 8
+    },
+    "causes": [
+     "unclear"
+    ],
+    "rank": 14,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": 3,
+    "corner_type": "fast",
+    "apex_source": "matched"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T4",
+    "kind": "corner",
+    "label": "Turn 4",
+    "segment": {
+     "start_m": 1222.3354450251438,
+     "end_m": 1822.9480352542726,
+     "apex_m": 1252.6708900502877
+    },
+    "time_loss_s": -0.05970327087041695,
+    "entry_loss_s": -0.005891429266155462,
+    "exit_loss_s": -0.05381184160426149,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": -2.543744372838887,
+     "min_speed_diff_kph": 0.04839028529573852,
+     "exit_speed_diff_kph": -0.525934134243073,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": -8.692335501336856e-05,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 305.0,
+     "min_speed_kph": 305.06754138536536,
+     "min_speed_m": 1173.0,
+     "exit_speed_kph": 309.2776905903264,
+     "throttle_reapply_m": 1253.0,
+     "full_throttle_m": 1253.0,
+     "time_to_full_throttle_s": 0.0037723464136014684,
+     "gear_min": 8,
+     "gear_at_apex": 8
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 307.5437443728389,
+     "min_speed_kph": 305.0191511000696,
+     "min_speed_m": 1192.0,
+     "exit_speed_kph": 309.8036247245695,
+     "throttle_reapply_m": 1253.0,
+     "full_throttle_m": 1253.0,
+     "time_to_full_throttle_s": 0.003859269768614837,
+     "gear_min": 8,
+     "gear_at_apex": 8
+    },
+    "causes": [
+     "unclear"
+    ],
+    "rank": 10,
+    "confidence": "medium",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance"
+    ],
+    "corner_number": 4,
+    "corner_type": "fast",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T5",
+    "kind": "corner",
+    "label": "Turn 5",
+    "segment": {
+     "start_m": 1822.9480352542726,
+     "end_m": 2438.1125902291287,
+     "apex_m": 2393.2251804582575
+    },
+    "time_loss_s": 0.06139605951513087,
+    "entry_loss_s": 0.034278332204792386,
+    "exit_loss_s": 0.027117727310338485,
+    "metrics": {
+     "braking_start_diff_m": 9.0,
+     "entry_speed_diff_kph": 0.27154912106379925,
+     "min_speed_diff_kph": -4.549608103078754,
+     "exit_speed_diff_kph": -1.9691572049656543,
+     "throttle_reapply_diff_m": -16.0,
+     "time_to_full_throttle_diff_s": null,
+     "braking_duration_diff_s": -0.1715897541516469,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": 2298.0,
+     "braking_duration_s": 1.715664582545326,
+     "peak_decel_ms2": 43.439316064018385,
+     "entry_speed_kph": 300.74513742950495,
+     "min_speed_kph": 156.0,
+     "min_speed_m": 2418.0,
+     "exit_speed_kph": 158.1232162801975,
+     "throttle_reapply_m": 2400.0,
+     "full_throttle_m": null,
+     "time_to_full_throttle_s": null,
+     "gear_min": 4,
+     "gear_at_apex": 4
+    },
+    "reference": {
+     "braking_start_m": 2289.0,
+     "braking_duration_s": 1.887254336696973,
+     "peak_decel_ms2": 39.239442894664535,
+     "entry_speed_kph": 300.47358830844115,
+     "min_speed_kph": 160.54960810307875,
+     "min_speed_m": 2474.0,
+     "exit_speed_kph": 160.09237348516317,
+     "throttle_reapply_m": 2416.0,
+     "full_throttle_m": null,
+     "time_to_full_throttle_s": null,
+     "gear_min": 4,
+     "gear_at_apex": 4
+    },
+    "causes": [
+     "late_braking_gain",
+     "low_min_speed"
+    ],
+    "rank": 8,
+    "confidence": "medium",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance",
+     "target did not reach 98% throttle before the next segment",
+     "reference did not reach 98% throttle before the next segment",
+     "braking points are resolved to ~11 m at this telemetry rate; a 9 m difference is near that resolution"
+    ],
+    "corner_number": 5,
+    "corner_type": "medium",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T6",
+    "kind": "corner",
+    "label": "Turn 6",
+    "segment": {
+     "start_m": 2438.1125902291287,
+     "end_m": 2559.968334905654,
+     "apex_m": 2483.0
+    },
+    "time_loss_s": -0.017049346861533143,
+    "entry_loss_s": -0.00016846945341636443,
+    "exit_loss_s": -0.01688087740811678,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": -8.928382142558803,
+     "min_speed_diff_kph": -2.009691343946372,
+     "exit_speed_diff_kph": -0.33646881911840865,
+     "throttle_reapply_diff_m": -1.0,
+     "time_to_full_throttle_diff_s": null,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 168.75413437677273,
+     "min_speed_kph": 156.0,
+     "min_speed_m": 2418.0,
+     "exit_speed_kph": 198.22469438125592,
+     "throttle_reapply_m": 2483.0,
+     "full_throttle_m": 2540.0,
+     "time_to_full_throttle_s": 1.2044746089052083,
+     "gear_min": 4,
+     "gear_at_apex": 4
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 177.68251651933153,
+     "min_speed_kph": 158.00969134394637,
+     "min_speed_m": 2483.0,
+     "exit_speed_kph": 198.56116320037432,
+     "throttle_reapply_m": 2484.0,
+     "full_throttle_m": null,
+     "time_to_full_throttle_s": null,
+     "gear_min": 4,
+     "gear_at_apex": 4
+    },
+    "causes": [],
+    "rank": 17,
+    "confidence": "low",
+    "notes": [
+     "reference did not reach 98% throttle before the next segment"
+    ],
+    "corner_number": 6,
+    "corner_type": "medium",
+    "apex_source": "matched"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T7",
+    "kind": "corner",
+    "label": "Turn 7",
+    "segment": {
+     "start_m": 2559.968334905654,
+     "end_m": 2842.968334905654,
+     "apex_m": 2636.9366698113076
+    },
+    "time_loss_s": -0.0348018072819372,
+    "entry_loss_s": -0.026831615353478513,
+    "exit_loss_s": -0.007970191928458686,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": 1.8660959422151677,
+     "min_speed_diff_kph": -1.39561025429785,
+     "exit_speed_diff_kph": 2.3619228188605916,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": -0.30135690976118923,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 178.73132139352015,
+     "min_speed_kph": 189.04582647162522,
+     "min_speed_m": 2557.0,
+     "exit_speed_kph": 237.40090320521438,
+     "throttle_reapply_m": 2637.0,
+     "full_throttle_m": 2676.0,
+     "time_to_full_throttle_s": 0.6737292877886603,
+     "gear_min": 4,
+     "gear_at_apex": 5
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 176.86522545130498,
+     "min_speed_kph": 190.44143672592307,
+     "min_speed_m": 2557.0,
+     "exit_speed_kph": 235.03898038635378,
+     "throttle_reapply_m": 2637.0,
+     "full_throttle_m": 2696.0,
+     "time_to_full_throttle_s": 0.9750861975498495,
+     "gear_min": 4,
+     "gear_at_apex": 5
+    },
+    "causes": [
+     "early_throttle"
+    ],
+    "rank": 15,
+    "confidence": "medium",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance"
+    ],
+    "corner_number": 7,
+    "corner_type": "medium",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T8",
+    "kind": "corner",
+    "label": "Turn 8",
+    "segment": {
+     "start_m": 2842.968334905654,
+     "end_m": 3163.0,
+     "apex_m": 3049.0
+    },
+    "time_loss_s": -0.11884961550173358,
+    "entry_loss_s": -0.05138484958169044,
+    "exit_loss_s": -0.06746476592004313,
+    "metrics": {
+     "braking_start_diff_m": 17.0,
+     "entry_speed_diff_kph": 0.9270256186149481,
+     "min_speed_diff_kph": 0.9694765408561778,
+     "exit_speed_diff_kph": 6.522966634093223,
+     "throttle_reapply_diff_m": -1.0,
+     "time_to_full_throttle_diff_s": -0.259251663140482,
+     "braking_duration_diff_s": -0.5272759167325773,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": 2901.0,
+     "braking_duration_s": 2.8617036709303605,
+     "peak_decel_ms2": 31.594279067879143,
+     "entry_speed_kph": 264.94694531831135,
+     "min_speed_kph": 108.0,
+     "min_speed_m": 3048.0,
+     "exit_speed_kph": 181.21569129905444,
+     "throttle_reapply_m": 3049.0,
+     "full_throttle_m": 3132.0,
+     "time_to_full_throttle_s": 2.2263016791592136,
+     "gear_min": 3,
+     "gear_at_apex": 3
+    },
+    "reference": {
+     "braking_start_m": 2884.0,
+     "braking_duration_s": 3.388979587662938,
+     "peak_decel_ms2": 28.202674622676795,
+     "entry_speed_kph": 264.0199196996964,
+     "min_speed_kph": 107.03052345914382,
+     "min_speed_m": 3049.0,
+     "exit_speed_kph": 174.69272466496122,
+     "throttle_reapply_m": 3050.0,
+     "full_throttle_m": 3142.0,
+     "time_to_full_throttle_s": 2.4855533422996956,
+     "gear_min": 3,
+     "gear_at_apex": 3
+    },
+    "causes": [
+     "late_braking_gain",
+     "early_throttle",
+     "higher_exit_speed"
+    ],
+    "rank": 2,
+    "confidence": "high",
+    "notes": [
+     "braking points are resolved to ~10 m at this telemetry rate; a 17 m difference is near that resolution"
+    ],
+    "corner_number": 8,
+    "corner_type": "slow",
+    "apex_source": "matched"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T9",
+    "kind": "corner",
+    "label": "Turn 9",
+    "segment": {
+     "start_m": 3163.0,
+     "end_m": 3553.0,
+     "apex_m": 3277.0
+    },
+    "time_loss_s": -0.02536259206856073,
+    "entry_loss_s": -0.0016889768623045143,
+    "exit_loss_s": -0.023673615206256216,
+    "metrics": {
+     "braking_start_diff_m": -9.0,
+     "entry_speed_diff_kph": 6.042371162845569,
+     "min_speed_diff_kph": -0.9071135983385545,
+     "exit_speed_diff_kph": -3.1634135917758215,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": 0.10680853153397862,
+     "braking_duration_diff_s": 0.4412900261723962,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": 3199.0,
+     "braking_duration_s": 0.8452093249570822,
+     "peak_decel_ms2": 8.813263862913118,
+     "entry_speed_kph": 206.90560943151465,
+     "min_speed_kph": 181.11854008561662,
+     "min_speed_m": 3266.0,
+     "exit_speed_kph": 226.60033425969237,
+     "throttle_reapply_m": 3277.0,
+     "full_throttle_m": 3324.0,
+     "time_to_full_throttle_s": 0.8528539710379945,
+     "gear_min": 4,
+     "gear_at_apex": 5
+    },
+    "reference": {
+     "braking_start_m": 3208.0,
+     "braking_duration_s": 0.403919298784686,
+     "peak_decel_ms2": 7.15558919048658,
+     "entry_speed_kph": 200.86323826866908,
+     "min_speed_kph": 182.02565368395517,
+     "min_speed_m": 3278.0,
+     "exit_speed_kph": 229.7637478514682,
+     "throttle_reapply_m": 3277.0,
+     "full_throttle_m": 3317.0,
+     "time_to_full_throttle_s": 0.7460454395040159,
+     "gear_min": 4,
+     "gear_at_apex": 5
+    },
+    "causes": [
+     "early_braking_loss",
+     "lower_exit_speed"
+    ],
+    "rank": 16,
+    "confidence": "high",
+    "notes": [
+     "braking points are resolved to ~7 m at this telemetry rate; a 9 m difference is near that resolution"
+    ],
+    "corner_number": 9,
+    "corner_type": "medium",
+    "apex_source": "matched"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T10",
+    "kind": "corner",
+    "label": "Turn 10",
+    "segment": {
+     "start_m": 3553.0,
+     "end_m": 3930.7793164470468,
+     "apex_m": 3829.0
+    },
+    "time_loss_s": -0.0718122281665211,
+    "entry_loss_s": -0.031828278492511686,
+    "exit_loss_s": -0.03998394967400941,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": -0.1787285566803689,
+     "min_speed_diff_kph": 8.013071370756563,
+     "exit_speed_diff_kph": 7.7953502760626066,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": null,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 289.7956912919171,
+     "min_speed_kph": 265.01455672180873,
+     "min_speed_m": 3859.0,
+     "exit_speed_kph": 273.0666687205821,
+     "throttle_reapply_m": 3829.0,
+     "full_throttle_m": 3881.0,
+     "time_to_full_throttle_s": 0.7097007890541462,
+     "gear_min": 7,
+     "gear_at_apex": 7
+    },
+    "reference": {
+     "braking_start_m": 3713.0,
+     "braking_duration_s": 0.49058803816659946,
+     "peak_decel_ms2": 9.198126703201524,
+     "entry_speed_kph": 289.97441984859745,
+     "min_speed_kph": 257.00148535105217,
+     "min_speed_m": 3829.0,
+     "exit_speed_kph": 265.27131844451947,
+     "throttle_reapply_m": 3829.0,
+     "full_throttle_m": null,
+     "time_to_full_throttle_s": null,
+     "gear_min": 7,
+     "gear_at_apex": 7
+    },
+    "causes": [
+     "high_min_speed",
+     "higher_exit_speed"
+    ],
+    "rank": 6,
+    "confidence": "high",
+    "notes": [
+     "reference did not reach 98% throttle before the next segment"
+    ],
+    "corner_number": 10,
+    "corner_type": "fast",
+    "apex_source": "matched"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T11",
+    "kind": "corner",
+    "label": "Turn 11",
+    "segment": {
+     "start_m": 3930.7793164470468,
+     "end_m": 4239.501050434709,
+     "apex_m": 4032.5586328940935
+    },
+    "time_loss_s": -0.07463826363056182,
+    "entry_loss_s": -0.03442657002176504,
+    "exit_loss_s": -0.040211693608796784,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": 7.8556913499541,
+     "min_speed_diff_kph": 6.439324235335732,
+     "exit_speed_diff_kph": 0.40932294952074244,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": -0.00024466371538522935,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 273.7237085264823,
+     "min_speed_kph": 276.06064112089103,
+     "min_speed_m": 3953.0,
+     "exit_speed_kph": 291.40932294952074,
+     "throttle_reapply_m": 4033.0,
+     "full_throttle_m": 4033.0,
+     "time_to_full_throttle_s": 0.0054161645410388815,
+     "gear_min": 7,
+     "gear_at_apex": 7
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 265.8680171765282,
+     "min_speed_kph": 269.6213168855553,
+     "min_speed_m": 3953.0,
+     "exit_speed_kph": 291.0,
+     "throttle_reapply_m": 4033.0,
+     "full_throttle_m": 4033.0,
+     "time_to_full_throttle_s": 0.005660828256424111,
+     "gear_min": 7,
+     "gear_at_apex": 7
+    },
+    "causes": [
+     "high_min_speed"
+    ],
+    "rank": 4,
+    "confidence": "medium",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance"
+    ],
+    "corner_number": 11,
+    "corner_type": "fast",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T12",
+    "kind": "corner",
+    "label": "Turn 12",
+    "segment": {
+     "start_m": 4239.501050434709,
+     "end_m": 4481.721733987662,
+     "apex_m": 4446.443467975325
+    },
+    "time_loss_s": -0.06199634454408812,
+    "entry_loss_s": -0.04408041277198213,
+    "exit_loss_s": -0.017915931772105986,
+    "metrics": {
+     "braking_start_diff_m": 7.0,
+     "entry_speed_diff_kph": 5.265733701884187,
+     "min_speed_diff_kph": 3.98379839922427,
+     "exit_speed_diff_kph": 2.2423244093706955,
+     "throttle_reapply_diff_m": null,
+     "time_to_full_throttle_diff_s": null,
+     "braking_duration_diff_s": -0.31088568135943717,
+     "gear_min_diff": 1.0
+    },
+    "target": {
+     "braking_start_m": 4357.0,
+     "braking_duration_s": 1.8854202031595548,
+     "peak_decel_ms2": 32.84386521916599,
+     "entry_speed_kph": 297.29483001648134,
+     "min_speed_kph": 161.0,
+     "min_speed_m": 4514.0,
+     "exit_speed_kph": 166.9757509503887,
+     "throttle_reapply_m": null,
+     "full_throttle_m": null,
+     "time_to_full_throttle_s": null,
+     "gear_min": 5,
+     "gear_at_apex": 5
+    },
+    "reference": {
+     "braking_start_m": 4350.0,
+     "braking_duration_s": 2.196305884518992,
+     "peak_decel_ms2": 31.171051624471147,
+     "entry_speed_kph": 292.02909631459715,
+     "min_speed_kph": 157.01620160077573,
+     "min_speed_m": 4518.0,
+     "exit_speed_kph": 164.733426541018,
+     "throttle_reapply_m": null,
+     "full_throttle_m": null,
+     "time_to_full_throttle_s": null,
+     "gear_min": 4,
+     "gear_at_apex": 5
+    },
+    "causes": [
+     "late_braking_gain",
+     "high_min_speed"
+    ],
+    "rank": 7,
+    "confidence": "medium",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance",
+     "target did not reach 98% throttle before the next segment",
+     "reference did not reach 98% throttle before the next segment",
+     "braking points are resolved to ~11 m at this telemetry rate; a 7 m difference is near that resolution"
+    ],
+    "corner_number": 12,
+    "corner_type": "medium",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:A4517",
+    "kind": "corner",
+    "label": "Unnamed corner at 4517 m",
+    "segment": {
+     "start_m": 4481.721733987662,
+     "end_m": 4565.264887712558,
+     "apex_m": 4517.0
+    },
+    "time_loss_s": -0.049749467460701,
+    "entry_loss_s": -0.03397342652970878,
+    "exit_loss_s": -0.01577604093099222,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": 7.447586480513536,
+     "min_speed_diff_kph": 3.98379839922427,
+     "exit_speed_diff_kph": -1.7736597577506643,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": null,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 1.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 214.78793306943479,
+     "min_speed_kph": 161.0,
+     "min_speed_m": 4514.0,
+     "exit_speed_kph": 168.440110911395,
+     "throttle_reapply_m": 4517.0,
+     "full_throttle_m": null,
+     "time_to_full_throttle_s": null,
+     "gear_min": 5,
+     "gear_at_apex": 5
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 207.34034658892125,
+     "min_speed_kph": 157.01620160077573,
+     "min_speed_m": 4518.0,
+     "exit_speed_kph": 170.21377066914567,
+     "throttle_reapply_m": 4517.0,
+     "full_throttle_m": null,
+     "time_to_full_throttle_s": null,
+     "gear_min": 4,
+     "gear_at_apex": 4
+    },
+    "causes": [
+     "high_min_speed"
+    ],
+    "rank": 12,
+    "confidence": "medium",
+    "notes": [
+     "speed minimum not in the official corner table (e.g. part of a chicane)",
+     "target did not reach 98% throttle before the next segment",
+     "reference did not reach 98% throttle before the next segment"
+    ],
+    "corner_number": null,
+    "corner_type": "medium",
+    "apex_source": "detected"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T13",
+    "kind": "corner",
+    "label": "Turn 13",
+    "segment": {
+     "start_m": 4565.264887712558,
+     "end_m": 4771.264887712558,
+     "apex_m": 4613.529775425117
+    },
+    "time_loss_s": 0.013279322406596072,
+    "entry_loss_s": 0.013259642812158134,
+    "exit_loss_s": 1.9679594437937986e-05,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": 3.555110056967351,
+     "min_speed_diff_kph": 1.9232145421212863,
+     "exit_speed_diff_kph": -1.2644013148697013,
+     "throttle_reapply_diff_m": -6.0,
+     "time_to_full_throttle_diff_s": -0.15808732381381674,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 1.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 161.05786539100538,
+     "min_speed_kph": 162.80692541098344,
+     "min_speed_m": 4534.0,
+     "exit_speed_kph": 204.80214656025979,
+     "throttle_reapply_m": 4614.0,
+     "full_throttle_m": 4687.0,
+     "time_to_full_throttle_s": 1.46354824687468,
+     "gear_min": 5,
+     "gear_at_apex": 5
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 157.50275533403803,
+     "min_speed_kph": 160.88371086886215,
+     "min_speed_m": 4534.0,
+     "exit_speed_kph": 206.0665478751295,
+     "throttle_reapply_m": 4620.0,
+     "full_throttle_m": 4694.0,
+     "time_to_full_throttle_s": 1.6216355706884968,
+     "gear_min": 4,
+     "gear_at_apex": 4
+    },
+    "causes": [
+     "early_throttle"
+    ],
+    "rank": 18,
+    "confidence": "low",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance"
+    ],
+    "corner_number": 13,
+    "corner_type": "medium",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T14",
+    "kind": "corner",
+    "label": "Turn 14",
+    "segment": {
+     "start_m": 4771.264887712558,
+     "end_m": 5044.476111111112,
+     "apex_m": 4929.0
+    },
+    "time_loss_s": -0.09956969306049335,
+    "entry_loss_s": 0.01290569905471084,
+    "exit_loss_s": -0.11247539211520419,
+    "metrics": {
+     "braking_start_diff_m": -1.0,
+     "entry_speed_diff_kph": 12.470749105600277,
+     "min_speed_diff_kph": 1.0594489488124736,
+     "exit_speed_diff_kph": 4.977748934583872,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": -0.41188230926708513,
+     "braking_duration_diff_s": 0.043303379013124754,
+     "gear_min_diff": 1.0
+    },
+    "target": {
+     "braking_start_m": 4829.0,
+     "braking_duration_s": 1.437210236114808,
+     "peak_decel_ms2": 26.73595323082077,
+     "entry_speed_kph": 232.5116643954228,
+     "min_speed_kph": 160.09177140063272,
+     "min_speed_m": 4909.0,
+     "exit_speed_kph": 218.48242876016812,
+     "throttle_reapply_m": 4929.0,
+     "full_throttle_m": 4970.0,
+     "time_to_full_throttle_s": 0.8213447945990566,
+     "gear_min": 5,
+     "gear_at_apex": 5
+    },
+    "reference": {
+     "braking_start_m": 4830.0,
+     "braking_duration_s": 1.3939068571016833,
+     "peak_decel_ms2": 23.47716185705076,
+     "entry_speed_kph": 220.04091528982252,
+     "min_speed_kph": 159.03232245182025,
+     "min_speed_m": 4930.0,
+     "exit_speed_kph": 213.50467982558425,
+     "throttle_reapply_m": 4929.0,
+     "full_throttle_m": 4989.0,
+     "time_to_full_throttle_s": 1.2332271038661418,
+     "gear_min": 4,
+     "gear_at_apex": 4
+    },
+    "causes": [
+     "early_throttle",
+     "higher_exit_speed"
+    ],
+    "rank": 3,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": 14,
+    "corner_type": "medium",
+    "apex_source": "matched"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T15",
+    "kind": "corner",
+    "label": "Turn 15",
+    "segment": {
+     "start_m": 5044.476111111112,
+     "end_m": 5506.73138810994,
+     "apex_m": 5159.952222222224
+    },
+    "time_loss_s": -0.07456218082139537,
+    "entry_loss_s": -0.00235890696101404,
+    "exit_loss_s": -0.07220327386038133,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": 4.111418960449669,
+     "min_speed_diff_kph": 5.733255169078916,
+     "exit_speed_diff_kph": 2.5197755935141686,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": 1.0338463937387132e-05,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 231.54345308510764,
+     "min_speed_kph": 240.58397396712854,
+     "min_speed_m": 5080.0,
+     "exit_speed_kph": 273.85866328161,
+     "throttle_reapply_m": 5160.0,
+     "full_throttle_m": 5160.0,
+     "time_to_full_throttle_s": 0.0006795991643002708,
+     "gear_min": 5,
+     "gear_at_apex": 6
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 227.43203412465797,
+     "min_speed_kph": 234.85071879804963,
+     "min_speed_m": 5080.0,
+     "exit_speed_kph": 271.33888768809584,
+     "throttle_reapply_m": 5160.0,
+     "full_throttle_m": 5160.0,
+     "time_to_full_throttle_s": 0.0006692607003628837,
+     "gear_min": 5,
+     "gear_at_apex": 6
+    },
+    "causes": [
+     "high_min_speed"
+    ],
+    "rank": 5,
+    "confidence": "medium",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance"
+    ],
+    "corner_number": 15,
+    "corner_type": "fast",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T16",
+    "kind": "corner",
+    "label": "Turn 16",
+    "segment": {
+     "start_m": 5506.73138810994,
+     "end_m": 5996.015840647749,
+     "apex_m": 5853.510553997656
+    },
+    "time_loss_s": -0.0038104432276295785,
+    "entry_loss_s": -0.006429869417599099,
+    "exit_loss_s": 0.0026194261899695204,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": 0.8451837328897227,
+     "min_speed_diff_kph": 2.1959708682711607,
+     "exit_speed_diff_kph": 0.5615925676833058,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": -1.0855659823505448e-05,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 313.2348369234488,
+     "min_speed_kph": 314.2089179157879,
+     "min_speed_m": 5774.0,
+     "exit_speed_kph": 315.11244218445097,
+     "throttle_reapply_m": 5854.0,
+     "full_throttle_m": 5854.0,
+     "time_to_full_throttle_s": 0.0056088271950471835,
+     "gear_min": 8,
+     "gear_at_apex": 8
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 312.3896531905591,
+     "min_speed_kph": 312.0129470475167,
+     "min_speed_m": 5826.0,
+     "exit_speed_kph": 314.55084961676766,
+     "throttle_reapply_m": 5854.0,
+     "full_throttle_m": 5854.0,
+     "time_to_full_throttle_s": 0.005619682854870689,
+     "gear_min": 8,
+     "gear_at_apex": 8
+    },
+    "causes": [],
+    "rank": 20,
+    "confidence": "low",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance"
+    ],
+    "corner_number": 16,
+    "corner_type": "fast",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T17",
+    "kind": "corner",
+    "label": "Turn 17",
+    "segment": {
+     "start_m": 5996.015840647749,
+     "end_m": 6403.06653288786,
+     "apex_m": 6138.521127297842
+    },
+    "time_loss_s": 0.005858976097074808,
+    "entry_loss_s": -0.005952465905335158,
+    "exit_loss_s": 0.011811442002409966,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": 1.099342674854654,
+     "min_speed_diff_kph": 1.0,
+     "exit_speed_diff_kph": 0.12372396914798856,
+     "throttle_reapply_diff_m": 0.0,
+     "time_to_full_throttle_diff_s": -4.3992441504769886e-05,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 0.0
+    },
+    "target": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 317.09934267485465,
+     "min_speed_kph": 311.0,
+     "min_speed_m": 6197.0,
+     "exit_speed_kph": 310.66275534869493,
+     "throttle_reapply_m": 6139.0,
+     "full_throttle_m": 6139.0,
+     "time_to_full_throttle_s": 0.005481461814156319,
+     "gear_min": 8,
+     "gear_at_apex": 8
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 316.0,
+     "min_speed_kph": 310.0,
+     "min_speed_m": 6186.0,
+     "exit_speed_kph": 310.53903137954694,
+     "throttle_reapply_m": 6139.0,
+     "full_throttle_m": 6139.0,
+     "time_to_full_throttle_s": 0.005525454255661089,
+     "gear_min": 8,
+     "gear_at_apex": 8
+    },
+    "causes": [],
+    "rank": 19,
+    "confidence": "low",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance"
+    ],
+    "corner_number": 17,
+    "corner_type": "fast",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T18",
+    "kind": "corner",
+    "label": "Turn 18",
+    "segment": {
+     "start_m": 6403.06653288786,
+     "end_m": 6706.305969238939,
+     "apex_m": 6667.611938477878
+    },
+    "time_loss_s": -0.15217854615999926,
+    "entry_loss_s": -0.15810998528708875,
+    "exit_loss_s": 0.005931439127089488,
+    "metrics": {
+     "braking_start_diff_m": 4.0,
+     "entry_speed_diff_kph": 10.310215546960933,
+     "min_speed_diff_kph": 1.0753532050427737,
+     "exit_speed_diff_kph": -1.4510298083949351,
+     "throttle_reapply_diff_m": -1.0,
+     "time_to_full_throttle_diff_s": null,
+     "braking_duration_diff_s": 0.0420799014171962,
+     "gear_min_diff": 1.0
+    },
+    "target": {
+     "braking_start_m": 6575.0,
+     "braking_duration_s": 3.07760987424858,
+     "peak_decel_ms2": 48.326972650841526,
+     "entry_speed_kph": 295.2871383681199,
+     "min_speed_kph": 72.07535320504277,
+     "min_speed_m": 6746.0,
+     "exit_speed_kph": 86.61133682787327,
+     "throttle_reapply_m": 6706.0,
+     "full_throttle_m": null,
+     "time_to_full_throttle_s": null,
+     "gear_min": 3,
+     "gear_at_apex": 3
+    },
+    "reference": {
+     "braking_start_m": 6571.0,
+     "braking_duration_s": 3.035529972831384,
+     "peak_decel_ms2": 46.893351529856545,
+     "entry_speed_kph": 284.97692282115895,
+     "min_speed_kph": 71.0,
+     "min_speed_m": 6743.0,
+     "exit_speed_kph": 88.06236663626821,
+     "throttle_reapply_m": 6707.0,
+     "full_throttle_m": null,
+     "time_to_full_throttle_s": null,
+     "gear_min": 2,
+     "gear_at_apex": 2
+    },
+    "causes": [
+     "unclear"
+    ],
+    "rank": 1,
+    "confidence": "medium",
+    "notes": [
+     "no speed minimum within ±60 m of the official corner; apex placed at the official distance",
+     "target did not reach 98% throttle before the next segment",
+     "reference did not reach 98% throttle before the next segment"
+    ],
+    "corner_number": 18,
+    "corner_type": "slow",
+    "apex_source": "official"
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:T19",
+    "kind": "corner",
+    "label": "Turn 19",
+    "segment": {
+     "start_m": 6706.305969238939,
+     "end_m": 6940.570621754818,
+     "apex_m": 6745.0
+    },
+    "time_loss_s": 0.04050312284276514,
+    "entry_loss_s": -0.03420010295050646,
+    "exit_loss_s": 0.0747032257932716,
+    "metrics": {
+     "braking_start_diff_m": null,
+     "entry_speed_diff_kph": -52.78847953125185,
+     "min_speed_diff_kph": 1.0753532050427737,
+     "exit_speed_diff_kph": -1.8662223215619065,
+     "throttle_reapply_diff_m": -4.0,
+     "time_to_full_throttle_diff_s": 0.1030785287137519,
+     "braking_duration_diff_s": null,
+     "gear_min_diff": 1.0
+    },
+    "target": {
+     "braking_start_m": 6722.0,
+     "braking_duration_s": 0.5444597938029574,
+     "peak_decel_ms2": 4.0674664064888475,
+     "entry_speed_kph": 84.94164775327286,
+     "min_speed_kph": 72.07535320504277,
+     "min_speed_m": 6746.0,
+     "exit_speed_kph": 175.2216631730245,
+     "throttle_reapply_m": 6746.0,
+     "full_throttle_m": 6814.0,
+     "time_to_full_throttle_s": 2.4618047228812117,
+     "gear_min": 3,
+     "gear_at_apex": 3
+    },
+    "reference": {
+     "braking_start_m": null,
+     "braking_duration_s": null,
+     "peak_decel_ms2": null,
+     "entry_speed_kph": 137.7301272845247,
+     "min_speed_kph": 71.0,
+     "min_speed_m": 6743.0,
+     "exit_speed_kph": 177.0878854945864,
+     "throttle_reapply_m": 6750.0,
+     "full_throttle_m": 6811.0,
+     "time_to_full_throttle_s": 2.3587261941674598,
+     "gear_min": 2,
+     "gear_at_apex": 2
+    },
+    "causes": [
+     "unclear"
+    ],
+    "rank": 13,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": 19,
+    "corner_type": "slow",
+    "apex_source": "matched"
+   }
+  ],
+  "straights": [
+   {
+    "id": "2024-14-R:LEC-vs-PIA:STR1",
+    "kind": "straight",
+    "label": "Straight 1 (441-2248 m)",
+    "segment": {
+     "start_m": 441.0,
+     "end_m": 2248.0,
+     "apex_m": null
+    },
+    "time_loss_s": 0.07905065491481622,
+    "entry_loss_s": null,
+    "exit_loss_s": null,
+    "metrics": {
+     "top_speed_diff_kph": 1.9990148554686584,
+     "entry_speed_diff_kph": -4.958581566334487,
+     "exit_speed_diff_kph": 1.5722003268551816,
+     "drs_open_fraction_diff": 0.0,
+     "time_diff_s": 0.07905065491481622
+    },
+    "target": {
+     "top_speed_kph": 323.99901485546866,
+     "top_speed_m": 1867.0,
+     "entry_speed_kph": 133.2521433844999,
+     "exit_speed_kph": 314.50505101203527,
+     "drs_open_fraction": 0.0,
+     "time_s": 22.10432360728499
+    },
+    "reference": {
+     "top_speed_kph": 322.0,
+     "top_speed_m": 1860.0,
+     "entry_speed_kph": 138.2107249508344,
+     "exit_speed_kph": 312.9328506851801,
+     "drs_open_fraction": 0.0,
+     "time_s": 22.025272952370173
+    },
+    "causes": [
+     "unclear"
+    ],
+    "rank": null,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": null,
+    "corner_type": null,
+    "apex_source": null
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:STR2",
+    "kind": "straight",
+    "label": "Straight 2 (3309-3694 m)",
+    "segment": {
+     "start_m": 3309.0,
+     "end_m": 3694.0,
+     "apex_m": null
+    },
+    "time_loss_s": -0.026320784087182858,
+    "entry_loss_s": null,
+    "exit_loss_s": null,
+    "metrics": {
+     "top_speed_diff_kph": 0.05400705343703294,
+     "entry_speed_diff_kph": 2.990098454467727,
+     "exit_speed_diff_kph": 0.05400705343703294,
+     "drs_open_fraction_diff": 0.0,
+     "time_diff_s": -0.026320784087182858
+    },
+    "target": {
+     "top_speed_kph": 290.05400705343703,
+     "top_speed_m": 3694.0,
+     "entry_speed_kph": 197.71689861996538,
+     "exit_speed_kph": 290.05400705343703,
+     "drs_open_fraction": 0.0,
+     "time_s": 5.319407410717915
+    },
+    "reference": {
+     "top_speed_kph": 290.0,
+     "top_speed_m": 3694.0,
+     "entry_speed_kph": 194.72680016549765,
+     "exit_speed_kph": 290.0,
+     "drs_open_fraction": 0.0,
+     "time_s": 5.345728194805098
+    },
+    "causes": [
+     "unclear"
+    ],
+    "rank": null,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": null,
+    "corner_type": null,
+    "apex_source": null
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:STR3",
+    "kind": "straight",
+    "label": "Straight 3 (3924-4309 m)",
+    "segment": {
+     "start_m": 3924.0,
+     "end_m": 4309.0,
+     "apex_m": null
+    },
+    "time_loss_s": -0.08039579670272445,
+    "entry_loss_s": null,
+    "exit_loss_s": null,
+    "metrics": {
+     "top_speed_diff_kph": 0.9402417201684443,
+     "entry_speed_diff_kph": 7.724984957136655,
+     "exit_speed_diff_kph": 0.9402417201684443,
+     "drs_open_fraction_diff": 0.0,
+     "time_diff_s": -0.08039579670272445
+    },
+    "target": {
+     "top_speed_kph": 297.94024172016844,
+     "top_speed_m": 4309.0,
+     "entry_speed_kph": 272.15322530975715,
+     "exit_speed_kph": 297.94024172016844,
+     "drs_open_fraction": 0.0,
+     "time_s": 4.754845004601755
+    },
+    "reference": {
+     "top_speed_kph": 297.0,
+     "top_speed_m": 4291.0,
+     "entry_speed_kph": 264.4282403526205,
+     "exit_speed_kph": 297.0,
+     "drs_open_fraction": 0.0,
+     "time_s": 4.835240801304479
+    },
+    "causes": [
+     "unclear"
+    ],
+    "rank": null,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": null,
+    "corner_type": null,
+    "apex_source": null
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:STR4",
+    "kind": "straight",
+    "label": "Straight 4 (4983-6497 m)",
+    "segment": {
+     "start_m": 4983.0,
+     "end_m": 6497.0,
+     "apex_m": null
+    },
+    "time_loss_s": -0.1174553832655505,
+    "entry_loss_s": null,
+    "exit_loss_s": null,
+    "metrics": {
+     "top_speed_diff_kph": 1.9966662727807147,
+     "entry_speed_diff_kph": 6.581285619188407,
+     "exit_speed_diff_kph": 1.0698992812416463,
+     "drs_open_fraction_diff": 0.0,
+     "time_diff_s": -0.1174553832655505
+    },
+    "target": {
+     "top_speed_kph": 317.9966662727807,
+     "top_speed_m": 6061.0,
+     "entry_speed_kph": 192.63971909947924,
+     "exit_speed_kph": 307.0,
+     "drs_open_fraction": 0.0,
+     "time_s": 18.563601328676825
+    },
+    "reference": {
+     "top_speed_kph": 316.0,
+     "top_speed_m": 6025.0,
+     "entry_speed_kph": 186.05843348029083,
+     "exit_speed_kph": 305.93010071875835,
+     "drs_open_fraction": 0.0,
+     "time_s": 18.681056711942375
+    },
+    "causes": [
+     "unclear"
+    ],
+    "rank": null,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": null,
+    "corner_type": null,
+    "apex_source": null
+   }
+  ],
+  "sectors": [
+   {
+    "id": "2024-14-R:LEC-vs-PIA:SEC1",
+    "kind": "sector",
+    "label": "Sector 1",
+    "segment": {
+     "start_m": 0.0,
+     "end_m": 2239.2593668750515,
+     "apex_m": null
+    },
+    "time_loss_s": 0.08436204516508347,
+    "entry_loss_s": null,
+    "exit_loss_s": null,
+    "metrics": {
+     "official_sector_delta_s": 0.08699999999999974,
+     "boundary_discrepancy_s": -0.002637954834916273
+    },
+    "target": {},
+    "reference": {},
+    "causes": [],
+    "rank": null,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": null,
+    "corner_type": null,
+    "apex_source": null
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:SEC2",
+    "kind": "sector",
+    "label": "Sector 2",
+    "segment": {
+     "start_m": 2239.2593668750515,
+     "end_m": 5028.99066387739,
+     "apex_m": null
+    },
+    "time_loss_s": -0.4647241306885499,
+    "entry_loss_s": null,
+    "exit_loss_s": null,
+    "metrics": {
+     "official_sector_delta_s": -0.4789999999999992,
+     "boundary_discrepancy_s": 0.011637914476533062
+    },
+    "target": {},
+    "reference": {},
+    "causes": [],
+    "rank": null,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": null,
+    "corner_type": null,
+    "apex_source": null
+   },
+   {
+    "id": "2024-14-R:LEC-vs-PIA:SEC3",
+    "kind": "sector",
+    "label": "Sector 3",
+    "segment": {
+     "start_m": 5028.99066387739,
+     "end_m": 6940.570621754818,
+     "apex_m": null
+    },
+    "time_loss_s": -0.18963791447652678,
+    "entry_loss_s": null,
+    "exit_loss_s": null,
+    "metrics": {
+     "official_sector_delta_s": -0.17800000000000082,
+     "boundary_discrepancy_s": 7.105427357601002e-15
+    },
+    "target": {},
+    "reference": {},
+    "causes": [],
+    "rank": null,
+    "confidence": "high",
+    "notes": [],
+    "corner_number": null,
+    "corner_type": null,
+    "apex_source": null
+   }
+  ],
+  "largest_losses": [
+   "2024-14-R:LEC-vs-PIA:T5",
+   "2024-14-R:LEC-vs-PIA:T1",
+   "2024-14-R:LEC-vs-PIA:T2"
+  ],
+  "largest_gains": [
+   "2024-14-R:LEC-vs-PIA:T18",
+   "2024-14-R:LEC-vs-PIA:T8",
+   "2024-14-R:LEC-vs-PIA:T14"
+  ],
+  "quality": {
+   "sample_count_ref": 832,
+   "sample_count_target": 816,
+   "length_scale_factor": 0.9996103024867977,
+   "final_delta_error_s": 0.0,
+   "repairs": 0,
+   "dropped_glitches": 0,
+   "tiling_error_s": 0.0,
+   "sector_check_ok": true,
+   "sector_check_max_discrepancy_s": 0.011637914476533062,
+   "alignment": "xy",
+   "xy_correction_rms_m": 1.744
+  },
+  "notes": [
+   "causes are rules whose thresholds were met (contributing factors), not proof of cause",
+   "braking uses the on/off brake channel; brake pressure is not available"
+  ]
+ },
+ "tire": {
+  "status": "insufficient_data",
+  "reason": "2 clean laps in this stint so far; at least 5 needed",
+  "reason_code": "too_few_clean_laps",
+  "clean_laps_required": 5,
+  "race_laps_total": 44,
+  "session_key": "2024-14-R",
+  "driver": "LEC",
+  "lap": 28,
+  "horizon": 5,
+  "stint": 3,
+  "compound": "HARD",
+  "tyre_age": 3,
+  "clean_laps_used": 2,
+  "degradation_s_per_lap": null,
+  "degradation_ci": null,
+  "predicted_laps": null,
+  "pit_window": null,
+  "pit_window_reason": null,
+  "remaining_competitive_laps": null,
+  "model": {
+   "name": "baseline_b_recent_conformal",
+   "version": "2024-07-28.6681d16a",
+   "trained_through": "2024-07-28"
+  },
+  "rainfall_in_stint": false,
+  "history": [
+   {
+    "lap": 26,
+    "lap_time_s": 121.972,
+    "clean": false,
+    "excluded_reason": "in_or_out_lap",
+    "fitted_s": null
+   },
+   {
+    "lap": 27,
+    "lap_time_s": 107.034,
+    "clean": true,
+    "excluded_reason": null,
+    "fitted_s": null
+   },
+   {
+    "lap": 28,
+    "lap_time_s": 107.039,
+    "clean": true,
+    "excluded_reason": null,
+    "fitted_s": null
+   }
+  ],
+  "threshold_curve": null,
+  "warnings": []
+ },
+ "context": {
+  "session_date": "2024-07-28",
+  "teams": {
+   "HAM": "Mercedes",
+   "PIA": "McLaren",
+   "LEC": "Ferrari",
+   "VER": "Red Bull Racing",
+   "NOR": "McLaren",
+   "SAI": "Ferrari",
+   "PER": "Red Bull Racing",
+   "ALO": "Aston Martin",
+   "OCO": "Alpine",
+   "RIC": "RB",
+   "STR": "Aston Martin",
+   "ALB": "Williams",
+   "GAS": "Alpine",
+   "MAG": "Haas F1 Team",
+   "BOT": "Kick Sauber",
+   "TSU": "RB",
+   "SAR": "Williams",
+   "HUL": "Haas F1 Team",
+   "ZHO": "Kick Sauber",
+   "RUS": "Mercedes"
+  },
+  "tire_unavailable_reason": null
+ }
+}
