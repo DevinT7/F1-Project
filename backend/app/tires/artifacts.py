@@ -9,16 +9,26 @@ from pathlib import Path
 from typing import Any
 
 from .features import BASE_CATEGORICAL, IDENTITY_CATEGORICAL, NUMERIC_FEATURES
+from .models.forecasting import PooledFixedEffects
+from .models.persistence import PersistenceModel
+from .models.tree_models import TreeForecaster
 
 
 def model_metadata(model: Any, *, dataset_hash: str, git_sha: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
-    meta: dict[str, Any] = {
-        "name": model.name, "params": {k: v for k, v in model.params().items()},
-        "dataset_hash": dataset_hash, "git_sha": git_sha,
-        "target": "lap_time_s - mean(last 3 history laps)",
-        "numeric_features": list(NUMERIC_FEATURES), "categorical_features": list(BASE_CATEGORICAL),
-        "identity_features": list(IDENTITY_CATEGORICAL),
-    }
+    meta: dict[str, Any] = {"name": model.name, "params": {k: v for k, v in model.params().items()},
+                            "dataset_hash": dataset_hash, "git_sha": git_sha}
+    point = getattr(model, "base", model)
+    if isinstance(point, TreeForecaster):
+        meta.update({"target": "lap_time_s - mean(last 3 history laps)", "numeric_features": list(NUMERIC_FEATURES),
+                     "categorical_features": list(BASE_CATEGORICAL),
+                     "identity_features": list(IDENTITY_CATEGORICAL) if point.identity else []})
+    elif isinstance(point, PooledFixedEffects):
+        meta.update({"target": "lap_time_s; stint level = mean(history lap time - fixed effects)",
+                     "numeric_features": ["fuel_proxy", "tyre_age", "tyre_age^2 (per compound)", "track_temp_c"],
+                     "categorical_features": ["compound"], "identity_features": []})
+    elif isinstance(point, PersistenceModel):
+        meta.update({"target": "lap_time_s = mean(last 3 history laps)", "numeric_features": [],
+                     "categorical_features": [], "identity_features": []})
     for attr in ("alpha", "calibration_fraction"):
         if hasattr(model, attr):
             meta[attr] = getattr(model, attr)

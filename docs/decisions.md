@@ -148,3 +148,23 @@ which means `"11"` is green and `"12"` is not. A missing status is not green.
 - **Units:** `fuel_proxy = race_laps_total − lap_number` stays in laps. No kg conversion and no
   time-per-kg constant exist anywhere. `race_laps_total` falls back to the highest lap number
   when FastF1 has no scheduled distance.
+
+## Phase 6D — Tree models, intervals, decision (P1, 2026-10-13)
+
+Full write-up: `docs/tire_model_report.md`. Decisions and deviations:
+
+- **Target:** trees predict lap time − mean(last 3 history laps), so every tree is a correction
+  to persistence rather than a re-learning of each circuit's level.
+- **"GradientBoosting (sklearn)"** is `HistGradientBoostingRegressor`, sklearn's recommendation
+  at about 100k rows per fold.
+- **Bar during development is relative:** MAE ≤ 0.9 × persistence and WF ≤ persistence, on the
+  same 21 races. The absolute numbers (0.332 s / 0.390 s) were set on all 24 races and are
+  checked only on the 3 held-out races.
+- **80% intervals are judged against 72–88%,** 95% against 90–97% (`bar.coverage_range`).
+- **Tree degradation:** the within-stint slope plus Baseline B's β_fuel. The plan's
+  fuel-held-fixed counterfactual is arbitrary because `age_gain ≡ fuel_drop` in every row.
+- **Tuned hyperparameters used outside the nested evaluation** (intervals, SHAP, holdout
+  reference rows) come from one search over all 21 development races. The honest tuned
+  estimate is the nested one.
+- **Shipped:** Baseline B + split-conformal 80%, per the protocol (no model met the bar). The
+  report recommends persistence + conformal instead, pending human review.

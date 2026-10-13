@@ -152,16 +152,20 @@ def test_shap_groups_one_hot_columns_and_finds_the_wear_signal(tmp_path):
     assert all((tmp_path / f).stat().st_size > 0 for f in ex.figures)
 
 
-def test_artifacts_round_trip_and_refuse_a_different_dataset(tmp_path):
+@pytest.mark.parametrize("base", ["lightgbm", "pooled_fixed_effects"])
+def test_artifacts_round_trip_and_refuse_a_different_dataset(tmp_path, base):
     from app.tires import artifacts
+    from app.tires.models.forecasting import PooledFixedEffects
 
     frame = races(4, 1200)
-    model = SplitConformal(TreeForecaster("lightgbm"), alpha=0.2, horizons=(5,))
+    point = TreeForecaster("lightgbm") if base == "lightgbm" else PooledFixedEffects()
+    model = SplitConformal(point, alpha=0.2, horizons=(5,))
     model.fit(frame)
     pkl, js = artifacts.save(model, tmp_path, dataset_hash="a" * 64, git_sha="b" * 40)
     loaded, meta = artifacts.load(pkl, expected_hash="a" * 64)
     assert meta["git_sha"] == "b" * 40 and meta["conformal_step_quantiles"] and meta["calibration_residuals"]
     assert "tyre_age" in meta["numeric_features"]
+    assert ("age_gain" in meta["numeric_features"]) is (base == "lightgbm")  # metadata describes the shipped model
     key = "2020_04_R"
     np.testing.assert_allclose(E.simulate_race(loaded, frame[frame["session_key"] == key], (5,))["hi"],
                                E.simulate_race(model, frame[frame["session_key"] == key], (5,))["hi"])
