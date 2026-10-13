@@ -230,3 +230,16 @@ Full contract: `docs/tire_api.md`.
 - **The synthetic race uses round 99 of 2024,** a round that doesn't exist. It sits in the
   shared fixture store, so the stored-session count test now expects 2.
 - **Screenshots are opt-in** (`SCREENSHOTS=1`), so ordinary e2e runs never rewrite binaries.
+
+## Phase 7A — FactSheet and contracts (P1, 2026-10-13)
+
+- **Human gate passed 2026-10-13.** The printed FactSheet (`race_lec_pit_window`) was reviewed
+  end to end and approved.
+- **Every source value is a fact or a documented exclusion.** Findings exclusions: schema
+  version, comparison id, finding id/kind. Tyre exclusions: the 6F contract's "Not exposed"
+  table, plus the next lap's number, which is always `as_of_lap + 1`.
+- **Null reasons are specific.** Differences say which driver lacks the event. Tyre nulls follow
+  the contract's semantics: an open-ended window is a statement, not missing data.
+- **Prompt size (for 7D/7E).** A FactSheet holds about 1,000 numeric facts (~300 KB). The model
+  receives a compact rendering or the relevant slices; the validator checks against the full
+  FactSheet.
