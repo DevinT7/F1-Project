@@ -10,6 +10,7 @@ from ..schemas.common import SESSION_KEY_DESCRIPTION, SESSION_KEY_PATTERN, canon
 from ..schemas.tires import (
     INSUFFICIENT_EXAMPLE,
     PREDICTION_EXAMPLE,
+    UNCERTAIN_EXAMPLE,
     TireModelInfo,
     TireModelsResponse,
     TirePrediction,
@@ -33,7 +34,8 @@ def to_schema(p: Prediction) -> TirePrediction:
                 "Any field that cannot be computed is null and explained in `warnings`.",
     responses={**error_responses(404, 422, 503),
                200: {"content": {"application/json": {"examples": {
-                   "ok": {"summary": "forecast (pit window null: too uncertain)", "value": PREDICTION_EXAMPLE},
+                   "ok": {"summary": "forecast with a pit window", "value": PREDICTION_EXAMPLE},
+                   "uncertain": {"summary": "pit window null: too uncertain", "value": UNCERTAIN_EXAMPLE},
                    "insufficient_data": {"summary": "too few clean laps", "value": INSUFFICIENT_EXAMPLE}}}}}},
 )
 def predict(

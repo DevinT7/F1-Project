@@ -1,10 +1,17 @@
 # Tire model report (Phase 6D)
 
-**Status: awaiting human review.** No model met the agreed bar. As the decision protocol requires,
-the shipped artifact is **Baseline B with split-conformal intervals**. On the held-out races that
-fallback misses the 80% coverage acceptance band and is less accurate than persistence. See
-[Decision](#decision-and-what-needs-review): the reviewer should confirm or change the shipped
-model before the service is built.
+**Status: reviewed 2026-10-13. The shipped model was superseded in Phase 6E.**
+
+- **The 6D outcome:** no model met the agreed bar, and the protocol shipped Baseline B with
+  split-conformal intervals. On the held-out races that fallback missed the 80% coverage band and
+  was less accurate than persistence (details below).
+- **What production is now:** after review, Phase 6E serves **Baseline B anchored on the last 3
+  laps** (`baseline_b_recent_conformal`, `docs/tire_api.md`). It is as accurate as persistence on
+  the development races (LORO h=5 0.372 vs 0.369), and it keeps B's fuel term, trend and
+  degradation estimate. It still does not meet the bar.
+- **What it lacks:** it was designed after the holdout was used, so it has no clean holdout
+  estimate.
+- **Candidates:** persistence and the 6D Baseline B stay registered as candidates.
 
 Dataset `6681d16a0b57` (24 dry races, 21,473 clean laps; `docs/tire_dataset.md`). Code:
 `backend/app/tires/` (`features.py`, `models/tree_models.py`, `tuning.py`, `models/intervals.py`,

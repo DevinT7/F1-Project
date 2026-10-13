@@ -2439,7 +2439,7 @@
             "title": "Latest Lap"
           },
           "method": {
-            "const": "interval_crossing_v1",
+            "const": "interval_crossing_v2",
             "title": "Method",
             "type": "string"
           },
@@ -5533,7 +5533,7 @@
     },
     "/api/v1/tires/predict": {
       "get": {
-        "description": "Uses only laps ≤ `lap` (all drivers, for the 6A exclusion rules) and the driver's current stint. Needs ≥ 5 clean laps in the stint, otherwise `status: insufficient_data` with a `reason` and no predictions or window. The pit window is a heuristic (interval_crossing_v1): it ignores undercut/overcut, traffic, track position, safety-car probability and tyre availability. Any field that cannot be computed is null and explained in `warnings`.",
+        "description": "Uses only laps ≤ `lap` (all drivers, for the 6A exclusion rules) and the driver's current stint. Needs ≥ 5 clean laps in the stint, otherwise `status: insufficient_data` with a `reason` and no predictions or window. The pit window is a heuristic (interval_crossing_v2): it ignores undercut/overcut, traffic, track position, safety-car probability and tyre availability. Any field that cannot be computed is null and explained in `warnings`.",
         "operationId": "predict_api_v1_tires_predict_get",
         "parameters": [
           {
@@ -5632,7 +5632,7 @@
                       "horizon": 5,
                       "lap": 14,
                       "model": {
-                        "name": "baseline_b_conformal",
+                        "name": "baseline_b_recent_conformal",
                         "trained_through": "2024-07-28",
                         "version": "2024-07-28.6681d16a"
                       },
@@ -5645,50 +5645,117 @@
                     }
                   },
                   "ok": {
-                    "summary": "forecast (pit window null: too uncertain)",
+                    "summary": "forecast with a pit window",
                     "value": {
-                      "clean_laps_used": 7,
-                      "compound": "MEDIUM",
+                      "clean_laps_used": 11,
+                      "compound": "HARD",
                       "degradation_ci": [
-                        0.0398,
-                        0.0547
+                        0.0289,
+                        0.0387
                       ],
-                      "degradation_s_per_lap": 0.0472,
+                      "degradation_s_per_lap": 0.0338,
                       "driver": "LEC",
                       "horizon": 3,
-                      "lap": 8,
+                      "lap": 39,
                       "model": {
-                        "name": "baseline_b_conformal",
+                        "name": "baseline_b_recent_conformal",
+                        "trained_through": "2024-07-28",
+                        "version": "2024-07-28.6681d16a"
+                      },
+                      "pit_window": {
+                        "assumptions": [
+                          "ignores undercut and overcut",
+                          "ignores traffic",
+                          "ignores track position",
+                          "ignores safety-car probability",
+                          "ignores tyre availability (sets left)",
+                          "threshold is a heuristic (best pace + X seconds), not a team rule"
+                        ],
+                        "best_pace_s": 106.183,
+                        "central_lap": 41,
+                        "confidence": "low",
+                        "earliest_lap": 40,
+                        "method": "interval_crossing_v2",
+                        "notes": [
+                          "no crossing within horizon"
+                        ],
+                        "pace_basis": "fuel_adjusted_model_term",
+                        "threshold_pace_s": 107.183,
+                        "threshold_s": 1.0
+                      },
+                      "predicted_laps": [
+                        {
+                          "hi_s": 107.947,
+                          "lap": 40,
+                          "lo_s": 106.838,
+                          "pred_s": 107.392
+                        },
+                        {
+                          "hi_s": 108.01,
+                          "lap": 41,
+                          "lo_s": 106.735,
+                          "pred_s": 107.373
+                        },
+                        {
+                          "hi_s": 108.065,
+                          "lap": 42,
+                          "lo_s": 106.64,
+                          "pred_s": 107.353
+                        }
+                      ],
+                      "remaining_competitive_laps": 2,
+                      "session_key": "2024-14-R",
+                      "status": "ok",
+                      "stint": 3,
+                      "tyre_age": 14,
+                      "warnings": []
+                    }
+                  },
+                  "uncertain": {
+                    "summary": "pit window null: too uncertain",
+                    "value": {
+                      "clean_laps_used": 6,
+                      "compound": "HARD",
+                      "degradation_ci": [
+                        0.0289,
+                        0.0387
+                      ],
+                      "degradation_s_per_lap": 0.0338,
+                      "driver": "LEC",
+                      "horizon": 3,
+                      "lap": 34,
+                      "model": {
+                        "name": "baseline_b_recent_conformal",
                         "trained_through": "2024-07-28",
                         "version": "2024-07-28.6681d16a"
                       },
                       "pit_window_reason": "forecast_uncertainty_too_high",
                       "predicted_laps": [
                         {
-                          "hi_s": 110.69,
-                          "lap": 9,
-                          "lo_s": 108.995,
-                          "pred_s": 109.843
+                          "hi_s": 107.535,
+                          "lap": 35,
+                          "lo_s": 106.426,
+                          "pred_s": 106.981
                         },
                         {
-                          "hi_s": 110.771,
-                          "lap": 10,
-                          "lo_s": 108.901,
-                          "pred_s": 109.836
+                          "hi_s": 107.598,
+                          "lap": 36,
+                          "lo_s": 106.324,
+                          "pred_s": 106.961
                         },
                         {
-                          "hi_s": 110.783,
-                          "lap": 11,
-                          "lo_s": 108.877,
-                          "pred_s": 109.83
+                          "hi_s": 107.654,
+                          "lap": 37,
+                          "lo_s": 106.229,
+                          "pred_s": 106.941
                         }
                       ],
                       "session_key": "2024-14-R",
                       "status": "ok",
-                      "stint": 1,
-                      "tyre_age": 8,
+                      "stint": 3,
+                      "tyre_age": 9,
                       "warnings": [
-                        "pit_window: forecast_uncertainty_too_high (interval width 4.19 s at lap 33 exceeds 2 × 1 s)"
+                        "pit_window: forecast_uncertainty_too_high (interval width 2.06 s at lap 44 exceeds 2 × 1 s)"
                       ]
                     }
                   }

@@ -29,7 +29,8 @@
         0.02890703604578205,
         0.038693399032484914
       ]
-    }
+    },
+    "anchor_laps": null
   },
   "interval": {
     "method": "split-conformal",

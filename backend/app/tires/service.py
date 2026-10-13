@@ -195,7 +195,7 @@ class TireService:
         predicted = tuple(PredictedLap(n, round(float(m), 3), round(float(lo), 3), round(float(hi), 3))
                           for n, m, lo, hi in zip(laps[:horizon], fc.mean, fc.lo, fc.hi, strict=False))
         if len(predicted) < horizon:
-            warnings.append(f"only {len(predicted)} laps remain in the race; horizon shortened")
+            warnings.append(f"only {len(predicted)} lap{'' if len(predicted) == 1 else 's'} remain{'s' if len(predicted) == 1 else ''} in the race; horizon shortened")
 
         deg = model.point_model.degradation(compound, float(age_now))
         degradation, ci = None, None

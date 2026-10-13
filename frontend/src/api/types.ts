@@ -518,7 +518,7 @@ export interface paths {
         };
         /**
          * Tyre forecast and pit window at a lap
-         * @description Uses only laps ≤ `lap` (all drivers, for the 6A exclusion rules) and the driver's current stint. Needs ≥ 5 clean laps in the stint, otherwise `status: insufficient_data` with a `reason` and no predictions or window. The pit window is a heuristic (interval_crossing_v1): it ignores undercut/overcut, traffic, track position, safety-car probability and tyre availability. Any field that cannot be computed is null and explained in `warnings`.
+         * @description Uses only laps ≤ `lap` (all drivers, for the 6A exclusion rules) and the driver's current stint. Needs ≥ 5 clean laps in the stint, otherwise `status: insufficient_data` with a `reason` and no predictions or window. The pit window is a heuristic (interval_crossing_v2): it ignores undercut/overcut, traffic, track position, safety-car probability and tyre availability. Any field that cannot be computed is null and explained in `warnings`.
          */
         get: operations["predict_api_v1_tires_predict_get"];
         put?: never;
@@ -1297,7 +1297,7 @@ export interface components {
              * Method
              * @constant
              */
-            method: "interval_crossing_v1";
+            method: "interval_crossing_v2";
             /** Notes */
             notes: string[];
             /**

@@ -190,3 +190,16 @@ Full contract: `docs/tire_api.md`.
 - **The plan's 2·X uncertainty rule makes the window null in 95% of forecasts at X = 1.0 s.**
   Measured on 24 races; the window only appears in the last 5 laps. The rule is kept as
   specified, and the options are listed in `docs/tire_api.md` for review.
+
+### 6E fixes after review (2026-10-13)
+
+- **Production model:** Baseline B anchored on the last 3 laps (`PooledFixedEffects(anchor_laps=3)`).
+  On the development races it is as accurate as persistence, and it is the only candidate with
+  a trend for the pit window plus a degradation estimate. Persistence and the 6D Baseline B
+  remain candidates. It has no clean holdout estimate (the holdout was used once in 6D).
+- **Pit window v2 (`interval_crossing_v2`):** the 2·X gate is judged at the central crossing
+  lap, not 25 laps out. That takes real-race window availability from 4.9% (v1, 6D model) to
+  61.4%. Smoothed-pace intervals were tried and rejected: the step-25 uncertainty is genuine
+  pace drift (1.57 s for a 5-lap mean vs 1.69 s per lap), so it is not noise to smooth away.
+- **Windows whose threshold was reached before the cut say so** ("threshold already reached
+  before the current lap") instead of reading as a fresh "pit next lap" call.

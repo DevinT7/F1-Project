@@ -22,30 +22,31 @@ Build script: `backend/scripts/build_tire_registry.py`. Tests: `tests/test_tires
 | `horizon` | laps to forecast, 1–25 (default 5) |
 | `threshold` | optional pit-window X in seconds, 0–5 (default 1.0) |
 
-Response (`TirePrediction`):
+Response (`TirePrediction`), a real output (Spa 2024, Leclerc, lap 39, production model):
 
 ```json
-{ "status": "ok", "reason": null, "session_key": "2024-14-R", "driver": "LEC", "lap": 20, "horizon": 3,
-  "stint": 2, "compound": "HARD", "tyre_age": 8, "clean_laps_used": 6,
+{ "status": "ok", "reason": null, "session_key": "2024-14-R", "driver": "LEC", "lap": 39, "horizon": 3,
+  "stint": 3, "compound": "HARD", "tyre_age": 14, "clean_laps_used": 11,
   "degradation_s_per_lap": 0.0338, "degradation_ci": [0.0289, 0.0387],
-  "predicted_laps": [{"lap": 21, "pred_s": 108.045, "lo_s": 107.198, "hi_s": 108.892}, "…"],
-  "pit_window": null, "pit_window_reason": "forecast_uncertainty_too_high",
-  "remaining_competitive_laps": null,
-  "model": {"name": "baseline_b_conformal", "version": "2024-07-28.6681d16a", "trained_through": "2024-07-28"},
-  "warnings": ["pit_window: forecast_uncertainty_too_high (interval width 4.37 s at lap 44 exceeds 2 × 1 s)"] }
+  "predicted_laps": [{"lap": 40, "pred_s": 107.392, "lo_s": 106.838, "hi_s": 107.947},
+                     {"lap": 41, "pred_s": 107.373, "lo_s": 106.735, "hi_s": 108.01},
+                     {"lap": 42, "pred_s": 107.353, "lo_s": 106.64, "hi_s": 108.065}],
+  "pit_window": {"earliest_lap": 40, "central_lap": 41, "latest_lap": null, "threshold_s": 1.0,
+                 "threshold_pace_s": 107.183, "best_pace_s": 106.183, "pace_basis": "fuel_adjusted_model_term",
+                 "method": "interval_crossing_v2", "confidence": "low",
+                 "assumptions": ["ignores undercut and overcut", "ignores traffic", "ignores track position",
+                                 "ignores safety-car probability", "ignores tyre availability (sets left)",
+                                 "threshold is a heuristic (best pace + X seconds), not a team rule"],
+                 "notes": ["no crossing within horizon"]},
+  "pit_window_reason": null, "remaining_competitive_laps": 2,
+  "model": {"name": "baseline_b_recent_conformal", "version": "2024-07-28.6681d16a", "trained_through": "2024-07-28"},
+  "warnings": [] }
 ```
 
-When the window is computed, `pit_window` looks like this:
-
-```json
-{"earliest_lap": 44, "central_lap": null, "latest_lap": null, "threshold_s": 1.0,
- "threshold_pace_s": 107.183, "best_pace_s": 106.183, "pace_basis": "fuel_adjusted_model_term",
- "method": "interval_crossing_v1", "confidence": "low",
- "assumptions": ["ignores undercut and overcut", "ignores traffic", "ignores track position",
-                 "ignores safety-car probability", "ignores tyre availability (sets left)",
-                 "threshold is a heuristic (best pace + X seconds), not a team rule"],
- "notes": ["no crossing within horizon"]}
-```
+Five laps earlier (lap 34) the forecast never reaches the threshold before the flag, and the
+interval at the last lap is too wide, so `pit_window` is null and the reason is given:
+`"pit_window_reason": "forecast_uncertainty_too_high"`, with the warning "interval width 2.06 s at
+lap 44 exceeds 2 × 1 s".
 
 The schema is extended in three ways beyond the plan's example: `reason`, `pit_window_reason`, and
 a few extra pit-window fields (`threshold_pace_s`, `best_pace_s`, `pace_basis`, `notes`). Without
@@ -98,7 +99,7 @@ predictions, window or degradation. Causes:
    adjusted trend (wear plus residual track evolution after the fuel adjustment), not pure wear. A
    model without a degradation term (persistence) returns null with a warning.
 
-## Pit window: `interval_crossing_v1`
+## Pit window: `interval_crossing_v2`
 
 A pure function, unit-tested on hand-computed curves (`pit_window.interval_crossing`).
 
@@ -120,43 +121,44 @@ A pure function, unit-tested on hand-computed curves (`pit_window.interval_cross
   - medium: window ≤ 6 laps
   - low: otherwise, including an open-ended window
 - **Null window,** with `pit_window_reason: "forecast_uncertainty_too_high"`, when either:
-  - the interval width at the end of the horizon is > 2·X, or
+  - the interval width **at the decision lap** is > 2·X. The decision lap is the central
+    crossing, or the end of the horizon when the forecast never crosses. This is the v2 change;
+    v1 always judged the width 25 laps out (see below). Or:
   - the window is wider than 10 laps.
+- **Already past:** when the recent pace (mean of the last 3 clean laps, same basis) is already
+  at or above the threshold, the window says so in `notes` ("threshold already reached before the
+  current lap") instead of looking like a fresh "pit next lap" call.
 - `remaining_competitive_laps` = central_lap − lap, when central_lap exists.
 - **Assumptions (always attached):** ignores undercut/overcut, traffic, track position,
   safety-car probability and tyre availability.
 
 Never present one pit lap as the answer. The window and its assumptions go together.
 
-### Known consequence: the window is usually null
+### Why v2: the v1 window was almost always null
 
-The plan's null rule (interval width at the end of the horizon > 2·X) meets per-lap conformal
-intervals. The production model's 80% half-width grows from about 0.85 s at step 1 to about
-2.1 s at step 25. That is lap-to-lap noise (traffic, lifts, dirty air), not uncertainty about
-the tyre trend. A 25-lap horizon is therefore about 4.2 s wide, more than 2 × 1 s.
+As first specified (v1), the 2·X rule judged the interval at the end of a fixed 25-lap horizon,
+even when the forecast crossed the threshold much sooner. With the 6D Baseline B, the 80%
+half-width 25 laps out is about 2.1 s, so the window was null in 95% of real-race forecasts at
+X = 1 s, and it never appeared with more than 5 laps left. Smoothing the pace (a 5-lap mean) does
+not fix this: its step-25 half-width is still 1.57 s. The uncertainty is genuine drift in a
+stint's pace over 25 laps, not lap-to-lap noise. So v2 keeps the 80% intervals and the 2·X
+rule, and judges them where the decision is made.
 
-Measured on all 24 races of the 6A dataset: every driver, every 4th lap from lap 6, 6,261
-requests. 1,585 of them (25%) are `insufficient_data` (under 5 clean laps or a fresh stint).
-Of the 4,676 forecasts:
+Measured on all 24 races of the 6A dataset: every driver, every 4th lap from lap 6, 4,676
+forecasts with status `ok`, X = 1.0 s.
 
-| X | Window returned | …with > 5 laps left | `central_lap` defined |
+| Rule and model | Window returned | …with > 5 laps left | `central_lap` defined |
 |---|---|---|---|
-| 1.0 s (default) | 230 (4.9%) | 0 | 154 |
-| 1.5 s | 971 (20.8%) | 476 | 247 |
-| 2.0 s | 1,811 (38.7%) | 1,316 | 168 |
+| v1, 6D Baseline B | 230 (4.9%) | 0 | 154 |
+| v1, recent-anchored Baseline B | 920 (19.7%) | 425 | 635 |
+| **v2, recent-anchored Baseline B (production)** | **2,870 (61.4%)** | **2,375** | **2,585** |
 
-**With the default X, the window only appears when the horizon is shortened by the end of the
-race.** The behaviour follows the plan (null rather than a fabricated window), but it is not yet
-useful in a race. This is a decision for review. The options, none applied:
-
-1. Judge the 2·X rule at the crossing lap rather than at the end of the 25-lap horizon.
-2. Build the window from an interval on the **pace trend** (for example, a rolling 3-lap mean)
-   rather than single-lap intervals.
-3. Raise the default X, or shorten the pit-window horizon.
-
-`central_lap` stays rare even at larger X. The fuel-adjusted Baseline B trend climbs only about
-0.03–0.06 s per lap, so it seldom gains X seconds within 25 laps.
-
+Most v2 windows are open-ended (`latest_lap` null, confidence low). The pessimistic curve
+crosses within a lap or two, the forecast crosses at `central_lap`, and the optimistic curve
+doesn't cross within the horizon. That is the honest shape of an 80% interval of about ±0.8 s
+around a trend of a few hundredths of a second per lap. `central_lap` is the number to show,
+always with the window and its assumptions. `TireServiceConfig(pit_window_gate="horizon")`
+restores v1.
 
 ## Model registry
 
@@ -180,16 +182,28 @@ useful in a race. This is a decision for review. The options, none applied:
 
 ### Registered models
 
-| Name | Kind | Status | 6D holdout h=5 MAE | 6D holdout 80% coverage | WF h=5 coverage |
+| Name | Kind | Status | Dev LORO h=5 MAE | Dev WF 80% coverage (h=5) | 6D holdout h=5 MAE |
 |---|---|---|---|---|---|
-| `baseline_b_conformal` | Baseline B + split-conformal 80% | **production** (6D protocol fallback) | 0.505 s | 91.5% | 77.7% |
-| `persistence_conformal` | persistence + split-conformal 80% | candidate (6D report recommendation) | 0.372 s | 87.4% | 76.7% |
+| `baseline_b_recent_conformal` | Baseline B anchored on the last 3 laps + split-conformal 80% | **production** | 0.373 s | 77.4% | not evaluated (holdout used once in 6D) |
+| `persistence_conformal` | persistence + split-conformal 80% | candidate | 0.369 s | 76.7% | 0.372 s |
+| `baseline_b_conformal` | 6D Baseline B (level from all history) + split-conformal 80% | candidate | 0.505 s | 77.7% | 0.505 s |
 
-The 6D gate decides which model is production. Switching is
-`build_tire_registry --production persistence`, or editing the two `status` fields.
+**Why the recent-anchored model is production (6E fix, after the 6D review).**
+- **Accuracy:** on the 21 development races it is as accurate as persistence (LORO h=5 0.372 vs
+  0.369 ± 0.02; h=10 0.439 vs 0.440). MLflow run `a48bd9fa3749428499c600247af4bb43`.
+- **What persistence lacks:** it has a fuel term, a tyre-age trend and a degradation estimate.
+  Persistence's forecast is flat, so it cannot drive a pit window or report degradation.
+- **Its anchor:** it is Baseline B with persistence's anchor. 6C traced B's error to its
+  all-history level.
+- **Caveat:** its bias (−0.054 s) is marginally outside the 0.05 s bar. Like every model here,
+  it does not meet the 6D bar.
+- **No holdout number:** it was designed after the 6D holdout had been used, so no clean holdout
+  estimate exists for it.
 
-- **Calibration:** both models fit their point model on the earliest 70% of the 24 races and
-  calibrate on the most recent 30%, with forecast horizons 5, 10 and 25. `trained_through`
+To switch: `python -m scripts.build_tire_registry --production persistence` (or `pooled_fixed_effects`).
+
+- **Calibration:** every model fits its point model on the earliest 70% of the 24 races and
+  calibrates on the most recent 30%, with forecast horizons 5, 10 and 25. `trained_through`
   2024-07-28 is the date of the last calibration race (Spa 2024).
 
 ## Caching and performance
