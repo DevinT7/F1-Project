@@ -168,3 +168,25 @@ Full write-up: `docs/tire_model_report.md`. Decisions and deviations:
   estimate is the nested one.
 - **Shipped:** Baseline B + split-conformal 80%, per the protocol (no model met the bar). The
   report recommends persistence + conformal instead, pending human review.
+
+## Phase 6E — Prediction service and pit window (P1, 2026-10-13)
+
+Full contract: `docs/tire_api.md`.
+
+- **Servable artifacts are JSON coefficients + `.npz` residuals,** committed under `models/`
+  with SHA-256 in `models/registry.json`. There are no pickles: loading cannot execute code, and
+  it doesn't depend on statsmodels internals.
+- **Production is `baseline_b_conformal`, the 6D protocol fallback.** `persistence_conformal` is
+  registered as a candidate. Switching after the 6D review is
+  `build_tire_registry --production persistence`.
+- **Conformal residuals are calibrated per step up to 25 laps** (horizons 5, 10, 25), so every
+  pit-window step has its own quantile.
+- **The cut uses every driver's laps ≤ lap,** not just the driver's own, because the 6A rules
+  need the field (neutralizations, restarts). The 6A rules run with `keep_short_stints=True` so a
+  short stint reports its clean-lap count and returns `insufficient_data`, instead of vanishing.
+- **Schema additions:** `reason`, `pit_window_reason`, and the pit-window fields `best_pace_s`,
+  `threshold_pace_s`, `pace_basis` and `notes`, so every null and every number is explained.
+  Optional `threshold` query parameter (X); the response cache key includes it.
+- **The plan's 2·X uncertainty rule makes the window null in 95% of forecasts at X = 1.0 s.**
+  Measured on 24 races; the window only appears in the last 5 laps. The rule is kept as
+  specified, and the options are listed in `docs/tire_api.md` for review.

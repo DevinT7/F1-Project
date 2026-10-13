@@ -1,0 +1,46 @@
+{
+  "format": "raceiq-tire-model/1",
+  "name": "persistence_conformal",
+  "version": "2024-07-28.6681d16a",
+  "point_model": {
+    "kind": "persistence",
+    "anchor_laps": 3
+  },
+  "interval": {
+    "method": "split-conformal",
+    "alpha": 0.2,
+    "horizons_calibrated": [
+      5,
+      10,
+      25
+    ],
+    "fitted_on": [
+      "2023_01_R",
+      "2023_02_R",
+      "2023_03_R",
+      "2023_04_R",
+      "2023_05_R",
+      "2023_07_R",
+      "2023_08_R",
+      "2023_09_R",
+      "2023_10_R",
+      "2023_11_R",
+      "2023_12_R",
+      "2023_15_R",
+      "2024_01_R",
+      "2024_02_R",
+      "2024_03_R",
+      "2024_04_R",
+      "2024_05_R"
+    ],
+    "calibrated_on": [
+      "2024_06_R",
+      "2024_07_R",
+      "2024_08_R",
+      "2024_10_R",
+      "2024_11_R",
+      "2024_13_R",
+      "2024_14_R"
+    ]
+  }
+}
