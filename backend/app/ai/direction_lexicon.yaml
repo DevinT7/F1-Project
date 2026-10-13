@@ -1,0 +1,106 @@
+# Direction lexicon for the 7B validator (rule direction_mismatch) and cause keywords (rule
+# unsupported_causal_claim). Loaded once by app/ai/validator.py; see docs/validator_rules.md.
+#
+# Reports are written from the TARGET's point of view (the prompt says so). Each entry maps a
+# DESCRIPTIVE phrase to the sign the cited fact of its family must have: "LEC lost 0.311 s" needs a
+# positive time loss. Prescriptive advice ("carry more speed", "brake later") is deliberately not
+# listed: a suggestion describes what to change, not what happened.
+#
+# Matching: case-insensitive, entries in file order (specific before generic); a matched span is
+# consumed, so "8.0 km/h slower" is a speed statement and never also the time word "slower".
+# {gap} = up to 30 characters within the same clause (a decimal point counts as a character).
+# Every entry lists examples; tests check each example matches its own entry first and only it.
+
+gap: '(?:[^.;:!?]|\.(?=\d)){0,30}?'
+
+families:
+  time: '\.(time_loss_s|entry_loss_s|exit_loss_s|total_delta_s|official_gap_s|sector_\d_delta_s|official_sector_delta_s|time_diff_s)$'
+  braking: '\.braking_start_diff_m$'
+  throttle: '\.throttle_reapply_diff_m$'
+  min_speed: '\.min_speed_diff_kph$'
+  entry_speed: '\.entry_speed_diff_kph$'
+  exit_speed: '\.exit_speed_diff_kph$'
+  top_speed: '\.top_speed_diff_kph$'
+  speed: '\.(min|entry|exit|top)_speed_diff_kph$'
+
+entries:
+  # ---- prescriptive advice (driving suggestions): advising MORE of something means the target had
+  #      LESS of it, so the expected sign is opposite to the descriptive form
+  - {pattern: '\bcarry(?:ing)? more (?:minimum|apex|mid-corner) speed\b', family: min_speed, sign: -1, examples: ["carrying more minimum speed could help"]}
+  - {pattern: '\bcarry(?:ing)? less (?:minimum|apex|mid-corner) speed\b', family: min_speed, sign: 1, examples: ["carrying less minimum speed could help"]}
+  - {pattern: '\b(?:get|getting) (?:back )?on the throttle earlier\b', family: throttle, sign: 1, examples: ["getting on the throttle earlier would help"]}
+  - {pattern: '\b(?:get|getting) (?:back )?on the throttle later\b', family: throttle, sign: -1, examples: ["getting on the throttle later would help"]}
+  # ---- braking point (positive = target braked later)
+  - {pattern: '\bbrak(?:ed|ing){gap}\blater\b', family: braking, sign: 1, examples: ["LEC braked 24 m later", "braking 15 m later into Turn 1"]}
+  - {pattern: '\blater (?:on the brakes|braking)\b', family: braking, sign: 1, examples: ["later braking into Turn 18"]}
+  - {pattern: '\bbrak(?:ed|ing){gap}\bearlier\b', family: braking, sign: -1, examples: ["LEC braked 24 m earlier", "braking 6 m earlier"]}
+  - {pattern: '\bearlier (?:on the brakes|braking)\b', family: braking, sign: -1, examples: ["earlier braking into Turn 1"]}
+  # ---- throttle re-application (positive = target back on throttle later)
+  - {pattern: '\b(?:on|to) the throttle{gap}\blater\b', family: throttle, sign: 1, examples: ["back on the throttle 4 m later"]}
+  - {pattern: '\blater (?:on|to) the throttle\b', family: throttle, sign: 1, examples: ["later on the throttle"]}
+  - {pattern: '\b(?:on|to) the throttle{gap}\bearlier\b', family: throttle, sign: -1, examples: ["back on the throttle 4 m earlier"]}
+  - {pattern: '\bearlier (?:on|to) the throttle\b', family: throttle, sign: -1, examples: ["earlier on the throttle"]}
+  # ---- minimum / apex speed
+  - {pattern: '\b(?:carried|had|kept|held){gap}\bmore (?:minimum|apex|mid-corner) speed\b', family: min_speed, sign: 1, examples: ["LEC carried 5.0 km/h more minimum speed", "had more apex speed"]}
+  - {pattern: '\b(?:carried|had|kept|held){gap}\bless (?:minimum|apex|mid-corner) speed\b', family: min_speed, sign: -1, examples: ["carried less minimum speed"]}
+  - {pattern: '\b(?:higher|greater) (?:minimum|apex|mid-corner) speed\b', family: min_speed, sign: 1, examples: ["a higher minimum speed"]}
+  - {pattern: '\b(?:lower|less) (?:minimum|apex|mid-corner) speed\b', family: min_speed, sign: -1, examples: ["5.0 km/h less minimum speed", "a lower apex speed"]}
+  - {pattern: '\b(?:minimum|apex|mid-corner) speed (?:was )?{gap}\b(?:higher|greater)\b', family: min_speed, sign: 1, examples: ["minimum speed was 3.6 km/h higher"]}
+  - {pattern: '\b(?:minimum|apex|mid-corner) speed (?:was )?{gap}\b(?:lower|down)\b', family: min_speed, sign: -1, examples: ["minimum speed was 7.6 km/h lower"]}
+  # ---- entry speed
+  - {pattern: '\b(?:more|higher) entry speed\b', family: entry_speed, sign: 1, examples: ["8.2 km/h more entry speed"]}
+  - {pattern: '\b(?:less|lower) entry speed\b', family: entry_speed, sign: -1, examples: ["6.3 km/h less entry speed"]}
+  - {pattern: '\bcarried (?:more|extra) speed into\b', family: entry_speed, sign: 1, examples: ["carried more speed into Turn 1"]}
+  - {pattern: '\bcarried less speed into\b', family: entry_speed, sign: -1, examples: ["carried less speed into Turn 19"]}
+  # ---- exit speed
+  - {pattern: '\b(?:faster|better|stronger|quicker) exit\b', family: exit_speed, sign: 1, examples: ["a faster exit from Turn 5"]}
+  - {pattern: '\b(?:slower|worse|weaker) exit\b', family: exit_speed, sign: -1, examples: ["a slower exit from Turn 13"]}
+  - {pattern: '\b(?:more|higher) exit speed\b', family: exit_speed, sign: 1, examples: ["2.7 km/h more exit speed"]}
+  - {pattern: '\b(?:less|lower) exit speed\b', family: exit_speed, sign: -1, examples: ["12.6 km/h less exit speed"]}
+  - {pattern: '\bexit speed (?:was )?{gap}\b(?:higher|up)\b', family: exit_speed, sign: 1, examples: ["exit speed was 2.4 km/h higher"]}
+  - {pattern: '\bexit speed (?:was )?{gap}\b(?:lower|down)\b', family: exit_speed, sign: -1, examples: ["exit speed was 8.0 km/h lower"]}
+  # ---- top speed
+  - {pattern: '\b(?:higher|greater) top speed\b', family: top_speed, sign: 1, examples: ["a higher top speed"]}
+  - {pattern: '\b(?:lower|less) top speed\b', family: top_speed, sign: -1, examples: ["a lower top speed"]}
+  - {pattern: '\btop speed (?:was )?{gap}\b(?:higher|up)\b', family: top_speed, sign: 1, examples: ["top speed 1.8 km/h higher"]}
+  - {pattern: '\btop speed (?:was )?{gap}\b(?:lower|down)\b', family: top_speed, sign: -1, examples: ["top speed 4.0 km/h lower"]}
+  # ---- any speed difference written with its unit
+  - {pattern: '\bkm/h (?:faster|quicker|higher|more)\b', family: speed, sign: 1, examples: ["2.7 km/h faster", "8.2 km/h more"]}
+  - {pattern: '\bkm/h (?:slower|lower|less)\b', family: speed, sign: -1, examples: ["8.0 km/h slower", "5.0 km/h lower"]}
+  # ---- time (positive = target slower): generic words last
+  - {pattern: '\b(?:lost|loses|losing|lose)\b', family: time, sign: 1, examples: ["LEC lost 0.311 s"]}
+  - {pattern: '\bgave away\b', family: time, sign: 1, examples: ["gave away 0.311 s"]}
+  - {pattern: '\bconceded\b', family: time, sign: 1, examples: ["conceded 0.200 s"]}
+  - {pattern: '\bcost(?:s|ing)?\b', family: time, sign: 1, examples: ["Turn 19 cost 0.311 s", "costing 0.2 s"]}
+  - {pattern: '\b(?:deficit|losses|loss)\b', family: time, sign: 1, examples: ["a 0.200 s deficit", "the biggest loss"]}
+  - {pattern: '\bbehind\b', family: time, sign: 1, examples: ["1.094 s behind PIA"]}
+  - {pattern: '\bslower\b', family: time, sign: 1, examples: ["0.109 s slower"]}
+  - {pattern: '\b(?:gained|gains|gaining|gain)\b', family: time, sign: -1, examples: ["gained 0.131 s", "a gain of 0.13 s"]}
+  - {pattern: '\bmade up\b', family: time, sign: -1, examples: ["made up 0.131 s"]}
+  - {pattern: '\b(?:saved|saves|saving|save)\b', family: time, sign: -1, examples: ["saved 0.131 s"]}
+  - {pattern: '\badvantage\b', family: time, sign: -1, examples: ["a 0.131 s advantage"]}
+  - {pattern: '\bahead\b', family: time, sign: -1, examples: ["0.037 s ahead"]}
+  - {pattern: '\b(?:faster|quicker)\b', family: time, sign: -1, examples: ["0.037 s faster"]}
+
+# Cause keywords (rule unsupported_causal_claim): a causal claim must name a cause from the cited
+# segment's causes list. Each keyword group maps to the findings causes it can stand for; a
+# keyword in `unsupported` is never a findings cause.
+# Ordered: direction-specific groups first; a span they match is consumed, so the generic group
+# below only applies when no direction is stated ("the exit" vs "a faster exit").
+causes:
+  - {name: early_braking, pattern: '\b(?:early|earlier) braking\b|\bbrak(?:ed|ing) (?:too )?earl(?:y|ier)\b', causes: [early_braking_loss]}
+  - {name: late_braking, pattern: '\b(?:late|later) braking\b|\bbrak(?:ed|ing) later\b', causes: [late_braking_gain]}
+  - {name: low_min_speed, pattern: '\b(?:lower|less|low|reduced) (?:minimum|apex|mid-corner|cornering) speed\b', causes: [low_min_speed]}
+  - {name: high_min_speed, pattern: '\b(?:higher|more|high|greater) (?:minimum|apex|mid-corner|cornering) speed\b', causes: [high_min_speed]}
+  - {name: late_throttle, pattern: '\b(?:late|later) (?:on the )?throttle\b|\bthrottle (?:came |was )?later\b', causes: [late_throttle]}
+  - {name: early_throttle, pattern: '\b(?:early|earlier) (?:on the )?throttle\b|\bthrottle (?:came |was )?earlier\b', causes: [early_throttle]}
+  - {name: lower_exit, pattern: '\b(?:slower|worse|weaker|lower) exit\b|\b(?:less|lower) exit speed\b', causes: [lower_exit_speed]}
+  - {name: higher_exit, pattern: '\b(?:faster|better|stronger|higher) exit\b|\b(?:more|higher) exit speed\b', causes: [higher_exit_speed]}
+  - {name: straight_deficit, pattern: '\bstraight[- ]line (?:deficit|disadvantage)\b|\b(?:lower|less) top speed\b', causes: [straight_line_deficit]}
+  - {name: straight_advantage, pattern: '\bstraight[- ]line advantage\b|\b(?:higher|more) top speed\b', causes: [straight_line_advantage]}
+  - {name: braking, pattern: '\bbrak(?:e|es|ed|ing)\b', causes: [early_braking_loss, late_braking_gain]}
+  - {name: min_speed, pattern: '\b(?:minimum|apex|mid-corner|cornering) speed\b|\bslowest point\b', causes: [low_min_speed, high_min_speed]}
+  - {name: throttle, pattern: '\bthrottle\b', causes: [late_throttle, early_throttle]}
+  - {name: exit, pattern: '\bexit\b', causes: [lower_exit_speed, higher_exit_speed]}
+  - {name: straight, pattern: '\bstraight[- ]line\b|\btop speed\b', causes: [straight_line_deficit, straight_line_advantage]}
+unsupported: '\b(?:tyres?|tires?|traffic|wind|set-?up|fuel|mistakes?|errors?|lock-?ups?|damage|engine|power unit|drs|dirty air|slipstream|tow|grip|kerbs?|track limits|wear|degradation)\b'

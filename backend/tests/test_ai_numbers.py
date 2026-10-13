@@ -138,3 +138,9 @@ def test_display_forms_never_render_null_or_nan():
 def test_second_is_ordinal_only_when_not_a_time(text, ordinal):
     [t] = [t for t in parse_numbers(text) if t.raw.lower() == "second"]
     assert t.allowed is ordinal
+
+
+def test_ignore_masks_whole_occurrences_only():
+    """Masking the label 'Turn 2' must not consume the '2' of 'Turn 23' (found by the 7B corpus)."""
+    assert [t.value for t in parse_numbers("Turn 23 cost 0.311 s", ignore=("Turn 2",))] == [0.311]
+    assert parse_numbers("Straight 1 (431-2231 m) cost 0.1 s", ignore=("Straight 1 (431-2231 m)",))[0].value == 0.1

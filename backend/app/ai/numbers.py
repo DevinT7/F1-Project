@@ -139,8 +139,8 @@ def parse_numbers(text: str, ignore: tuple[str, ...] = ()) -> list[NumberToken]:
     (e.g. a session key "2024-05-Q" or an event name) so they are not read as numbers."""
     masked = text
     for literal in ignore:
-        if literal:
-            masked = masked.replace(literal, " " * len(literal))
+        if literal:  # whole occurrences only: masking "Turn 2" must not eat the "2" of "Turn 23"
+            masked = re.sub(rf"(?<![\w.]){re.escape(literal)}(?![\w])", lambda m: " " * len(m.group(0)), masked)
     tokens: list[NumberToken] = []
     for m in _NUMBER_RE.finditer(masked):
         start, end = m.start(), m.end()

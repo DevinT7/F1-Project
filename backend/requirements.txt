@@ -41,3 +41,4 @@ hypothesis==6.169.0
 mypy==2.4.0
 pandas-stubs==2.2.3.250308
 pytest-cov==7.1.0
+PyYAML==6.0.3  # 7B validator lexicon (already installed via mlflow)
