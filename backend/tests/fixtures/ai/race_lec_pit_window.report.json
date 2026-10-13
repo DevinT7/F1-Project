@@ -1,0 +1,154 @@
+{
+ "headline": {
+  "text": "LEC was 1.094 s slower than PIA over the lap and lost the most in Sector 2 (0.688 s).",
+  "fact_ids": [
+   "LAP.time_loss_s",
+   "LAP.sector_2_delta_s"
+  ]
+ },
+ "biggest_time_loss": [
+  {
+   "text": "Turn 19: LEC lost 0.311 s (carried 5.0 km/h less minimum speed; exited 8.0 km/h slower).",
+   "fact_ids": [
+    "T19.time_loss_s",
+    "T19.min_speed_diff_kph",
+    "T19.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 13: LEC lost 0.200 s (carried 7.6 km/h less minimum speed; reached full throttle 0.311 s later; exited 12.6 km/h slower).",
+   "fact_ids": [
+    "T13.time_loss_s",
+    "T13.min_speed_diff_kph",
+    "T13.time_to_full_throttle_diff_s",
+    "T13.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 14: LEC lost 0.177 s (carried 4.1 km/h less minimum speed).",
+   "fact_ids": [
+    "T14.time_loss_s",
+    "T14.min_speed_diff_kph"
+   ]
+  }
+ ],
+ "strongest_areas": [
+  {
+   "text": "Turn 18: LEC gained 0.131 s (braked 24.0 m later; carried 5.0 km/h less minimum speed; exited 9.9 km/h slower).",
+   "fact_ids": [
+    "T18.time_loss_s",
+    "T18.braking_start_diff_m",
+    "T18.min_speed_diff_kph",
+    "T18.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 5: LEC gained 0.039 s (braked 25.0 m later; exited 13.0 km/h slower).",
+   "fact_ids": [
+    "T5.time_loss_s",
+    "T5.braking_start_diff_m",
+    "T5.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 2: LEC gained 0.022 s; the time gain has no single clear driving cause in the available data.",
+   "fact_ids": [
+    "T2.time_loss_s"
+   ]
+  }
+ ],
+ "tire_notes": [
+  {
+   "text": "On the hard tyre, lap times grow by 0.034 s/lap (95% CI 0.029 s/lap to 0.039 s/lap): a combined adjusted trend, not pure tyre wear.",
+   "fact_ids": [
+    "tire.deg_s_per_lap",
+    "tire.deg_ci_low",
+    "tire.deg_ci_high"
+   ]
+  },
+  {
+   "text": "Heuristic pit window: earliest lap 40, central lap 41, latest lap open-ended (confidence: low).",
+   "fact_ids": [
+    "tire.window_earliest_lap",
+    "tire.window_central_lap",
+    "tire.window_latest_lap",
+    "tire.confidence"
+   ]
+  },
+  {
+   "text": "The window is a heuristic that ignores undercut and overcut, traffic, track position, safety-car probability and tyre availability.",
+   "fact_ids": [
+    "tire.window_assumptions"
+   ]
+  }
+ ],
+ "driving_suggestions": [
+  {
+   "text": "Work on minimum speed in Turn 19; PIA carried 5.0 km/h more minimum speed.",
+   "fact_ids": [
+    "T19.min_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Work on minimum speed in Turn 13; PIA carried 7.6 km/h more minimum speed.",
+   "fact_ids": [
+    "T13.min_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Work on minimum speed in Turn 14; PIA carried 4.1 km/h more minimum speed.",
+   "fact_ids": [
+    "T14.min_speed_diff_kph"
+   ]
+  }
+ ],
+ "strategy_options": [
+  {
+   "text": "Indicative pit window: from lap 40, central lap 41, open-ended beyond the forecast horizon (confidence: low); it ignores traffic and safety-car risk.",
+   "fact_ids": [
+    "tire.window_earliest_lap",
+    "tire.window_central_lap",
+    "tire.window_latest_lap",
+    "tire.confidence"
+   ]
+  }
+ ],
+ "data_limitations": [
+  {
+   "text": "Traffic data is unavailable, so no time loss is attributed to traffic.",
+   "fact_ids": [
+    "session.notes"
+   ]
+  },
+  {
+   "text": "Listed causes are rule-based contributing factors, not proof.",
+   "fact_ids": [
+    "data_quality.notes"
+   ]
+  },
+  {
+   "text": "Low confidence: Turn 3, Turn 4, Turn 10, Turn 16 and one other segment.",
+   "fact_ids": [
+    "T3.confidence",
+    "T4.confidence",
+    "T10.confidence",
+    "T16.confidence"
+   ]
+  },
+  {
+   "text": "Turn 19: braking points cannot be compared; no braking was detected for PIA.",
+   "fact_ids": [
+    "T19.braking_start_diff_m"
+   ]
+  },
+  {
+   "text": "Turn 13: braking points cannot be compared; no braking was detected for either driver.",
+   "fact_ids": [
+    "T13.braking_start_diff_m"
+   ]
+  }
+ ],
+ "generated_by": "template",
+ "prompt_version": "template-v1",
+ "factsheet_hash": "48fcdbd5aa6716ff4883d29b4f611a367152fbdefbc15379cd920697d37d8fe9"
+}

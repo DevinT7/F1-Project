@@ -1,0 +1,120 @@
+{
+ "headline": {
+  "text": "BOT was 0.412 s slower than ALO over the lap and lost the most in Sector 3 (0.189 s).",
+  "fact_ids": [
+   "LAP.time_loss_s",
+   "LAP.sector_3_delta_s"
+  ]
+ },
+ "biggest_time_loss": [
+  {
+   "text": "Turn 8: BOT lost 0.317 s (braked 14.0 m earlier; carried 15.8 km/h less minimum speed; exited 11.0 km/h slower).",
+   "fact_ids": [
+    "T8.time_loss_s",
+    "T8.braking_start_diff_m",
+    "T8.min_speed_diff_kph",
+    "T8.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 16: BOT lost 0.130 s (carried 3.0 km/h less minimum speed; reached full throttle 0.404 s earlier).",
+   "fact_ids": [
+    "T16.time_loss_s",
+    "T16.min_speed_diff_kph",
+    "T16.time_to_full_throttle_diff_s"
+   ]
+  },
+  {
+   "text": "Turn 15: BOT lost 0.114 s; the time loss has no single clear driving cause in the available data.",
+   "fact_ids": [
+    "T15.time_loss_s"
+   ]
+  }
+ ],
+ "strongest_areas": [
+  {
+   "text": "Turn 14: BOT gained 0.236 s (braked 17.0 m later).",
+   "fact_ids": [
+    "T14.time_loss_s",
+    "T14.braking_start_diff_m"
+   ]
+  },
+  {
+   "text": "Turn 2: BOT gained 0.072 s (carried 11.9 km/h more minimum speed; exited 4.6 km/h faster).",
+   "fact_ids": [
+    "T2.time_loss_s",
+    "T2.min_speed_diff_kph",
+    "T2.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 6: BOT gained 0.071 s (braked 10.0 m earlier; reached full throttle 0.177 s earlier).",
+   "fact_ids": [
+    "T6.time_loss_s",
+    "T6.braking_start_diff_m",
+    "T6.time_to_full_throttle_diff_s"
+   ]
+  }
+ ],
+ "tire_notes": [
+  {
+   "text": "Tyre forecast unavailable: tyre forecasting requires a race session; this is qualifying.",
+   "fact_ids": [
+    "tire.deg_s_per_lap"
+   ]
+  }
+ ],
+ "driving_suggestions": [
+  {
+   "text": "Test a later brake point in Turn 8; ALO braked 14.0 m later.",
+   "fact_ids": [
+    "T8.braking_start_diff_m"
+   ]
+  },
+  {
+   "text": "Work on minimum speed in Turn 16; ALO carried 3.0 km/h more minimum speed.",
+   "fact_ids": [
+    "T16.min_speed_diff_kph"
+   ]
+  }
+ ],
+ "strategy_options": [],
+ "data_limitations": [
+  {
+   "text": "Traffic data is unavailable, so no time loss is attributed to traffic.",
+   "fact_ids": [
+    "session.notes"
+   ]
+  },
+  {
+   "text": "Listed causes are rule-based contributing factors, not proof.",
+   "fact_ids": [
+    "data_quality.notes"
+   ]
+  },
+  {
+   "text": "Corner-level times carry up to 0.054 s of alignment uncertainty (the sector cross-check is outside tolerance).",
+   "fact_ids": [
+    "quality.sector_check_max_discrepancy_s"
+   ]
+  },
+  {
+   "text": "Low confidence: Turn 3, Turn 4, Straight 2 (950-1434 m) and Sector 1.",
+   "fact_ids": [
+    "T3.confidence",
+    "T4.confidence",
+    "STR2.confidence",
+    "SEC1.confidence"
+   ]
+  },
+  {
+   "text": "Turn 15: braking points cannot be compared; no braking was detected for either driver.",
+   "fact_ids": [
+    "T15.braking_start_diff_m"
+   ]
+  }
+ ],
+ "generated_by": "template",
+ "prompt_version": "template-v1",
+ "factsheet_hash": "5276616a4dfb69d8cbcc16d16e56b6cc923bca82c7147e3957ac63ae536e6915"
+}

@@ -182,6 +182,13 @@ def _index(fs: FactSheet) -> _Index:
                         and (cid.endswith((".label", ".key", ".event", ".session_key", "model_version", "model_name",
                                            "model_trained_through")))]
     masks += [s for s in (fs.session.key, fs.session.event, fs.session.date) if s]
+    # system-written text a report may quote verbatim (notes, the tyre reason): its digits are the
+    # FactSheet's own, so an exact copy is grounded; anything else in the text is still checked
+    quoted: list[str] = [n for c in categorical.values() if c.id.endswith(".notes") and isinstance(c.value, list)
+                         for n in c.value]
+    quoted += list(fs.data_quality.notes)
+    quoted += [str(r) for r in (fs.tire.get("reason"), categorical.get("tire.reason") and categorical["tire.reason"].value) if r]
+    masks += [q for q in quoted if any(ch.isdigit() for ch in q)]
     masks.sort(key=len, reverse=True)  # longest first, so a label is masked before any substring
     laps = {int(v) for i in CONTEXT_LAPS if i in facts and (v := facts[i].value) is not None}
     subjects: list[tuple[re.Pattern[str], str]] = []

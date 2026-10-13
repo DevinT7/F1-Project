@@ -1,0 +1,123 @@
+{
+ "headline": {
+  "text": "ALO was 0.033 s slower than ALB over the lap and gained the most in Sector 2 (0.519 s).",
+  "fact_ids": [
+   "LAP.time_loss_s",
+   "LAP.sector_2_delta_s"
+  ]
+ },
+ "biggest_time_loss": [
+  {
+   "text": "Turn 4: ALO lost 0.236 s (carried 5.0 km/h less minimum speed; exited 5.7 km/h slower).",
+   "fact_ids": [
+    "T4.time_loss_s",
+    "T4.min_speed_diff_kph",
+    "T4.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 5: ALO lost 0.123 s (braked 17.0 m later).",
+   "fact_ids": [
+    "T5.time_loss_s",
+    "T5.braking_start_diff_m"
+   ]
+  },
+  {
+   "text": "Turn 17: ALO lost 0.106 s (carried 3.0 km/h less minimum speed; exited 3.6 km/h slower).",
+   "fact_ids": [
+    "T17.time_loss_s",
+    "T17.min_speed_diff_kph",
+    "T17.exit_speed_diff_kph"
+   ]
+  }
+ ],
+ "strongest_areas": [
+  {
+   "text": "Turn 10: ALO gained 0.127 s (braked 26.0 m later; carried 6.1 km/h more minimum speed; reached full throttle 0.705 s earlier; exited 7.1 km/h faster).",
+   "fact_ids": [
+    "T10.time_loss_s",
+    "T10.braking_start_diff_m",
+    "T10.min_speed_diff_kph",
+    "T10.time_to_full_throttle_diff_s",
+    "T10.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 8: ALO gained 0.100 s (carried 6.0 km/h less minimum speed; reached full throttle 0.370 s earlier; exited 3.9 km/h faster).",
+   "fact_ids": [
+    "T8.time_loss_s",
+    "T8.min_speed_diff_kph",
+    "T8.time_to_full_throttle_diff_s",
+    "T8.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 11: ALO gained 0.099 s (carried 5.8 km/h more minimum speed; exited 5.8 km/h faster).",
+   "fact_ids": [
+    "T11.time_loss_s",
+    "T11.min_speed_diff_kph",
+    "T11.exit_speed_diff_kph"
+   ]
+  }
+ ],
+ "tire_notes": [
+  {
+   "text": "Tyre forecast unavailable: tyre model unavailable (HTTP 503: model_not_available).",
+   "fact_ids": [
+    "tire.deg_s_per_lap"
+   ]
+  }
+ ],
+ "driving_suggestions": [
+  {
+   "text": "Work on minimum speed in Turn 4; ALB carried 5.0 km/h more minimum speed.",
+   "fact_ids": [
+    "T4.min_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Work on minimum speed in Turn 17; ALB carried 3.0 km/h more minimum speed.",
+   "fact_ids": [
+    "T17.min_speed_diff_kph"
+   ]
+  }
+ ],
+ "strategy_options": [],
+ "data_limitations": [
+  {
+   "text": "Traffic data is unavailable, so no time loss is attributed to traffic.",
+   "fact_ids": [
+    "session.notes"
+   ]
+  },
+  {
+   "text": "Listed causes are rule-based contributing factors, not proof.",
+   "fact_ids": [
+    "data_quality.notes"
+   ]
+  },
+  {
+   "text": "Low confidence: Turn 6, Turn 15 and Turn 19.",
+   "fact_ids": [
+    "T6.confidence",
+    "T15.confidence",
+    "T19.confidence"
+   ]
+  },
+  {
+   "text": "Turn 4: braking points cannot be compared; no braking was detected for either driver.",
+   "fact_ids": [
+    "T4.braking_start_diff_m"
+   ]
+  },
+  {
+   "text": "Turn 17: braking points cannot be compared; no braking was detected for either driver.",
+   "fact_ids": [
+    "T17.braking_start_diff_m"
+   ]
+  }
+ ],
+ "generated_by": "template",
+ "prompt_version": "template-v1",
+ "factsheet_hash": "72841b3249d3f89123b65d0a97339a0fb23abcf0e9ca27c6f93977bbc69bbb53"
+}

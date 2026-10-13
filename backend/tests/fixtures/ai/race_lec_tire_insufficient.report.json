@@ -1,0 +1,117 @@
+{
+ "headline": {
+  "text": "LEC was 0.570 s faster than PIA over the lap and gained the most in Sector 2 (0.479 s).",
+  "fact_ids": [
+   "LAP.time_loss_s",
+   "LAP.sector_2_delta_s"
+  ]
+ },
+ "biggest_time_loss": [
+  {
+   "text": "Turn 5: LEC lost 0.061 s (braked 9.0 m later; carried 4.5 km/h less minimum speed).",
+   "fact_ids": [
+    "T5.time_loss_s",
+    "T5.braking_start_diff_m",
+    "T5.min_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 1: LEC lost 0.060 s (braked 21.0 m later; carried 4.1 km/h less minimum speed; reached full throttle 0.360 s later; exited 5.3 km/h slower).",
+   "fact_ids": [
+    "T1.time_loss_s",
+    "T1.braking_start_diff_m",
+    "T1.min_speed_diff_kph",
+    "T1.time_to_full_throttle_diff_s",
+    "T1.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 2: LEC lost 0.053 s; the time loss has no single clear driving cause in the available data.",
+   "fact_ids": [
+    "T2.time_loss_s"
+   ]
+  }
+ ],
+ "strongest_areas": [
+  {
+   "text": "Turn 18: LEC gained 0.152 s; the time gain has no single clear driving cause in the available data.",
+   "fact_ids": [
+    "T18.time_loss_s"
+   ]
+  },
+  {
+   "text": "Turn 8: LEC gained 0.119 s (braked 17.0 m later; reached full throttle 0.259 s earlier; exited 6.5 km/h faster).",
+   "fact_ids": [
+    "T8.time_loss_s",
+    "T8.braking_start_diff_m",
+    "T8.time_to_full_throttle_diff_s",
+    "T8.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 14: LEC gained 0.100 s (reached full throttle 0.412 s earlier; exited 5.0 km/h faster).",
+   "fact_ids": [
+    "T14.time_loss_s",
+    "T14.time_to_full_throttle_diff_s",
+    "T14.exit_speed_diff_kph"
+   ]
+  }
+ ],
+ "tire_notes": [
+  {
+   "text": "No tyre forecast yet: 2 of the 5 required clean laps in the current stint.",
+   "fact_ids": [
+    "tire.clean_laps_used",
+    "tire.clean_laps_required",
+    "tire.deg_s_per_lap"
+   ]
+  }
+ ],
+ "driving_suggestions": [
+  {
+   "text": "Work on minimum speed in Turn 5; PIA carried 4.5 km/h more minimum speed.",
+   "fact_ids": [
+    "T5.min_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Work on minimum speed in Turn 1; PIA carried 4.1 km/h more minimum speed.",
+   "fact_ids": [
+    "T1.min_speed_diff_kph"
+   ]
+  }
+ ],
+ "strategy_options": [],
+ "data_limitations": [
+  {
+   "text": "Traffic data is unavailable, so no time loss is attributed to traffic.",
+   "fact_ids": [
+    "session.notes"
+   ]
+  },
+  {
+   "text": "Listed causes are rule-based contributing factors, not proof.",
+   "fact_ids": [
+    "data_quality.notes"
+   ]
+  },
+  {
+   "text": "Low confidence: Turn 6, Turn 13, Turn 16 and Turn 17.",
+   "fact_ids": [
+    "T6.confidence",
+    "T13.confidence",
+    "T16.confidence",
+    "T17.confidence"
+   ]
+  },
+  {
+   "text": "Turn 2: braking points cannot be compared; no braking was detected for either driver.",
+   "fact_ids": [
+    "T2.braking_start_diff_m"
+   ]
+  }
+ ],
+ "generated_by": "template",
+ "prompt_version": "template-v1",
+ "factsheet_hash": "6a809069b655cb7cc2bcbe1f584b2881f596aa76043bf4dc2a795eed027024d6"
+}

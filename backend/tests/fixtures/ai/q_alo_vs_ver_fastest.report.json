@@ -1,0 +1,125 @@
+{
+ "headline": {
+  "text": "ALO was 0.488 s slower than VER over the lap and lost the most in Sector 3 (0.272 s).",
+  "fact_ids": [
+   "LAP.time_loss_s",
+   "LAP.sector_3_delta_s"
+  ]
+ },
+ "biggest_time_loss": [
+  {
+   "text": "Turn 16: ALO lost 0.176 s (carried 14.1 km/h less minimum speed; exited 6.7 km/h slower).",
+   "fact_ids": [
+    "T16.time_loss_s",
+    "T16.min_speed_diff_kph",
+    "T16.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 15: ALO lost 0.112 s (carried 6.0 km/h less minimum speed).",
+   "fact_ids": [
+    "T15.time_loss_s",
+    "T15.min_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 6: ALO lost 0.098 s (braked 5.0 m later; reached full throttle 0.567 s later; exited 7.3 km/h slower).",
+   "fact_ids": [
+    "T6.time_loss_s",
+    "T6.braking_start_diff_m",
+    "T6.time_to_full_throttle_diff_s",
+    "T6.exit_speed_diff_kph"
+   ]
+  }
+ ],
+ "strongest_areas": [
+  {
+   "text": "Turn 10: ALO gained 0.068 s; the time gain has no single clear driving cause in the available data.",
+   "fact_ids": [
+    "T10.time_loss_s"
+   ]
+  },
+  {
+   "text": "Turn 1: ALO gained 0.059 s (braked 9.0 m later; exited 5.4 km/h faster).",
+   "fact_ids": [
+    "T1.time_loss_s",
+    "T1.braking_start_diff_m",
+    "T1.exit_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Turn 11: ALO gained 0.046 s (braked 16.0 m later).",
+   "fact_ids": [
+    "T11.time_loss_s",
+    "T11.braking_start_diff_m"
+   ]
+  }
+ ],
+ "tire_notes": [
+  {
+   "text": "Tyre forecast unavailable: tyre forecasting requires a race session; this is qualifying.",
+   "fact_ids": [
+    "tire.deg_s_per_lap"
+   ]
+  }
+ ],
+ "driving_suggestions": [
+  {
+   "text": "Work on minimum speed in Turn 16; VER carried 14.1 km/h more minimum speed.",
+   "fact_ids": [
+    "T16.min_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Work on minimum speed in Turn 15; VER carried 6.0 km/h more minimum speed.",
+   "fact_ids": [
+    "T15.min_speed_diff_kph"
+   ]
+  },
+  {
+   "text": "Aim for full throttle sooner out of Turn 6; ALO took 0.567 s longer to reach it.",
+   "fact_ids": [
+    "T6.time_to_full_throttle_diff_s"
+   ]
+  }
+ ],
+ "strategy_options": [],
+ "data_limitations": [
+  {
+   "text": "Traffic data is unavailable, so no time loss is attributed to traffic.",
+   "fact_ids": [
+    "session.notes"
+   ]
+  },
+  {
+   "text": "Listed causes are rule-based contributing factors, not proof.",
+   "fact_ids": [
+    "data_quality.notes"
+   ]
+  },
+  {
+   "text": "Corner-level times carry up to 0.041 s of alignment uncertainty (the sector cross-check is outside tolerance).",
+   "fact_ids": [
+    "quality.sector_check_max_discrepancy_s"
+   ]
+  },
+  {
+   "text": "Low confidence: Turn 2, Turn 5, Turn 8, Turn 13 and one other segment.",
+   "fact_ids": [
+    "T2.confidence",
+    "T5.confidence",
+    "T8.confidence",
+    "T13.confidence"
+   ]
+  },
+  {
+   "text": "Turn 15: braking points cannot be compared; no braking was detected for either driver.",
+   "fact_ids": [
+    "T15.braking_start_diff_m"
+   ]
+  }
+ ],
+ "generated_by": "template",
+ "prompt_version": "template-v1",
+ "factsheet_hash": "0ca8ee9eb7cf4d2f39a612fc9ea66b9405bb0e0b2b706193306952d46790966c"
+}
