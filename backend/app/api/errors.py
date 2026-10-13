@@ -27,6 +27,8 @@ from ..ingestion.errors import (
     TelemetryUnavailableError,
 )
 from ..processing.errors import InsufficientDataError
+from ..tires.registry import ChecksumMismatchError, ModelNotAvailableError
+from ..tires.service import NotARaceSessionError
 
 logger = logging.getLogger("raceiq.api")
 
@@ -40,6 +42,9 @@ ERROR_MAP: list[tuple[type[Exception], int, str]] = [
     (LapNotFoundError, 404, "lap_not_found"),
     (SessionNotFoundError, 404, "session_not_found"),
     (InsufficientDataError, 422, "insufficient_data"),
+    (NotARaceSessionError, 422, "not_a_race_session"),
+    (ChecksumMismatchError, 503, "model_checksum_mismatch"),
+    (ModelNotAvailableError, 503, "model_not_available"),
     (LapInvalidError, 422, "lap_invalid"),
     (TelemetryUnavailableError, 424, "telemetry_unavailable"),
     (PayloadTooLargeError, 413, "payload_too_large"),

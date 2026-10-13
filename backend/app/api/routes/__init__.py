@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from ..schemas.common import error_responses
-from . import comparisons, meta, seasons, sessions
+from . import comparisons, meta, seasons, sessions, tires
 
 API_V1_PREFIX = "/api/v1"
 
@@ -14,6 +14,8 @@ TAGS_METADATA = [
     {"name": "v1: sessions", "description": "Ingestion and stored session data: drivers, laps, fastest laps, corners."},
     {"name": "v1: comparisons", "description": "Distance-aligned two-lap comparison with time delta and verified findings. "
                                                "Sign convention: positive delta / time loss = the target lost time."},
+    {"name": "v1: tires", "description": "Tyre forecasts and a heuristic pit window from the registered production "
+                                         "model, using only laps up to the requested lap."},
 ]
 
 # Any v1 route can be rate limited or fail unexpectedly; document both once here.
@@ -22,3 +24,4 @@ router.include_router(meta.router)
 router.include_router(seasons.router)
 router.include_router(sessions.router)
 router.include_router(comparisons.router)
+router.include_router(tires.router)

@@ -50,6 +50,6 @@ def error_responses(*codes: int) -> dict[int | str, dict[str, Any]]:
         424: "Telemetry unavailable for a requested lap",
         429: "Rate limited",
         500: "Unexpected error (body carries the request id)",
-        503: "Not ready",
+        503: "Not ready / tyre model not available",
     }
     return {code: {"model": ErrorResponse, "description": text.get(code, "Error")} for code in codes}

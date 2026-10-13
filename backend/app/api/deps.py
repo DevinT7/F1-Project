@@ -10,6 +10,8 @@ from ..config import settings
 from ..ingestion.fastf1_client import FastF1Client
 from ..ingestion.service import SessionSource
 from ..storage.repository import ParquetRepository, SessionRepository
+from ..tires.registry import ModelRegistry
+from ..tires.service import TireService
 from .services import ComparisonService, SessionQueryService
 
 
@@ -43,3 +45,13 @@ def _comparison_service() -> ComparisonService:
 def get_comparison_service() -> ComparisonService:
     """One instance per process so its LRU cache survives across requests."""
     return _comparison_service()
+
+
+@lru_cache(maxsize=1)
+def _tire_service() -> TireService:
+    return TireService(get_repository(), ModelRegistry(settings.tire_registry_path))
+
+
+def get_tire_service() -> TireService:
+    """One instance per process: the model, session tables and responses stay cached in memory."""
+    return _tire_service()

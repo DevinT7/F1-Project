@@ -489,6 +489,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tires/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Registered tyre models
+         * @description Every registered model version with its status (production | candidate), provenance (dataset hash, git SHA, trained-through date) and 6D evaluation summary.
+         */
+        get: operations["models_api_v1_tires_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tires/predict": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tyre forecast and pit window at a lap
+         * @description Uses only laps ≤ `lap` (all drivers, for the 6A exclusion rules) and the driver's current stint. Needs ≥ 5 clean laps in the stint, otherwise `status: insufficient_data` with a `reason` and no predictions or window. The pit window is a heuristic (interval_crossing_v1): it ignores undercut/overcut, traffic, track position, safety-car probability and tyre availability. Any field that cannot be computed is null and explained in `warnings`.
+         */
+        get: operations["predict_api_v1_tires_predict_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/weather": {
         parameters: {
             query?: never;
@@ -1215,6 +1255,87 @@ export interface components {
             /** Telemetry Count */
             telemetry_count: number;
         };
+        /** ModelRef */
+        ModelRef: {
+            /** Name */
+            name: string;
+            /** Trained Through */
+            trained_through: string;
+            /** Version */
+            version: string;
+        };
+        /** PitWindow */
+        PitWindow: {
+            /** Assumptions */
+            assumptions: string[];
+            /**
+             * Best Pace S
+             * @description median of the 3 fastest clean laps of the stint so far
+             */
+            best_pace_s: number;
+            /**
+             * Central Lap
+             * @description first lap the forecast reaches the threshold
+             */
+            central_lap: number | null;
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "high" | "medium" | "low";
+            /**
+             * Earliest Lap
+             * @description first lap the pessimistic curve reaches the threshold
+             */
+            earliest_lap: number | null;
+            /**
+             * Latest Lap
+             * @description first lap the optimistic curve reaches the threshold; null = no crossing within the horizon
+             */
+            latest_lap: number | null;
+            /**
+             * Method
+             * @constant
+             */
+            method: "interval_crossing_v1";
+            /** Notes */
+            notes: string[];
+            /**
+             * Pace Basis
+             * @enum {string}
+             */
+            pace_basis: "fuel_adjusted_model_term" | "raw";
+            /**
+             * Threshold Pace S
+             * @description best pace + X, on the pace basis below
+             */
+            threshold_pace_s: number;
+            /**
+             * Threshold S
+             * @description X: seconds above best pace that count as 'tyre gone' (a heuristic, not a team rule)
+             */
+            threshold_s: number;
+        };
+        /** PredictedLap */
+        PredictedLap: {
+            /**
+             * Hi S
+             * @description upper bound of the prediction interval (s)
+             */
+            hi_s: number;
+            /** Lap */
+            lap: number;
+            /**
+             * Lo S
+             * @description lower bound of the prediction interval (s)
+             */
+            lo_s: number;
+            /**
+             * Pred S
+             * @description predicted lap time (s)
+             */
+            pred_s: number;
+        };
         /** ReadyResponse */
         ReadyResponse: {
             /** Checks */
@@ -1456,6 +1577,103 @@ export interface components {
             session_key: number;
             /** Tyre Age Laps */
             tyre_age_laps?: number | null;
+        };
+        /** TireModelInfo */
+        TireModelInfo: {
+            /** Dataset Hash */
+            dataset_hash: string;
+            /** Git Sha */
+            git_sha: string;
+            /** Interval Alpha */
+            interval_alpha: number;
+            /** Kind */
+            kind: string;
+            /**
+             * Metrics
+             * @description 6D evaluation of this configuration (holdout once; walk-forward)
+             */
+            metrics: Record<string, never>;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "production" | "candidate";
+            /** Trained Through */
+            trained_through: string;
+            /** Trained Through Session */
+            trained_through_session: string;
+            /** Version */
+            version: string;
+        };
+        /** TireModelsResponse */
+        TireModelsResponse: {
+            /** Models */
+            models: components["schemas"]["TireModelInfo"][];
+        };
+        /** TirePrediction */
+        TirePrediction: {
+            /** Clean Laps Used */
+            clean_laps_used?: number | null;
+            /** Compound */
+            compound?: string | null;
+            /**
+             * Degradation Ci
+             * @description 95% interval [low, high]
+             */
+            degradation_ci?: number[] | null;
+            /** Degradation S Per Lap */
+            degradation_s_per_lap?: number | null;
+            /** Driver */
+            driver: string;
+            /** Horizon */
+            horizon: number;
+            /**
+             * Lap
+             * @description the cut: only laps ≤ this one were used
+             */
+            lap: number;
+            model?: components["schemas"]["ModelRef"] | null;
+            pit_window?: components["schemas"]["PitWindow"] | null;
+            /**
+             * Pit Window Reason
+             * @description why pit_window is null, e.g. forecast_uncertainty_too_high
+             */
+            pit_window_reason?: string | null;
+            /**
+             * Predicted Laps
+             * @description consecutive laps from lap + 1
+             */
+            predicted_laps?: components["schemas"]["PredictedLap"][] | null;
+            /**
+             * Reason
+             * @description why status is insufficient_data
+             */
+            reason?: string | null;
+            /**
+             * Remaining Competitive Laps
+             * @description central_lap − lap, when defined
+             */
+            remaining_competitive_laps?: number | null;
+            /** Session Key */
+            session_key: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "insufficient_data";
+            /** Stint */
+            stint?: number | null;
+            /** Tyre Age */
+            tyre_age?: number | null;
+            /**
+             * Warnings
+             * @description every null field is explained here
+             */
+            warnings?: string[];
         };
         /** ValidationError */
         ValidationError: {
@@ -2069,7 +2287,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description Not ready */
+            /** @description Not ready / tyre model not available */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -2586,6 +2804,129 @@ export interface operations {
             };
             /** @description Unexpected error (body carries the request id) */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    models_api_v1_tires_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TireModelsResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unexpected error (body carries the request id) */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not ready / tyre model not available */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    predict_api_v1_tires_predict_get: {
+        parameters: {
+            query: {
+                /** @description Session key "<year>-<round>-<session>", e.g. "2024-05-Q" (2024 round 5 qualifying). Underscores ("2024_05_Q") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R. */
+                session: string;
+                /** @description driver code (LEC) or number (16) */
+                driver: string;
+                /** @description current lap: the forecast uses laps ≤ lap only */
+                lap: number;
+                /** @description laps to forecast (1–25) */
+                horizon?: number;
+                /** @description pit-window X in seconds above best pace (default 1.0; a heuristic) */
+                threshold?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TirePrediction"];
+                };
+            };
+            /** @description Session not ingested / not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid request, invalid lap, or comparison failed an integrity check */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unexpected error (body carries the request id) */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not ready / tyre model not available */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

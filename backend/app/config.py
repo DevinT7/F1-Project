@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # to the trivial baselines, so shipping it would make the endpoint worse.
     tire_model_force: bool = False
 
+    # --- Tyre prediction service (Phase 6E): registry of servable models, committed in models/ ---
+    tire_registry_path: str = str(_REPO_ROOT / "models" / "registry.json")
+
     # --- AI race engineer (optional) ---
     openai_api_key: str | None = None
     ai_model: str = "gpt-4o-mini"
