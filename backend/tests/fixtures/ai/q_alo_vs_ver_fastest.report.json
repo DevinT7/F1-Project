@@ -121,5 +121,7 @@
  ],
  "generated_by": "template",
  "prompt_version": "template-v1",
- "factsheet_hash": "0ca8ee9eb7cf4d2f39a612fc9ea66b9405bb0e0b2b706193306952d46790966c"
+ "factsheet_hash": "0ca8ee9eb7cf4d2f39a612fc9ea66b9405bb0e0b2b706193306952d46790966c",
+ "retried": false,
+ "fallback_reason": null
 }

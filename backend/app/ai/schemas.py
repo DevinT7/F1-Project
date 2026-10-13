@@ -125,3 +125,31 @@ class Report(_Model):
     generated_by: Literal["llm", "template"]
     prompt_version: str
     factsheet_hash: str
+    retried: bool = Field(default=False, description="an LLM report that passed on the second attempt")
+    fallback_reason: str | None = Field(default=None, description="why a template replaced the LLM (rule names or error)")
+
+
+REPORT_SECTIONS = ("biggest_time_loss", "strongest_areas", "tire_notes", "driving_suggestions", "strategy_options",
+                   "data_limitations")
+
+
+class ReportDraft(_Model):
+    """What the LLM returns. The orchestrator adds generated_by, prompt_version and factsheet_hash."""
+    headline: Bullet
+    biggest_time_loss: list[Bullet]
+    strongest_areas: list[Bullet]
+    tire_notes: list[Bullet]
+    driving_suggestions: list[Bullet]
+    strategy_options: list[Bullet]
+    data_limitations: list[Bullet]
+
+
+def draft_json_schema() -> dict[str, object]:
+    """Strict JSON schema of ReportDraft, inlined (no $ref), every object closed and fully required,
+    as structured-output modes (OpenAI strict json_schema, Anthropic tool input_schema) expect."""
+    bullet = {"type": "object", "additionalProperties": False, "required": ["text", "fact_ids"],
+              "properties": {"text": {"type": "string"}, "fact_ids": {"type": "array", "items": {"type": "string"}}}}
+    props: dict[str, object] = {"headline": bullet}
+    props |= {name: {"type": "array", "items": bullet} for name in REPORT_SECTIONS}
+    return {"type": "object", "additionalProperties": False, "required": ["headline", *REPORT_SECTIONS],
+            "properties": props}

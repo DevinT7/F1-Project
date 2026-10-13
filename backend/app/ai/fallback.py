@@ -327,4 +327,7 @@ def build_template_report(fs: FactSheet, max_words: int = MAX_REPORT_WORDS) -> R
             while total() > max_words and len(sections[name]) > keep:
                 sections[name].pop()
     return Report(headline=headline, generated_by="template", prompt_version=TEMPLATE_VERSION,
-                  factsheet_hash=fs.factsheet_hash, **sections)
+                  factsheet_hash=fs.factsheet_hash, biggest_time_loss=sections["biggest_time_loss"],
+                  strongest_areas=sections["strongest_areas"], tire_notes=sections["tire_notes"],
+                  driving_suggestions=sections["driving_suggestions"], strategy_options=sections["strategy_options"],
+                  data_limitations=sections["data_limitations"])
