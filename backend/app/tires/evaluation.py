@@ -72,6 +72,14 @@ def split_generator(frame: pd.DataFrame, kind: str, min_train: int = 8) -> Itera
                    train=frame[keys.isin(train_keys)], test=frame[keys == test_key])
 
 
+def split_holdout(frame: pd.DataFrame, n: int = 3) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """(development races, the last n races by date). The holdout is touched once, at the very end."""
+    order = race_order(frame)
+    held = set(order[-n:])
+    mask = frame["session_key"].astype(str).isin(held)
+    return frame[~mask], frame[mask]
+
+
 # ---------------------------------------------------------------- the information boundary
 def forecast_inputs(stint: pd.DataFrame, k: int, h: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     """(history = first k clean laps, future = next h laps with unknowable columns masked)."""
@@ -214,6 +222,17 @@ class EvalResult:
     by_race: pd.DataFrame
 
 
+def _run_task(split: str, fold: Fold, model: ForecastModel, horizons: tuple[int, ...]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    model.fit(fold.train)
+    r = simulate_race(model, fold.test, horizons)
+    r.insert(0, "model", model.name)
+    r.insert(1, "split", split)
+    sl = slope_errors(model, fold.test)
+    sl.insert(0, "model", model.name)
+    sl.insert(1, "split", split)
+    return r, sl
+
+
 def evaluate(
     frame: pd.DataFrame,
     models: Sequence[ForecastModel],
@@ -221,23 +240,22 @@ def evaluate(
     splits: Sequence[str] = ("loro", "walk_forward"),
     horizons: Sequence[int] = (5, 10),
     min_train: int = 8,
+    n_jobs: int = 1,
 ) -> EvalResult:
-    rec_parts: list[pd.DataFrame] = []
-    slope_parts: list[pd.DataFrame] = []
-    for split in splits:
-        for fold in split_generator(frame, split, min_train=min_train):
-            for model in models:
-                model.fit(fold.train)
-                r = simulate_race(model, fold.test, horizons)
-                r.insert(0, "model", model.name)
-                r.insert(1, "split", split)
-                rec_parts.append(r)
-                s = slope_errors(model, fold.test)
-                s.insert(0, "model", model.name)
-                s.insert(1, "split", split)
-                slope_parts.append(s)
-    records = pd.concat(rec_parts, ignore_index=True)
-    slopes = pd.concat(slope_parts, ignore_index=True)
+    """Every (split, fold, model) is an independent task: the model is refit on that fold's
+    training races. n_jobs > 1 runs tasks in parallel processes; results come back in task order,
+    so the output is identical to n_jobs = 1."""
+    tasks = [(split, fold, model) for split in splits
+             for fold in split_generator(frame, split, min_train=min_train) for model in models]
+    if n_jobs == 1:
+        outputs = [_run_task(split, fold, model, tuple(horizons)) for split, fold, model in tasks]
+    else:
+        from joblib import Parallel, delayed
+
+        outputs = Parallel(n_jobs=n_jobs)(delayed(_run_task)(split, fold, model, tuple(horizons))
+                                          for split, fold, model in tasks)
+    records = pd.concat([o[0] for o in outputs], ignore_index=True)
+    slopes = pd.concat([o[1] for o in outputs], ignore_index=True)
 
     summary_rows, step_rows, comp_rows, race_rows = [], [], [], []
     for (model, split, h), g in records.groupby(["model", "split", "horizon"], sort=True):
