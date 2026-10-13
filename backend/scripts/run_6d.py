@@ -339,7 +339,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.stage == "final":
         from app.tires import artifacts
 
-        hp = load_best(meta, args.ship, args.tuned)
+        hp = load_best(meta, args.ship, args.tuned and args.ship not in ("persistence", "pooled_fixed_effects"))
         models = [PersistenceModel(), point_model(args.ship, hp),
                   *[SplitConformal(point_model(args.ship, hp), alpha=a) for a in (0.2, 0.05)]]
         for spec in ([] if args.ship == "pooled_fixed_effects" else ["pooled_fixed_effects"]) + args.compare:
