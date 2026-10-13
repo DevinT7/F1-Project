@@ -37,7 +37,7 @@ test("shared URL → charts → hover sync → corner panel", async ({ page }) =
   const panel = page.getByTestId("corner-panel");
   await expect(panel.getByRole("heading", { level: 3 })).toHaveText("Turn 6");
   await expect(panel.getByRole("row", { name: /Entry speed/ })).toContainText("282.0 km/h");
-  await expect(panel.getByTestId("corner-delta")).toContainText("+0.087 s (slower)");
+  await expect(panel.getByTestId("corner-delta")).toContainText("+0.098 s (slower)");  // X/Y-aligned (Phase 2 follow-up)
 
   expect(consoleErrors).toEqual([]);
 });

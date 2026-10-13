@@ -65,6 +65,9 @@ class CleanLap:
     repairs: int = 0                 # equal-distance samples nudged by epsilon
     dropped_glitches: int = 0        # non-advancing samples at speed, removed
     length_scale_factor: float = 1.0
+    alignment: str = "distance"           # "xy": distance corrected by X/Y projection (xy_align)
+    xy_correction_rms_m: float | None = None
+    xy_correction_max_m: float | None = None
 
     @property
     def length_m(self) -> float:
@@ -104,6 +107,9 @@ class ComparisonQuality:
     final_delta_error_s: float       # delta_s[-1] − (target − reference lap time)
     repairs: int                     # epsilon repairs across both laps
     dropped_glitches: int
+    alignment: str = "distance"      # "xy" = target distance corrected by X/Y projection
+    xy_correction_rms_m: float | None = None
+    xy_correction_max_m: float | None = None
 
 
 @dataclass(frozen=True, eq=False)

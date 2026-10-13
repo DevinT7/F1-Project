@@ -106,10 +106,10 @@ describe("corner selection", () => {
     expect(within(panel).getByRole("heading", { level: 3 })).toHaveTextContent("Turn 6");
     const entry = within(panel).getByRole("row", { name: /Entry speed/ });
     expect(entry).toHaveTextContent("282.0 km/h");
-    expect(entry).toHaveTextContent("263.3 km/h");
-    expect(entry).toHaveTextContent("−18.6 km/h");
-    expect(within(panel).getByRole("row", { name: /Braking point/ })).toHaveTextContent("+9 m");
-    expect(within(panel).getByTestId("corner-delta")).toHaveTextContent("+0.087 s (slower)");
+    expect(entry).toHaveTextContent("264.9 km/h");
+    expect(entry).toHaveTextContent("−17.1 km/h");
+    expect(within(panel).getByRole("row", { name: /Braking point/ })).toHaveTextContent("+5 m");
+    expect(within(panel).getByTestId("corner-delta")).toHaveTextContent("+0.098 s (slower)");
     expect(screen.getByTestId("corner-T6")).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -124,7 +124,7 @@ describe("corner selection", () => {
   it("map colours agree with the findings' signs", async () => {
     await renderDashboard(SHARED);
     await screen.findByTestId("corner-panel");
-    for (const [corner, glyph] of [["T16", "▲"], ["T11", "▼"], ["T9", "●"]] as const) {
+    for (const [corner, glyph] of [["T16", "▲"], ["T11", "▼"], ["T8", "●"]] as const) {
       expect(screen.getByTestId(`corner-${corner}`)).toHaveTextContent(glyph);
     }
   });

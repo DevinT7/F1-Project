@@ -116,6 +116,11 @@ class ReportQuality(BaseModel):
     tiling_error_s: float
     sector_check_ok: bool | None
     sector_check_max_discrepancy_s: float | None
+    alignment: Literal["xy", "distance"] = Field(
+        "distance", description='"xy": the target distance was corrected by projecting its X/Y position onto the '
+                                'reference path (blended 50/50 with the length-normalized distance); "distance": '
+                                'length normalization only (X/Y missing or implausible)')
+    xy_correction_rms_m: float | None = Field(None, description="RMS of the X/Y distance correction applied, metres")
 
 
 class FindingsReport(BaseModel):
@@ -409,6 +414,8 @@ def generate_findings(
             repairs=q.repairs, dropped_glitches=q.dropped_glitches, tiling_error_s=tiling_error,
             sector_check_ok=diag.ok if diag.available else None,
             sector_check_max_discrepancy_s=max(abs(c.discrepancy_s) for c in diag.checks) if diag.checks else None,
+            alignment="xy" if q.alignment == "xy" else "distance",
+            xy_correction_rms_m=round(q.xy_correction_rms_m, 3) if q.xy_correction_rms_m is not None else None,
         ),
         notes=report_notes,
     )

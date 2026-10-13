@@ -44,7 +44,7 @@ end. So every lap's telemetry duration equals its official `LapTime` (checked on
 in our own interpolation, not against data problems. It still catches broken
 telemetry and timing (tested with synthetic laps).
 
-### Known limitation: mid-lap accuracy is about ±40–60 ms, not ±0.02 s
+### Known limitation: mid-lap accuracy was ±40–60 ms (now ±30–35 ms with X/Y, see follow-up below)
 
 The sector cross-check is the real independent test. It **fails most of the time on
 real data**:
@@ -66,14 +66,54 @@ tests). Its **endpoint** is exact. Its **mid-lap absolute value** carries tens o
 position-alignment uncertainty. Corner-level time-loss numbers in later phases
 should be reported with that uncertainty, or with sector deltas as the anchor.
 
-Options considered (not implemented, pending a decision):
-- **Anchor the normalization at the sector lines.** Use piecewise-linear normalization
-  through each lap's own S1/S2 line distances, from its own official sector times. In a
-  held-out test (anchor S1, measure at S2) the race median fell from 59 ms to 38 ms and
-  Q from 44 ms to 40 ms. It's cheap, but the gain is modest, and the sector check
-  becomes true by construction.
-- **Align on X/Y position instead of integrated distance.** Project each sample onto
-  the reference lap's path. This attacks the cause, but it's a larger change.
+### Follow-up (2026-10-13): X/Y alignment, blended with distance
+
+The X/Y option was implemented in `alignment.xy_align` and is on by default (`compare_laps(xy=True)`).
+
+**How it works:**
+- Each sample of the target lap is projected onto the reference lap's X/Y path. The search only
+  covers ±60 m of the sample's length-normalized distance, so it can't snap to a neighbouring
+  part of the track.
+- The projection gives the reference distance of the same physical point. The difference from
+  the target's own distance is low-pass filtered over 150 m.
+- That correction is applied **at half weight**.
+- The start and finish stay pinned at the timing line, so the final-delta check is unchanged
+  (still exactly 0 s on both sessions).
+- Samples that don't fit (more than 25 m off the path, or a 40 m jump) take their neighbours'
+  correction. When X/Y is missing or mostly implausible, the method falls back to plain
+  distance alignment.
+- Every comparison reports `quality.alignment` (`xy` or `distance`) and `xy_correction_rms_m`.
+
+**Why half weight.** X/Y alone was *worse*: the Q median went from 41 ms to 46 ms. Measured at
+the official sector-line crossings, X/Y positions are scattered as much as integrated distance
+(sd 3.7–6.1 m vs 3.5–3.8 m), and the two errors are **uncorrelated** (r = −0.20 … +0.18). So
+the error isn't a shared timestamp problem, and neither source is clean. Averaging two
+independent, similar-sized errors beats either one. On Q, weights 0.4–0.6 and smoothing
+150–500 m form a flat optimum, and the middle of it (0.5, 150 m) was chosen.
+
+**Results.** Tuned on 2024_05_Q only. **2024_05_R was held out** and run once with the chosen
+setting. 3,000 pairs each, `python -m scripts.alignment_report --key … [--no-xy]`.
+
+| Session | Method | Sector-boundary median | p95 | Max | All boundaries within 0.03 s |
+|---|---|---|---|---|---|
+| 2024_05_Q | distance (before) | 0.041 s | 0.136 s | 0.62 s | 16.0% |
+| 2024_05_Q | **X/Y blend** | **0.028 s** | 0.099 s | 0.49 s | 31.4% |
+| 2024_05_R (held out) | distance (before) | 0.064 s | 0.195 s | 0.40 s | 9.2% |
+| 2024_05_R (held out) | **X/Y blend** | **0.036 s** | 0.106 s | 0.23 s | 23.0% |
+
+Mid-lap position uncertainty falls by about 30–44%, from ±40–60 ms to about ±30–35 ms, but not
+to the original ±0.02 s goal. The remaining error is the noise of two independent position
+sources. The sector check stays an independent test, because nothing is anchored to the
+sector lines.
+
+**Effect on findings.** Corner time losses move as the alignment improves. In the reviewed
+ALO-vs-VER snapshot (regenerated deliberately), individual corners shift by up to about 0.1 s,
+e.g. T9 −0.011 → +0.071 s and T13 +0.128 → −0.013 s. The S1 boundary error went from −24 to
++7 ms while S2 went from +4 to +41 ms. Single pairs still carry tens of milliseconds at any
+boundary, so corner losses below about 0.05 s should be presented as low confidence under
+either method. The lap total is unaffected.
+
+**Cost:** about 1.5 ms per comparison (2.1 → 3.6 ms for `compare_laps`).
 
 ### Other notes
 

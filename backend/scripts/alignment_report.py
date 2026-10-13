@@ -27,6 +27,9 @@ def main() -> None:
     parser.add_argument("--data-dir", default=settings.data_dir)
     parser.add_argument("--max-pairs", type=int, default=3000)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--no-xy", action="store_true", help="original alignment: length normalization only")
+    parser.add_argument("--xy-weight", type=float, default=None, help="blend weight of the X/Y correction (0-1)")
+    parser.add_argument("--xy-smooth", type=float, default=None, help="low-pass window of the X/Y offset, metres")
     args = parser.parse_args()
 
     repo = ParquetRepository(args.data_dir)
@@ -42,7 +45,8 @@ def main() -> None:
     failures: Counter[str] = Counter()
     for ref_key, tgt_key in pairs:
         try:
-            cmp = compare_laps(data[ref_key], data[tgt_key])
+            cmp = compare_laps(data[ref_key], data[tgt_key], xy=not args.no_xy, xy_weight=args.xy_weight,
+                               xy_smooth_m=args.xy_smooth)
         except IngestionError as exc:
             failures[type(exc).__name__] += 1
             continue

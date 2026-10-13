@@ -11,7 +11,7 @@ import numpy as np
 from scipy.signal import savgol_filter
 
 from ..ingestion.models import FloatArray
-from .alignment import clean_lap, make_grid, normalize_length, resample_to_grid
+from .alignment import clean_lap, make_grid, normalize_length, resample_to_grid, xy_align
 from .errors import InsufficientDataError
 from .models import (
     AlignedLap,
@@ -51,9 +51,14 @@ def smooth_rate(rate: FloatArray, step_m: float) -> FloatArray:
     return smoothed
 
 
-def compare_laps(reference: LapData, target: LapData, step: float = 1.0) -> LapComparison:
+def compare_laps(reference: LapData, target: LapData, step: float = 1.0, *, xy: bool = True,
+                 xy_weight: float | None = None, xy_smooth_m: float | None = None) -> LapComparison:
+    """xy=True (default): the target's distance is corrected by X/Y projection onto the reference
+    path (alignment.xy_align); xy=False is the original length-normalization-only alignment."""
     ref_clean = clean_lap(reference)
     tgt_clean = normalize_length(clean_lap(target), ref_clean.length_m)
+    if xy:
+        tgt_clean = xy_align(tgt_clean, ref_clean, weight=xy_weight, smooth_m=xy_smooth_m)
     grid = make_grid(ref_clean.length_m, step)
     ref = resample_to_grid(ref_clean, grid)
     tgt = resample_to_grid(tgt_clean, grid)
@@ -84,6 +89,9 @@ def compare_laps(reference: LapData, target: LapData, step: float = 1.0) -> LapC
             final_delta_error_s=error,
             repairs=ref_clean.repairs + tgt_clean.repairs,
             dropped_glitches=ref_clean.dropped_glitches + tgt_clean.dropped_glitches,
+            alignment=tgt_clean.alignment,
+            xy_correction_rms_m=tgt_clean.xy_correction_rms_m,
+            xy_correction_max_m=tgt_clean.xy_correction_max_m,
         ),
     )
 

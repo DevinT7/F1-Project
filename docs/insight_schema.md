@@ -535,6 +535,29 @@ noise floor.
             }
           ],
           "title": "Sector Check Max Discrepancy S"
+        },
+        "alignment": {
+          "default": "distance",
+          "description": "\"xy\": the target distance was corrected by projecting its X/Y position onto the reference path (blended 50/50 with the length-normalized distance); \"distance\": length normalization only (X/Y missing or implausible)",
+          "enum": [
+            "xy",
+            "distance"
+          ],
+          "title": "Alignment",
+          "type": "string"
+        },
+        "xy_correction_rms_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "RMS of the X/Y distance correction applied, metres",
+          "title": "Xy Correction Rms M"
         }
       },
       "required": [

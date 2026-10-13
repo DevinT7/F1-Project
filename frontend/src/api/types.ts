@@ -1350,6 +1350,13 @@ export interface components {
         };
         /** ReportQuality */
         ReportQuality: {
+            /**
+             * Alignment
+             * @description "xy": the target distance was corrected by projecting its X/Y position onto the reference path (blended 50/50 with the length-normalized distance); "distance": length normalization only (X/Y missing or implausible)
+             * @default distance
+             * @enum {string}
+             */
+            alignment?: "xy" | "distance";
             /** Dropped Glitches */
             dropped_glitches: number;
             /** Final Delta Error S */
@@ -1368,6 +1375,11 @@ export interface components {
             sector_check_ok: boolean | null;
             /** Tiling Error S */
             tiling_error_s: number;
+            /**
+             * Xy Correction Rms M
+             * @description RMS of the X/Y distance correction applied, metres
+             */
+            xy_correction_rms_m?: number | null;
         };
         /** Season */
         Season: {

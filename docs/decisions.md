@@ -203,3 +203,17 @@ Full contract: `docs/tire_api.md`.
   pace drift (1.57 s for a 5-lap mean vs 1.69 s per lap), so it is not noise to smooth away.
 - **Windows whose threshold was reached before the cut say so** ("threshold already reached
   before the current lap") instead of reading as a fresh "pit next lap" call.
+
+## Phase 2 follow-up — X/Y alignment (P1, 2026-10-13)
+
+- **The target lap's distance is corrected by projecting its X/Y onto the reference path.** The
+  correction is blended at 0.5 with the length-normalized distance and low-pass filtered over
+  150 m. X/Y alone was worse than distance alone, because the two sources have independent,
+  similar-sized errors.
+- **Tuning used 2024_05_Q only.** On the held-out 2024_05_R the sector-boundary median went from
+  64 to 36 ms. The details are in `docs/progress.md`.
+- **The X/Y step is on by default.** `compare_laps(..., xy=False)` and
+  `alignment_report --no-xy` reproduce the original method.
+- **The reviewed findings snapshot was regenerated deliberately.**
+- **The comparison latency test now excludes 2 warm-up requests and times 60 samples, not
+  20.** It was flaky with or without X/Y.

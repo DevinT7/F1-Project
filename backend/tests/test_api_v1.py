@@ -372,13 +372,18 @@ def test_openapi_documents_every_v1_route():
 
 # ---------------------------------------------------------------- performance
 async def test_comparison_latency(client, repo, capsys):
-    """p95 of a full (uncached) comparison at default resolution on a stored session."""
+    """p95 of a full (uncached) comparison at default resolution on a stored session.
+
+    Two warm-up requests are excluded (first-use imports and file-system caches are not request
+    cost), and 60 samples are timed: with 20, "p95" was the second-slowest request and the test
+    failed on ordinary machine noise (p95 262–397 ms across identical runs, 2026-10-13 audit)."""
     timings = []
-    for _ in range(20):
+    for i in range(62):
         app.dependency_overrides[deps.get_comparison_service] = lambda: ComparisonService(repo)  # cold LRU
         start = time.perf_counter()
         r = await client.post("/api/v1/comparisons", json=_compare_body(), headers={"Accept-Encoding": "gzip"})
-        timings.append((time.perf_counter() - start) * 1000)
+        if i >= 2:
+            timings.append((time.perf_counter() - start) * 1000)
         assert r.status_code == 200
     timings.sort()
     p95 = timings[int(0.95 * len(timings)) - 1]

@@ -2546,6 +2546,16 @@
       "ReportQuality": {
         "additionalProperties": false,
         "properties": {
+          "alignment": {
+            "default": "distance",
+            "description": "\"xy\": the target distance was corrected by projecting its X/Y position onto the reference path (blended 50/50 with the length-normalized distance); \"distance\": length normalization only (X/Y missing or implausible)",
+            "enum": [
+              "xy",
+              "distance"
+            ],
+            "title": "Alignment",
+            "type": "string"
+          },
           "dropped_glitches": {
             "title": "Dropped Glitches",
             "type": "integer"
@@ -2595,6 +2605,18 @@
           "tiling_error_s": {
             "title": "Tiling Error S",
             "type": "number"
+          },
+          "xy_correction_rms_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "RMS of the X/Y distance correction applied, metres",
+            "title": "Xy Correction Rms M"
           }
         },
         "required": [

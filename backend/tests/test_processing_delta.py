@@ -93,10 +93,14 @@ def test_identity():
 def test_antisymmetry():
     a = syn.sample_lap(REF, hz=10, seed=1)
     b = syn.sample_lap(syn.make_profile(slow_zone=(800, 1100), slow_factor=0.93), hz=7, jitter_s=0.02, seed=2)
-    ab, ba = compare_laps(a, b), compare_laps(b, a)
+    ab, ba = compare_laps(a, b, xy=False), compare_laps(b, a, xy=False)  # length normalization: exact
     np.testing.assert_array_equal(ab.grid_m, ba.grid_m)
     np.testing.assert_allclose(ab.delta_s, -ba.delta_s, atol=1e-6)
     np.testing.assert_allclose(ab.speed_diff_kph, -ba.speed_diff_kph, atol=1e-9)
+    # X/Y correction moves only the target, so swapping laps is antisymmetric up to the correction
+    ab, ba = compare_laps(a, b), compare_laps(b, a)
+    np.testing.assert_allclose(ab.delta_s, -ba.delta_s, atol=1e-3)
+    np.testing.assert_allclose(ab.speed_diff_kph, -ba.speed_diff_kph, atol=0.05)
 
 
 def test_resampling_invariance():
@@ -302,3 +306,51 @@ def test_sector_check_unavailable_without_sector_times():
     cmp = compare_laps(syn.sample_lap(REF), syn.sample_lap(REF, sectors=False))
     diag = sector_check(cmp)
     assert not diag.available and not diag.ok and diag.checks == ()
+
+
+# ---------------------------------------------------------------- X/Y alignment (Phase 2 follow-up)
+def _warped(lap, amp_m: float = 12.0):
+    """The same lap with its Distance channel bent by a smooth along-track error that is zero at
+    both timing lines (what speed-integration drift looks like); X/Y stay true."""
+    from dataclasses import replace as dc_replace
+
+    d = lap.telemetry.distance_m
+    bent = d + amp_m * np.sin(2 * np.pi * d / d[-1]) ** 2 * np.sign(np.sin(2 * np.pi * d / d[-1]))
+    return dc_replace(lap, telemetry=dc_replace(lap.telemetry, distance_m=np.maximum.accumulate(bent)))
+
+
+def test_xy_alignment_removes_distance_drift_the_length_scale_cannot():
+    from app.processing.alignment import clean_lap, normalize_length, xy_align
+
+    ref = syn.sample_lap(REF, hz=10, seed=1)
+    tgt = syn.sample_lap(REF, hz=8, jitter_s=0.01, seed=2)
+    true_tgt = normalize_length(clean_lap(tgt), clean_lap(ref).length_m)
+    bent = normalize_length(clean_lap(_warped(tgt)), clean_lap(ref).length_m)
+    err_before = np.abs(bent.distance_m - true_tgt.distance_m).max()
+    full = xy_align(bent, clean_lap(ref), weight=1.0, smooth_m=30.0)
+    half = xy_align(bent, clean_lap(ref), weight=0.5, smooth_m=30.0)
+    assert full.alignment == "xy" and err_before > 10
+    assert np.abs(full.distance_m - true_tgt.distance_m).max() < 2.0          # X/Y recovers the true position
+    assert np.abs(half.distance_m - true_tgt.distance_m).max() < 0.6 * err_before  # the blend halves it
+    assert full.distance_m[0] == 0.0 and full.distance_m[-1] == bent.distance_m[-1]  # timing lines pinned
+    assert np.all(np.diff(full.distance_m) > 0)
+
+
+def test_xy_alignment_keeps_the_final_delta_exact_and_reports_itself():
+    a = syn.sample_lap(REF, hz=10, seed=1)
+    b = _warped(syn.sample_lap(syn.make_profile(slow_zone=(800, 1100), slow_factor=0.93), hz=7, seed=3))
+    cmp = compare_laps(a, b)
+    assert cmp.quality.alignment == "xy" and cmp.quality.xy_correction_rms_m and cmp.quality.xy_correction_rms_m > 1
+    assert abs(cmp.quality.final_delta_error_s) < 1e-9
+    assert compare_laps(a, b, xy=False).quality.alignment == "distance"
+
+
+def test_xy_alignment_falls_back_without_position_data():
+    from dataclasses import replace as dc_replace
+
+    a = syn.sample_lap(REF, hz=10, seed=1)
+    b = syn.sample_lap(REF, hz=10, seed=2)
+    blind = dc_replace(b, telemetry=dc_replace(b.telemetry, x=np.full_like(b.telemetry.x, np.nan)))
+    cmp = compare_laps(a, blind)
+    assert cmp.quality.alignment == "distance" and cmp.quality.xy_correction_rms_m is None
+    np.testing.assert_array_equal(cmp.delta_s, compare_laps(a, blind, xy=False).delta_s)
