@@ -5,6 +5,7 @@
     cd backend && python -m scripts.run_6d intervals --base lightgbm [--tuned]
     cd backend && python -m scripts.run_6d explain   --base lightgbm [--tuned]
     cd backend && python -m scripts.run_6d final     --ship pooled_fixed_effects [--tuned]
+    cd backend && python -m scripts.run_6d recent_anchor   (6E fix: Baseline B anchored on the last 3 laps)
 
 Model specs: persistence | pooled_fixed_effects | <tree kind>[+identity]. --tuned uses the
 hyperparameters of the full-development search saved by the `tuned` stage.
@@ -277,7 +278,7 @@ def explain_stage(dev: pd.DataFrame, spec: str, hyperparams: dict[str, Any], met
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m scripts.run_6d")
-    parser.add_argument("stage", choices=["defaults", "tuned", "intervals", "explain", "final"])
+    parser.add_argument("stage", choices=["defaults", "tuned", "intervals", "explain", "final", "recent_anchor"])
     parser.add_argument("--data-dir", default=settings.data_dir)
     parser.add_argument("--jobs", type=int, default=8)
     parser.add_argument("--allow-dirty", action="store_true")
@@ -334,6 +335,12 @@ def main(argv: list[str] | None = None) -> int:
         res = stage("intervals", dev, models, both, {"base": args.base, "tuned": args.tuned},
                     lambda r: interval_table(r) + "\n\n" + verdict_table(r))
         print(f"\nchosen 80% interval method (walk-forward h=5, coverage within 72–88%, narrowest): {choose_interval(res)}")
+    elif args.stage == "recent_anchor":
+        # Post-6D (6E fix): Baseline B's trend anchored on the last 3 laps, development races only.
+        models = [PersistenceModel(), PooledFixedEffects(), PooledFixedEffects(anchor_laps=3),
+                  *[SplitConformal(m, alpha=0.2) for m in (PersistenceModel(), PooledFixedEffects(anchor_laps=3))]]
+        stage("recent_anchor", dev, models, both, {"purpose": "6E: anchor Baseline B on recent laps"},
+              lambda r: comparison_table(r) + "\n\n" + verdict_table(r) + "\n\n" + interval_table(r))
     elif args.stage == "explain":
         print(explain_stage(dev, args.base, load_best(meta, args.base, args.tuned), meta), flush=True)
     elif args.stage == "final":

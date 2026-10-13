@@ -64,13 +64,16 @@ class PooledFixedEffects:
     from a pooled fit on the training races; the stint's level is anchored on its own history
     (a new (race, driver) has no fitted intercept)."""
 
-    name = "pooled_fixed_effects"
-
-    def __init__(self) -> None:
+    def __init__(self, anchor_laps: int | None = None) -> None:
+        """anchor_laps=None: level from ALL history laps (the 6C/6D Baseline B). An integer n
+        anchors the level on the last n history laps only (persistence's level, B's trend)."""
         self.fit_: FixedFit | None = None
+        self.anchor_laps = anchor_laps
+        self.name = "pooled_fixed_effects" if anchor_laps is None else f"pooled_fixed_effects_recent{anchor_laps}"
 
     def params(self) -> dict[str, object]:
-        return {"fit": "pooled", "intercepts": "race:driver", "anchor": "history mean"}
+        return {"fit": "pooled", "intercepts": "race:driver",
+                "anchor": "history mean" if self.anchor_laps is None else f"last {self.anchor_laps} laps"}
 
     def fit(self, train: pd.DataFrame) -> None:
         self.fit_ = _pooled_fit(train)
@@ -90,7 +93,10 @@ class PooledFixedEffects:
         if self.fit_ is None:
             raise RuntimeError("fit() first")
         compound = str(history["compound"].iloc[0])
-        level = float(np.mean(history["lap_time_s"].to_numpy(dtype=float) - self._fixed(history, compound)))
+        h = history.sort_values("lap_number")
+        if self.anchor_laps is not None:
+            h = h.iloc[-self.anchor_laps:]
+        level = float(np.mean(h["lap_time_s"].to_numpy(dtype=float) - self._fixed(h, compound)))
         mean: FloatArray = (level + self._fixed(future, compound)).astype(np.float64)
         return Forecast(mean=mean)
 
