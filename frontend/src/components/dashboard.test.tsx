@@ -137,4 +137,13 @@ describe("demo mode", () => {
     expect(await screen.findByTestId("lap-gap")).toHaveTextContent("+0.488 s");
     expect(screen.getByText(/Demo data: real API output/)).toBeInTheDocument();
   });
+
+  it("shows the tyre section's qualifying view without errors (no backend, no toast)", async () => {
+    server.use(http.all("*", () => { throw new Error("demo mode must not call the API"); }));
+    await renderDashboard(`${SHARED}&demo=1`);
+    expect(await screen.findByTestId("tire-state-non-race")).toBeInTheDocument();
+    expect(await screen.findByTestId("stint-timeline")).toBeInTheDocument();
+    expect(screen.getByTestId("qualifying-tire-chart")).toHaveTextContent("Observed laps — not a prediction");
+    expect(useUiStore.getState().toasts).toEqual([]);
+  });
 });

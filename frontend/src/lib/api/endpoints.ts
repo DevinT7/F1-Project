@@ -30,7 +30,7 @@ export const DEMO_TARGET = { driver: "ALO", lap: "fastest" } as const;
 
 type DemoName =
   | "seasons" | "events_2024" | "session_2024-05-Q" | "drivers" | "laps"
-  | "fastest_laps" | "corners" | "comparison_VER_ALO";
+  | "fastest_laps" | "corners" | "comparison_VER_ALO" | "stints_2024-05-Q";
 
 const demoLoaders: Record<DemoName, () => Promise<{ default: unknown }>> = {
   seasons: () => import("@/fixtures/api/seasons.json"),
@@ -41,6 +41,7 @@ const demoLoaders: Record<DemoName, () => Promise<{ default: unknown }>> = {
   fastest_laps: () => import("@/fixtures/api/fastest_laps.json"),
   corners: () => import("@/fixtures/api/corners.json"),
   comparison_VER_ALO: () => import("@/fixtures/api/comparison_VER_ALO.json"),
+  "stints_2024-05-Q": () => import("@/fixtures/api/stints_2024-05-Q.json"),
 };
 
 async function demo<T>(name: DemoName): Promise<T> {
@@ -104,7 +105,7 @@ export function createApi(demoMode: boolean) {
         : apiGet("/api/v1/sessions/{session_key}/corners", { path: { session_key: key } }),
 
     stints: (key: string): Promise<StintsResponse> =>
-      demoMode ? demoOnly("tyre analysis needs the backend")
+      demoMode ? isDemoSession(key) ? demo("stints_2024-05-Q") : demoOnly("tyre analysis needs the backend")
         : apiGet("/api/v1/sessions/{session_key}/stints", { path: { session_key: key } }),
 
     tirePredict: (session: string, driver: string, lap: number, horizon = 25): Promise<TirePrediction> =>
