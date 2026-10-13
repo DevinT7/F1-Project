@@ -28,7 +28,7 @@ def to_schema(p: Prediction) -> TirePrediction:
     "/predict", response_model=TirePrediction, summary="Tyre forecast and pit window at a lap",
     description="Uses only laps ≤ `lap` (all drivers, for the 6A exclusion rules) and the driver's current stint. "
                 "Needs ≥ 5 clean laps in the stint, otherwise `status: insufficient_data` with a `reason` and no "
-                "predictions or window. The pit window is a heuristic (interval_crossing_v1): it ignores "
+                "predictions or window. The pit window is a heuristic (interval_crossing_v2): it ignores "
                 "undercut/overcut, traffic, track position, safety-car probability and tyre availability. "
                 "Any field that cannot be computed is null and explained in `warnings`.",
     responses={**error_responses(404, 422, 503),

@@ -4,6 +4,7 @@ No pickles: an artifact is data, never code, so loading one cannot execute anyth
 does not depend on statsmodels/patsy internals (the 6D pickle of Baseline B was 119 MB and
 could only be unpickled from inside a function).
 
+    kind "pooled_fixed_effects_recent"  Baseline B anchored on the last 3 laps (6E production)
     kind "pooled_fixed_effects"   Baseline B: stint level from its history, then
                                   β_fuel·fuel_proxy + β_age,c·tyre_age (+ γ_c·age²) + β_temp·track_temp
     kind "persistence"            mean of the last 3 history laps, flat
@@ -64,7 +65,11 @@ class FixedEffectsPoint:
     gamma: dict[str, float]
     beta_temp: float
     degradation_ci: dict[str, tuple[float, float]]   # per compound, from the fit (delta method)
-    kind: str = "pooled_fixed_effects"
+    anchor_laps: int | None = None                   # None: level from all history laps (6D Baseline B)
+
+    @property
+    def kind(self) -> str:
+        return "pooled_fixed_effects" if self.anchor_laps is None else "pooled_fixed_effects_recent"
 
     @property
     def fuel_coef_s_per_lap(self) -> float | None:
@@ -82,7 +87,10 @@ class FixedEffectsPoint:
 
     def point(self, history: pd.DataFrame, future: pd.DataFrame) -> FloatArray:
         compound = str(history["compound"].iloc[0])
-        level = float(np.mean(history["lap_time_s"].to_numpy(dtype=float) - self._fixed(history, compound)))
+        h = history.sort_values("lap_number")
+        if self.anchor_laps is not None:
+            h = h.iloc[-self.anchor_laps:]
+        level = float(np.mean(h["lap_time_s"].to_numpy(dtype=float) - self._fixed(h, compound)))
         return np.asarray(level + self._fixed(future, compound), dtype=np.float64)
 
     def degradation(self, compound: str, tyre_age: float) -> Degradation | None:
@@ -134,7 +142,8 @@ class ServedModel:
 def point_model_to_json(model: PointModel) -> dict[str, Any]:
     if isinstance(model, FixedEffectsPoint):
         return {"kind": model.kind, "beta_fuel": model.beta_fuel, "beta_age": model.beta_age, "gamma": model.gamma,
-                "beta_temp": model.beta_temp, "degradation_ci": {c: list(v) for c, v in model.degradation_ci.items()}}
+                "beta_temp": model.beta_temp, "degradation_ci": {c: list(v) for c, v in model.degradation_ci.items()},
+                "anchor_laps": model.anchor_laps}
     if isinstance(model, PersistencePoint):
         return {"kind": model.kind, "anchor_laps": ANCHOR_LAPS}
     raise TypeError(f"not a servable point model: {type(model).__name__}")
@@ -142,11 +151,12 @@ def point_model_to_json(model: PointModel) -> dict[str, Any]:
 
 def point_model_from_json(data: dict[str, Any]) -> PointModel:
     kind = data.get("kind")
-    if kind == "pooled_fixed_effects":
+    if kind in ("pooled_fixed_effects", "pooled_fixed_effects_recent"):
         return FixedEffectsPoint(
             beta_fuel=float(data["beta_fuel"]), beta_age={k: float(v) for k, v in data["beta_age"].items()},
             gamma={k: float(v) for k, v in data["gamma"].items()}, beta_temp=float(data["beta_temp"]),
-            degradation_ci={k: (float(v[0]), float(v[1])) for k, v in data["degradation_ci"].items()})
+            degradation_ci={k: (float(v[0]), float(v[1])) for k, v in data["degradation_ci"].items()},
+            anchor_laps=None if data.get("anchor_laps") is None else int(data["anchor_laps"]))
     if kind == "persistence":
         return PersistencePoint()
     raise ValueError(f"unknown servable model kind {kind!r}")

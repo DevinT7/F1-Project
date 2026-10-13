@@ -137,11 +137,11 @@ down:
 
 The test suite asserts p95 < 300 ms over 20 uncached requests.
 
-### Known issue (not from this phase)
+### Known issue (not from this phase): resolved in Phase 5
 
-`frontend/src/api.ts` fails `tsc` on `import.meta.env` because the project has no `vite-env.d.ts`.
-The error already exists on `main`. The usual fix is to add `src/vite-env.d.ts` containing
-`/// <reference types="vite/client" />`. That belongs to the frontend owner and isn't done here.
+`frontend/src/api.ts` failed `tsc` on `import.meta.env` because the Vite project had no
+`vite-env.d.ts`. Phase 5 moved the frontend to Next.js and removed that file. `npm run
+typecheck`, `lint` and `test` are clean as of the 2026-10-13 audit.
 
 ## Phase 5 — Frontend dashboard (P1, 2026-10-12)
 

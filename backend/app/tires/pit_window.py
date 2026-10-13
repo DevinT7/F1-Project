@@ -1,4 +1,4 @@
-"""Pit-window heuristic interval_crossing_v1 (Phase 6E). Pure functions, no I/O, no model.
+"""Pit-window heuristic interval_crossing_v2 (Phase 6E). Pure functions, no I/O, no model.
 
 Inputs are forecast curves for consecutive laps after the current lap, already on the scale
 the caller compares (fuel-adjusted when the model has a fuel term, raw otherwise; the caller
@@ -14,7 +14,10 @@ exist, and a later one can only be missing if the earlier ones exist or are miss
 that never crosses inside the horizon gives null, never an invented lap.
 
 Null window (with a reason) when the forecast is too uncertain to act on: the interval width
-at the end of the horizon exceeds 2·X, or the window is wider than MAX_WINDOW_LAPS.
+exceeds 2·X at the decision lap, or the window is wider than MAX_WINDOW_LAPS. v2 judges the width
+at the central crossing (the horizon end when there is none); v1 always judged it 25 laps out,
+which nulled 95% of real-race windows at X = 1 s although the crossing came much earlier
+(docs/tire_api.md). gate="horizon" reproduces v1.
 """
 from __future__ import annotations
 
@@ -26,7 +29,7 @@ from typing import Literal
 import numpy as np
 import numpy.typing as npt
 
-METHOD = "interval_crossing_v1"
+METHOD = "interval_crossing_v2"  # v2: the 2·X gate is judged at the crossing lap (v1: horizon end)
 DEFAULT_THRESHOLD_S = 1.0
 HORIZON_CAP_LAPS = 25
 MAX_WINDOW_LAPS = 10
@@ -43,9 +46,11 @@ ASSUMPTIONS: tuple[str, ...] = (
 )
 
 Confidence = Literal["high", "medium", "low"]
+Gate = Literal["central", "horizon"]
 NO_CROSSING = "no crossing within horizon"
 Curve = Sequence[float] | npt.NDArray[np.float64]
 TOO_UNCERTAIN = "forecast_uncertainty_too_high"
+ALREADY_PAST = "threshold already reached before the current lap"
 
 
 @dataclass(frozen=True)
@@ -115,6 +120,8 @@ def interval_crossing(
     final_lap: int,
     clean_laps: int,
     threshold_s: float = DEFAULT_THRESHOLD_S,
+    gate: Gate = "central",
+    current_pace_s: float | None = None,
 ) -> PitWindowResult:
     laps = [int(x) for x in laps]
     m, lo_a, hi_a = (np.asarray(v, dtype=float) for v in (mean, lo, hi))
@@ -138,13 +145,19 @@ def interval_crossing(
     if not laps:
         return result(None, "no laps left in the race")
     threshold = best_pace_s + threshold_s
-    if hi_a[-1] - lo_a[-1] > UNCERTAINTY_FACTOR * threshold_s:
-        return result(None, TOO_UNCERTAIN, (f"interval width {hi_a[-1] - lo_a[-1]:.2f} s at lap {laps[-1]} "
-                                           f"exceeds {UNCERTAINTY_FACTOR:g} × {threshold_s:g} s",))
     earliest, central, latest = (_first(laps, c, threshold) for c in (hi_a, m, lo_a))
+    # The uncertainty gate: interval width at the decision lap (gate="central": the central
+    # crossing, or the horizon end when the forecast never crosses) or always at the horizon end
+    # (gate="horizon", the v1 rule).
+    at = laps.index(central) if gate == "central" and central is not None else len(laps) - 1
+    if hi_a[at] - lo_a[at] > UNCERTAINTY_FACTOR * threshold_s:
+        return result(None, TOO_UNCERTAIN, (f"interval width {hi_a[at] - lo_a[at]:.2f} s at lap {laps[at]} "
+                                           f"exceeds {UNCERTAINTY_FACTOR:g} × {threshold_s:g} s",))
     width = latest - earliest if latest is not None and earliest is not None else None
     if width is not None and width > MAX_WINDOW_LAPS:
         return result(None, TOO_UNCERTAIN, (f"window {earliest}–{latest} is wider than {MAX_WINDOW_LAPS} laps",))
-    notes = (NO_CROSSING,) if latest is None else ()
+    notes: tuple[str, ...] = (NO_CROSSING,) if latest is None else ()
+    if current_pace_s is not None and current_pace_s >= threshold:
+        notes += (f"{ALREADY_PAST} (recent pace {current_pace_s - best_pace_s:+.2f} s vs best)",)
     window = PitWindow(earliest, central, latest, threshold, confidence(width, clean_laps), notes=notes)
     return result(window, None, notes)

@@ -2,14 +2,15 @@
 
     cd backend && python -m scripts.build_tire_registry [--production pooled_fixed_effects] [--allow-dirty]
 
-For each servable kind (Baseline B, persistence): split-conformal at α = 0.2 on the full 6A
+For each servable kind (Baseline B anchored on the last 3 laps, persistence, Baseline B): split-conformal at α = 0.2 on the full 6A
 dataset. The point model is fitted on the earliest 70% of races and the most recent 30% are
 the calibration races (as in 6D), with horizons up to 25 laps so every pit-window step has a
 calibrated quantile. Writes models/tires/<name>/<version>/{model.json, residuals.npz} and the
 registry with SHA-256 checksums, the dataset hash, git SHA and the 6D metrics summary.
 
-The 6D protocol shipped Baseline B; persistence is registered as a candidate (6D report
-recommendation, pending review). Switch with --production persistence.
+Production (6E fix, after the 6D review): Baseline B anchored on the last 3 laps, as accurate as
+persistence on the development races and the only one with a trend for the pit window. Persistence
+and the 6D Baseline B stay registered as candidates. Switch with --production persistence.
 """
 from __future__ import annotations
 
@@ -42,8 +43,18 @@ from scripts.run_eval import REPO, git
 ALPHA = 0.2
 HORIZONS = (5, 10, 25)
 REGISTRY = REPO / "models" / "registry.json"
-NAMES = {"pooled_fixed_effects": "baseline_b_conformal", "persistence": "persistence_conformal"}
-EVAL_NAMES = {"pooled_fixed_effects": "pooled_fixed_effects+conformal80", "persistence": "persistence+conformal80"}
+RECENT_ANCHOR_LAPS = 3
+NAMES = {"pooled_fixed_effects_recent": "baseline_b_recent_conformal", "persistence": "persistence_conformal",
+         "pooled_fixed_effects": "baseline_b_conformal"}
+EVAL_NAMES = {"pooled_fixed_effects_recent": f"pooled_fixed_effects_recent{RECENT_ANCHOR_LAPS}+conformal80",
+              "persistence": "persistence+conformal80", "pooled_fixed_effects": "pooled_fixed_effects+conformal80"}
+NOTES = {
+    "pooled_fixed_effects_recent": "6E: Baseline B trend anchored on the last 3 laps; development-race accuracy equal to "
+                                   "persistence (LORO h5 0.372 vs 0.369) plus fuel term, trend and degradation. Not "
+                                   "evaluated on the holdout (used once in 6D).",
+    "persistence": "most accurate on the 6D holdout; flat forecast, no degradation term",
+    "pooled_fixed_effects": "6D protocol fallback (level from all history laps); superseded in 6E",
+}
 
 
 def fixed_effects_point(model: PooledFixedEffects) -> FixedEffectsPoint:
@@ -57,19 +68,22 @@ def fixed_effects_point(model: PooledFixedEffects) -> FixedEffectsPoint:
         if est.ci_low is not None and est.ci_high is not None:
             ci[c] = (est.ci_low, est.ci_high)
     return FixedEffectsPoint(beta_fuel=fit.beta_fuel, beta_age=dict(fit.beta_age), gamma=dict(fit.gamma),
-                             beta_temp=_temp_coef(fit), degradation_ci=ci)
+                             beta_temp=_temp_coef(fit), degradation_ci=ci, anchor_laps=model.anchor_laps)
 
 
 def metrics_6d(kind: str) -> dict[str, Any]:
     """The 6D evaluation of the same configuration (holdout once; walk-forward on development races)."""
     out: dict[str, Any] = {}
     name = EVAL_NAMES[kind]
-    for stage, split in (("final", "holdout"), ("intervals", "walk_forward")):
+    for stage, split in (("final", "holdout"), ("intervals", "walk_forward"), ("intervals", "loro"),
+                         ("recent_anchor", "walk_forward"), ("recent_anchor", "loro")):
         files = sorted(glob.glob(str(REPO / "data" / "tires" / "eval" / f"6d_{stage}_*.pkl")))
         if not files:
             continue
         s = pickle.loads(Path(files[-1]).read_bytes()).summary  # our own evaluation output
         for h in (5, 10):
+            if f"{split}_h{h}_mae" in out:
+                continue
             row = s[(s["model"] == name) & (s["split"] == split) & (s["horizon"] == h)]
             if len(row):
                 r = row.iloc[0]
@@ -82,7 +96,7 @@ def metrics_6d(kind: str) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m scripts.build_tire_registry")
-    parser.add_argument("--production", choices=list(NAMES), default="pooled_fixed_effects")
+    parser.add_argument("--production", choices=list(NAMES), default="pooled_fixed_effects_recent")
     parser.add_argument("--data-dir", default=settings.data_dir)
     parser.add_argument("--allow-dirty", action="store_true")
     args = parser.parse_args(argv)
@@ -99,7 +113,9 @@ def main(argv: list[str] | None = None) -> int:
 
     entries: list[RegistryEntry] = []
     for kind, name in NAMES.items():
-        base = PooledFixedEffects() if kind == "pooled_fixed_effects" else PersistenceModel()
+        base: PooledFixedEffects | PersistenceModel = (
+            PersistenceModel() if kind == "persistence"
+            else PooledFixedEffects(anchor_laps=RECENT_ANCHOR_LAPS if kind == "pooled_fixed_effects_recent" else None))
         conformal = SplitConformal(base, alpha=ALPHA, horizons=HORIZONS)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -121,8 +137,7 @@ def main(argv: list[str] | None = None) -> int:
             calibration_residuals=f"{rel}/residuals.npz", calibration_sha256=sha256_file(out_dir / "residuals.npz"),
             dataset_hash=meta["hash"], git_sha=sha, trained_through=trained_through, trained_through_session=last,
             alpha=ALPHA, metrics=metrics_6d(kind),
-            notes=("6D protocol fallback (no model met the bar)" if kind == "pooled_fixed_effects"
-                   else "6D report recommendation: most accurate, 80% holdout coverage in band"),
+            notes=NOTES[kind],
         ))
         q = {s: round(float(np.quantile(r, 1 - ALPHA)), 3) for s, r in residuals.items() if s in (1, 5, 10, 25)}
         print(f"{name} [{entries[-1].status}] {version}: residual quantiles {q}", flush=True)

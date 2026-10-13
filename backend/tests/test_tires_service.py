@@ -186,3 +186,20 @@ def test_committed_registry_loads_and_verifies():
         m = reg.load(e)
         assert m.step_quantiles and all(math.isfinite(q) for q in m.step_quantiles.values())
         assert np.all(np.diff([m.step_quantiles[s] for s in sorted(m.step_quantiles)]) > -0.2)
+
+
+def test_recent_anchored_fixed_effects_takes_its_level_from_the_last_three_laps():
+    import pandas as pd
+
+    from tests.tire_service_fixtures import fixed_effects
+
+    full = fixed_effects()
+    recent = type(full)(**{**full.__dict__, "anchor_laps": 3})
+    hist = pd.DataFrame({"lap_number": range(1, 9), "compound": "HARD", "tyre_age": range(1, 9),
+                         "fuel_proxy": range(39, 31, -1), "track_temp_c": 40.0,
+                         "lap_time_s": [91.0, 91.0, 91.0, 91.0, 91.0, 92.0, 92.0, 92.0]})
+    fut = pd.DataFrame({"lap_number": [9], "compound": "HARD", "tyre_age": [9], "fuel_proxy": [31], "track_temp_c": 40.0})
+    step = 0.04 * 1 - 0.05 * 1  # one more lap of age, one less of fuel
+    assert recent.point(hist, fut)[0] == pytest.approx(92.0 + 2 * step)  # level = last 3 laps (centred on lap 7)
+    assert full.point(hist, fut)[0] < recent.point(hist, fut)[0]      # all-history level lags the jump
+    assert recent.kind == "pooled_fixed_effects_recent" and full.kind == "pooled_fixed_effects"

@@ -1,4 +1,4 @@
-"""Phase 6E — interval_crossing_v1 on hand-computed curves.
+"""Phase 6E — interval_crossing_v2 on hand-computed curves.
 
 Slopes and bands are multiples of 1/8 so every crossing is exact in binary floating point:
 current lap 10, best pace 90.0 s, X = 1.0 s ⇒ threshold 91.0 s; k = laps after the cut.
@@ -33,7 +33,7 @@ def test_a_linear_curve_crosses_exactly_at_the_known_lap():
     w = r.window
     assert w is not None and (w.earliest_lap, w.central_lap, w.latest_lap) == (14, 14, 14)
     assert w.confidence == "high" and w.threshold_s == 91.0 and r.remaining_competitive_laps == 4
-    assert w.method == "interval_crossing_v1" and "ignores undercut and overcut" in w.assumptions
+    assert w.method == "interval_crossing_v2" and "ignores undercut and overcut" in w.assumptions
 
 
 def test_b_wide_interval_gives_earliest_before_central_before_latest():
@@ -107,3 +107,26 @@ def test_best_pace_is_the_median_of_the_three_fastest():
     assert P.best_pace([91.0]) == 91.0
     with pytest.raises(ValueError):
         P.best_pace([])
+
+
+def test_uncertainty_gate_is_judged_at_the_decision_lap_by_default():
+    # m = 90 + 0.25k crosses at lap 14; the band grows ±(0.25 + 0.05k): 0.9 s wide at the crossing,
+    # 3.0 s wide at the 25-lap horizon. hi = 90.25 + 0.3k → k=3 (lap 13); lo = 89.75 + 0.2k → k=7 (lap 17).
+    k = np.asarray(LAPS) - CURRENT
+    m, half = curve(0.25), 0.25 + 0.05 * k
+    args = dict(best_pace_s=BEST, current_lap=CURRENT, final_lap=FINAL, clean_laps=12)
+    central = P.interval_crossing(LAPS, m, m - half, m + half, **args)
+    assert central.window is not None
+    assert (central.window.earliest_lap, central.window.central_lap, central.window.latest_lap) == (13, 14, 17)
+    horizon = P.interval_crossing(LAPS, m, m - half, m + half, gate="horizon", **args)  # the v1 rule
+    assert horizon.window is None and horizon.reason == P.TOO_UNCERTAIN
+
+
+def test_a_threshold_already_reached_is_said_not_hidden():
+    m = curve(0.0, 91.5)  # flat, already 1.5 s off best pace
+    r = P.interval_crossing(LAPS, m, m - 0.25, m + 0.25, best_pace_s=BEST, current_lap=CURRENT, final_lap=FINAL,
+                            clean_laps=12, current_pace_s=91.5)
+    assert r.window is not None and r.window.central_lap == CURRENT + 1
+    assert any(n.startswith(P.ALREADY_PAST) for n in r.window.notes)
+    fresh = run(curve(0.25), 0.0)  # current pace at best pace: no such note
+    assert fresh.window is not None and not any(n.startswith(P.ALREADY_PAST) for n in fresh.window.notes)

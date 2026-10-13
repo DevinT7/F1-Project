@@ -27,7 +27,7 @@ class PitWindow(_Model):
     threshold_pace_s: float = Field(description="best pace + X, on the pace basis below")
     best_pace_s: float = Field(description="median of the 3 fastest clean laps of the stint so far")
     pace_basis: Literal["fuel_adjusted_model_term", "raw"]
-    method: Literal["interval_crossing_v1"]
+    method: Literal["interval_crossing_v2"]
     confidence: Literal["high", "medium", "low"]
     assumptions: list[str]
     notes: list[str]

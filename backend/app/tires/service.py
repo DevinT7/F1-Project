@@ -42,6 +42,7 @@ class TireServiceConfig:
     min_clean_laps: int = 5
     threshold_s: float = pw.DEFAULT_THRESHOLD_S
     horizon_cap: int = pw.HORIZON_CAP_LAPS
+    pit_window_gate: pw.Gate = "central"   # where the 2·X uncertainty rule is judged (see pit_window.py)
     cache_size: int = 512
     session_cache_size: int = 8
 
@@ -213,9 +214,12 @@ class TireService:
         fut_fuel = future["fuel_proxy"].to_numpy(dtype=float)
         beta = fuel if fuel is not None and math.isfinite(fuel) else 0.0
         basis = "fuel_adjusted_model_term" if beta else "raw"
-        best = pw.best_pace((history["lap_time_s"].to_numpy(dtype=float) - beta * hist_fuel).tolist())
+        adjusted = history["lap_time_s"].to_numpy(dtype=float) - beta * hist_fuel
+        best = pw.best_pace(adjusted.tolist())
+        recent = float(np.mean(adjusted[-3:]))  # same basis and window as the persistence anchor
         res = pw.interval_crossing(laps, fc.mean - beta * fut_fuel, fc.lo - beta * fut_fuel, fc.hi - beta * fut_fuel,
-                                   best_pace_s=best, current_lap=lap, final_lap=total, clean_laps=clean, threshold_s=x)
+                                   best_pace_s=best, current_lap=lap, final_lap=total, clean_laps=clean, threshold_s=x,
+                                   gate=self.config.pit_window_gate, current_pace_s=recent)
         window: dict[str, Any] | None = None
         reason = None
         if res.window is None:
