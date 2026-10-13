@@ -8,7 +8,7 @@ checked once, at the end, on the held-out races.
   2  |mean bias| ≤ 0.05 s (LORO, h=5)
   3  walk-forward h=5 MAE ≤ persistence's
   4  lower LORO h=5 MAE than persistence in a majority of races (paired)
-  5  95% interval coverage within 90–97% (only for models that publish intervals)
+  5  95% interval coverage within 90–97%; 80% intervals within 72–88% (only models with intervals)
 """
 from __future__ import annotations
 
@@ -20,7 +20,13 @@ import pandas as pd
 MAE_IMPROVEMENT = 0.10
 BIAS_LIMIT_S = 0.05
 COVERAGE_RANGE = (0.90, 0.97)
+COVERAGE_80_RANGE = (0.72, 0.88)
 REFERENCE = "persistence"
+
+
+def coverage_range(model: str) -> tuple[float, float]:
+    """Nominal level from the name suffix ("+conformal80", "+quantile80"); 95% otherwise."""
+    return COVERAGE_80_RANGE if model.rsplit("+", 1)[-1].endswith("80") else COVERAGE_RANGE
 
 
 @dataclass(frozen=True)
@@ -69,10 +75,42 @@ def check(summary: pd.DataFrame, by_race: pd.DataFrame, horizon: int = 5) -> lis
             "2_bias_within_0.05": abs(float(loro["bias"])) <= BIAS_LIMIT_S,
             "3_walk_forward_not_worse": (float(wf["mae"]) <= float(ref_wf["mae"])) if wf is not None and ref_wf is not None else None,
             "4_wins_majority_of_races": won > len(common) / 2,
-            "5_interval_coverage_90_97": (COVERAGE_RANGE[0] <= cov <= COVERAGE_RANGE[1]) if cov is not None else None,
+            "5_interval_coverage_90_97": (coverage_range(model)[0] <= cov <= coverage_range(model)[1]) if cov is not None else None,
         }
         verdicts.append(Verdict(model, float(loro["mae"]), target, float(loro["bias"]),
                                 float(wf["mae"]) if wf is not None else None,
                                 float(ref_wf["mae"]) if ref_wf is not None else None,
                                 won, len(common), cov, checks))
+    return verdicts
+
+
+# ---------------------------------------------------------------- the final, absolute check
+HOLDOUT_MAE_S = 0.332          # ≥ 10% below persistence's 0.369 s (6C, LORO h=5, all 24 races)
+HOLDOUT_WF_REFERENCE_S = 0.390  # persistence walk-forward h=5 (6C)
+
+
+def check_holdout(summary: pd.DataFrame, by_race: pd.DataFrame, horizon: int = 5) -> list[Verdict]:
+    """The bar with its ABSOLUTE numbers, on the held-out races (split 'holdout'). Interval coverage
+    is judged by nominal level: 80% intervals within 72–88%, 95% intervals within 90–97%."""
+    races = by_race[(by_race["split"] == "holdout") & (by_race["horizon"] == horizon)]
+    ref_races = races[races["model"] == REFERENCE].set_index("session_key")["mae"]
+    verdicts = []
+    for model in sorted(set(summary["model"]) - {REFERENCE}):
+        row = _row(summary, model, "holdout", horizon)
+        if row is None:
+            continue
+        mine = races[races["model"] == model].set_index("session_key")["mae"]
+        common = mine.index.intersection(ref_races.index)
+        won = int((mine[common] < ref_races[common]).sum())
+        cov = float(row["coverage"]) if pd.notna(row.get("coverage")) else None
+        lo, hi = coverage_range(model)
+        checks: dict[str, bool | None] = {
+            "1_mae_10pct_below_persistence": float(row["mae"]) <= HOLDOUT_MAE_S,
+            "2_bias_within_0.05": abs(float(row["bias"])) <= BIAS_LIMIT_S,
+            "3_walk_forward_not_worse": float(row["mae"]) <= HOLDOUT_WF_REFERENCE_S,
+            "4_wins_majority_of_races": won > len(common) / 2,
+            "5_interval_coverage_90_97": (lo <= cov <= hi) if cov is not None else None,
+        }
+        verdicts.append(Verdict(model, float(row["mae"]), HOLDOUT_MAE_S, float(row["bias"]), float(row["mae"]),
+                                HOLDOUT_WF_REFERENCE_S, won, len(common), cov, checks))
     return verdicts

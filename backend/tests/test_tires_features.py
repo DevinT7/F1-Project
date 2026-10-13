@@ -137,3 +137,31 @@ def test_tree_forecasters_respect_the_information_boundary(name, identity):
     poked = stint.copy()
     poked.loc[poked.index[:k], "lap_time_s"] += 1.0
     assert not np.allclose(model.forecast(*E.forecast_inputs(poked, k, h)).mean, before)
+
+
+# ---------------------------------------------------------------- nested tuning
+def test_tuning_is_nested_inside_the_training_races(monkeypatch):
+    from app.tires import tuning as T
+
+    seen_groups: list[set[str]] = []
+    real = T.grouped_folds
+
+    def spy(groups, n_splits=5):
+        seen_groups.append(set(groups))
+        return real(groups, n_splits)
+
+    monkeypatch.setattr(T, "grouped_folds", spy)
+    fold = next(E.split_generator(FRAME, "loro"))
+    model = T.TunedForecaster("lightgbm", n_trials=3)
+    model.fit(fold.train)
+    assert seen_groups and all(fold.test_key not in g for g in seen_groups)
+    assert len(model.trials) == 3 and model.trials[0]["trial"] == 0
+    assert model.best == {k: v for k, v in min(model.trials, key=lambda t: t["inner_mae"]).items()
+                          if k not in ("trial", "inner_mae")}
+
+
+def test_search_configs_are_seeded_distinct_and_start_with_defaults():
+    from app.tires.tuning import sample_configs
+
+    a, b = sample_configs("xgboost", 12), sample_configs("xgboost", 12)
+    assert a == b and a[0] == {} and len({repr(sorted(c.items())) for c in a}) == 12

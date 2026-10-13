@@ -133,3 +133,37 @@ def test_monotone_model_never_predicts_a_decreasing_age_effect(kind):
     grid["age_gain"] = grid["tyre_age"] - float(stint["tyre_age"].iloc[-3:].mean())
     pred = model.predict_rows(grid)
     assert np.all(np.diff(pred) >= -1e-9)
+
+
+# ---------------------------------------------------------------- SHAP and artifacts
+def test_shap_groups_one_hot_columns_and_finds_the_wear_signal(tmp_path):
+    from app.tires.explain import explain
+
+    frame = races(6, 1100)
+    model = TreeForecaster("xgboost", identity=True)
+    model.fit(frame)
+    ex = explain(model, frame, n_rows=2000, figure_dir=tmp_path)
+    names = [f for f, _ in ex.ranking]
+    assert "circuit" in names and "driver" in names and not any("=" in f for f in names)
+    assert 0.0 <= ex.identity_share <= 1.0
+    # synthetic laps get slower with tyre age: the wear signal has a positive sign on age_gain or tyre_age
+    assert max(ex.sign_spearman.get("age_gain", -1), ex.sign_spearman.get("tyre_age", -1)) > 0
+    assert set(ex.figures) >= {"shap_summary.png", "shap_dependence_tyre_age.png"}
+    assert all((tmp_path / f).stat().st_size > 0 for f in ex.figures)
+
+
+def test_artifacts_round_trip_and_refuse_a_different_dataset(tmp_path):
+    from app.tires import artifacts
+
+    frame = races(4, 1200)
+    model = SplitConformal(TreeForecaster("lightgbm"), alpha=0.2, horizons=(5,))
+    model.fit(frame)
+    pkl, js = artifacts.save(model, tmp_path, dataset_hash="a" * 64, git_sha="b" * 40)
+    loaded, meta = artifacts.load(pkl, expected_hash="a" * 64)
+    assert meta["git_sha"] == "b" * 40 and meta["conformal_step_quantiles"] and meta["calibration_residuals"]
+    assert "tyre_age" in meta["numeric_features"]
+    key = "2020_04_R"
+    np.testing.assert_allclose(E.simulate_race(loaded, frame[frame["session_key"] == key], (5,))["hi"],
+                               E.simulate_race(model, frame[frame["session_key"] == key], (5,))["hi"])
+    with pytest.raises(ValueError):
+        artifacts.load(pkl, expected_hash="c" * 64)

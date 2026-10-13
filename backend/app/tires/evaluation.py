@@ -39,6 +39,7 @@ INTERVAL_ALPHA = 0.05  # benchmark intervals are 95%
 
 # Columns whose future values are unknown at the cut and how they are handled.
 MASKED = ("lap_time_s", "prev_lap_time_s")
+HOLDOUT_RACES = 3  # the last races by date; untouched until the final evaluation
 FROZEN = ("track_temp_c", "air_temp_c", "rainfall", "position")
 
 
@@ -64,15 +65,17 @@ def split_generator(frame: pd.DataFrame, kind: str, min_train: int = 8) -> Itera
         pairs = [(key, [k for k in order if k != key]) for key in order]
     elif kind == "walk_forward":
         pairs = [(key, order[:i]) for i, key in enumerate(order) if i >= min_train]
+    elif kind == "holdout":  # the final, single evaluation: each held-out race vs ALL development races
+        pairs = [(key, order[:-HOLDOUT_RACES]) for key in order[-HOLDOUT_RACES:]]
     else:
-        raise ValueError(f"unknown split kind {kind!r}; use 'loro' or 'walk_forward'")
+        raise ValueError(f"unknown split kind {kind!r}; use 'loro', 'walk_forward' or 'holdout'")
     keys = frame["session_key"].astype(str)
     for test_key, train_keys in pairs:
         yield Fold(kind=kind, test_key=test_key, train_keys=tuple(train_keys),  # type: ignore[arg-type]
                    train=frame[keys.isin(train_keys)], test=frame[keys == test_key])
 
 
-def split_holdout(frame: pd.DataFrame, n: int = 3) -> tuple[pd.DataFrame, pd.DataFrame]:
+def split_holdout(frame: pd.DataFrame, n: int = HOLDOUT_RACES) -> tuple[pd.DataFrame, pd.DataFrame]:
     """(development races, the last n races by date). The holdout is touched once, at the very end."""
     order = race_order(frame)
     held = set(order[-n:])

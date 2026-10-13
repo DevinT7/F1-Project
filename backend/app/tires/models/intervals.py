@@ -14,7 +14,7 @@ Both guarantee lo ≤ mean ≤ hi (quantile crossings are repaired).
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -70,7 +70,7 @@ class SplitConformal:
         proper, calibration = train[~keys.isin(cal_keys)], train[keys.isin(cal_keys)]
         self.base.fit(proper)
         recs = simulate_race_many(self.base, calibration, self.horizons)
-        self.residuals = {int(s): list((g["actual"] - g["pred"]).abs()) for s, g in recs.groupby("step")}
+        self.residuals = {int(cast(int, s)): list((g["actual"] - g["pred"]).abs()) for s, g in recs.groupby("step")}
         self.step_quantiles = {s: conformal_quantile(np.asarray(r), self.alpha) for s, r in self.residuals.items()}
 
     def forecast(self, history: pd.DataFrame, future: pd.DataFrame) -> Forecast:
