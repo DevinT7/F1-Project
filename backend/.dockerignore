@@ -1,0 +1,9 @@
+.venv/
+venv/
+**/__pycache__/
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+.fastf1_cache/
+.env
+*.pyc

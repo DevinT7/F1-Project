@@ -372,3 +372,41 @@ frontend fixtures for all of it are real API responses (`scripts/export_frontend
 3. Record here: first-try pass rate, post-retry pass rate, fallback rate, cost per report, and LLM-path p95 latency (target < 8 s).
 4. Then walk through `docs/demo_script.md` with the LLM on.
 
+
+## Phase 8 — Persistence, caching, auth, background jobs (P1, 2026-10-14)
+
+API key: **not needed** (all services run locally).
+
+| Acceptance criterion | Status | Evidence |
+|---|---|---|
+| Entire app runs via `docker compose up` with seeded sample data | ✅ | The stack is TimescaleDB, Redis, SeaweedFS (S3), seed, backend, RQ worker and frontend. The seed applies migrations 0001→0002, loads 2024 R5 Q + the synthetic race into Postgres, and publishes the three tyre models to S3 and `model_registry`. 15/15 end-to-end checks passed through the frontend proxy (below). |
+| Both repository implementations pass the same contract suite | ✅ | `tests/test_repository_contract.py`: 20 behaviour tests × {Parquet, Postgres}. |
+| Identical concurrent comparison requests compute once | ✅ | Unit: 16 threads, and 3 "workers" sharing Redis → 1 computation. Stack: 10 concurrent identical `POST /comparisons` → exactly one `meta.cached=false`. |
+| Unauthorized access to admin/engineer endpoints → 401/403 | ✅ | `tests/test_auth.py::test_role_enforcement`. Stack: ingest with no token → 401, as a user → 403, as admin → 202. Engineer with no token → 401. |
+| Migrations reversible and CI-tested | ✅ | `tests/test_db_migrations.py` runs up→down→up and checks schema.py against the migrations; the CI workflow also runs `alembic upgrade → downgrade base → upgrade`. |
+
+**Built**
+
+- **Storage.**
+  - `PostgresRepository` (SQLAlchemy 2.0 Core, Alembic) with a one-transaction replace (idempotent re-ingest) and `COPY` for telemetry.
+  - Telemetry lives in a TimescaleDB hypertable with compression.
+  - `scripts/migrate_parquet_to_postgres.py` migrated the real `data/` (25 sessions, ~20 M samples) in 9.5 min.
+  - A comparison takes 71 ms on Postgres vs 61 ms on Parquet.
+- **Cache.** `app/caching.py`: memory or Redis, with versioned keys `raceiq:v1:{kind}:…`, TTLs, invalidation on re-ingest, single-flight, and graceful degradation when Redis is down. Comparisons, FactSheets, engineer reports, schedules and conversations (`RedisConversationStore`) are shared by every worker.
+- **Jobs.**
+  - RQ executes; a lifecycle runner of our own handles progress, retries with backoff and permanent failures.
+  - `POST /sessions/{key}/ingest` → 202 + job, `GET /jobs/{id}`, and the frontend polls real progress.
+  - Training job: `POST /admin/models/train`.
+- **Object storage.** S3 via boto3 (SeaweedFS locally, since MinIO images are no longer pullable). `DbModelRegistry` reads artifacts by object key with SHA-256 verification.
+- **Auth.**
+  - argon2id, 15-min Bearer tokens, a single-use rotated refresh cookie with reuse detection, CSRF header + Origin check, roles.
+  - Saved comparisons under `/me/analyses`.
+  - Redis token-bucket rate limits returning 429 + `Retry-After`.
+  - Frontend: sign-in dialog, account menu, engineer sign-in prompt, admin-only ingest.
+- **Docs and CI.** `docs/security.md`, `docs/decisions.md` (storage, cache, RQ, object storage, auth), `.github/workflows/ci.yml` (service containers, migration round trip, mypy, OpenAPI check, tests, pip-audit, npm audit, Playwright), and `make up / down / migrate / seed / logs`.
+
+**Found and fixed on the way**
+
+- `requirements.txt` could never resolve on a fresh install: `pyarrow==26.0.0` conflicts with `mlflow 3.17`, which requires <26. The pins now match the tested environment (pyarrow 25.0.1, redis 8.1.0); the Docker build caught it.
+
+**Test totals:** backend 1116 passed (mypy strict, 107 files); frontend 144; Playwright 7. The engineer e2e signs in through the real dialog.

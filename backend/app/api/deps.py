@@ -9,6 +9,7 @@ from fastapi import Depends, Request
 
 from ..ai.llm_client import LLMClient, client_from_env
 from ..ai.testing import FAKES
+from ..ai.qa.conversation import get_conversation_store
 from ..caching import get_cache
 from ..jobs.runner import JobSystem
 from ..config import settings
@@ -113,7 +114,7 @@ def llm_enabled() -> bool:
 @lru_cache(maxsize=1)
 def _engineer_service() -> EngineerService:
     return EngineerService(_comparison_service(), _tire_service(), client_factory=lambda: get_llm_client(),
-                           llm_enabled=lambda: llm_enabled(), cache=get_cache())
+                           llm_enabled=lambda: llm_enabled(), cache=get_cache(), store=get_conversation_store())
 
 
 def get_engineer_service() -> EngineerService:

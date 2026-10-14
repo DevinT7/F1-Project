@@ -1,6 +1,6 @@
 # RaceIQ developer tasks. Windows without make: run the commands under each target directly.
 
-.PHONY: check test typecheck openapi openapi-check gen-types check-frontend e2e
+.PHONY: check test typecheck openapi openapi-check gen-types check-frontend e2e up down migrate logs seed
 
 # Everything CI runs (except e2e): backend tests + mypy, OpenAPI drift, frontend typecheck/lint/tests.
 check: test typecheck openapi-check check-frontend
@@ -30,3 +30,21 @@ check-frontend:
 # Frontend end-to-end smoke (Playwright; starts the backend on the fixture repo + a prod build).
 e2e:
 	cd frontend && npx playwright test
+
+# ---------------------------------------------------------------- Phase 8 local stack (docker-compose.yml)
+# Postgres + TimescaleDB, Redis, S3 (SeaweedFS), API, worker and frontend; seeded on first start.
+up:
+	docker compose up -d --build
+	@echo "RaceIQ: http://localhost:$${FRONTEND_PORT:-3000}  (API http://localhost:$${BACKEND_PORT:-8000}/docs)"
+
+down:
+	docker compose down
+
+migrate:
+	docker compose run --rm backend alembic upgrade head
+
+seed:
+	docker compose run --rm seed
+
+logs:
+	docker compose logs -f backend worker

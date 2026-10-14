@@ -66,3 +66,20 @@ curl -s http://localhost:8000/api/v1/engineer/facts/<factsheet_hash> | jq '.fact
 | AI text looks wrong | The text passed the validator. Fetch the facts by `factsheet_hash` and file the bullet as a validator corpus case (`backend/tests/ai/corpus/bad.jsonl`). Bump the prompt version if the prompt is changed. |
 | Provider outage, slow responses | Set `ENGINEER_LLM_ENABLED=false` and restart. Users get template summaries badged "Template summary". |
 | Cost spike | Check `tokens_total` and `cache_hit_ratio`; the kill switch stops all spend. Rate limits are a Phase 8 item (`deps.engineer_rate_limit` is a stub). |
+
+## Phase 8 stack (docker-compose.yml)
+
+| Task | Command |
+|---|---|
+| Start / rebuild | `make up` (or `docker compose up -d --build`); override ports with `FRONTEND_PORT` / `BACKEND_PORT` |
+| Stop | `make down` (keeps volumes); `docker compose down -v` wipes the database, S3 and the cache |
+| Migrations | `make migrate` (`alembic upgrade head` in the backend container) |
+| Re-seed / load all of `data/` | `make seed`; `SEED_FULL_DATA=1 make seed` also loads `./data` (~10 min) |
+| Worker logs | `make logs` (backend + worker) |
+| Make yourself admin | register the email in `RACEIQ_ADMIN_EMAILS` (default `admin@raceiq.local`) |
+| Retrain tyre models | `POST /api/v1/admin/models/train` as an admin, then poll the job |
+
+**Job failures.**
+
+- `GET /api/v1/jobs/{id}` shows the error and the attempts. Transient errors are retried 3 times (5 s / 20 s / 60 s); permanent ones fail at once.
+- RQ's own failed registry: `docker compose exec redis redis-cli LRANGE rq:failed:raceiq 0 -1` (it should stay empty; our runner records failures in `ingest_jobs`).

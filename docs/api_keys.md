@@ -14,7 +14,8 @@ Status as of 2026-10-13: **no key is configured.**
 | **7D LLM report generation** | **Yes, for the gate** | `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY` | live eval (≥ 30 reports: ≥ 95% valid within one retry, ≥ 80% first try), cost/latency numbers, human grading of 10 reports | ⏳ **placeholder: API key needed** |
 | **7E Follow-up Q&A** | **Yes, for the gate** | same `LLM_*` | live check (40 questions / 8 comparisons, ≥ 95% valid within one retry), review of ten LLM transcripts | ⏳ **placeholder: API key needed** |
 | 7F API, caching, frontend, observability | No for the build, the E2E safety test, kill switch, cache and metrics (fake LLMs + templates); **yes for the final live evaluation** | same `LLM_*` | final live evaluation (first-try / post-retry / fallback rates, cost per report), LLM-path p95 latency < 8 s, the LLM run of the demo script | code done; ⏳ **placeholder: API key needed** for the live items |
-| 8 and later | to be assessed when each phase spec arrives | | | |
+| 8 Persistence, cache, jobs, auth, object storage | **No** (local services: Postgres, Redis, SeaweedFS; credentials are dev defaults or your own `.env`) | — | — | done |
+| 9 and later | to be assessed when each phase spec arrives | | | |
 
 ## Where the key is needed (placeholders)
 

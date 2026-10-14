@@ -26,7 +26,7 @@ from ..ai.fallback import TEMPLATE_VERSION, build_template_report
 from ..ai.llm_client import LLMClient
 from ..ai.metrics import METRICS, Metrics
 from ..ai.prompts import PROMPT_VERSION
-from ..ai.qa.conversation import ConversationStore
+from ..ai.qa.conversation import ConversationStore, RedisConversationStore
 from ..ai.qa.engine import answer_question
 from ..ai.report_generator import generate_report
 from ..ai.schemas import FACTSHEET_VERSION, Bullet, FactSheet, Report
@@ -83,13 +83,13 @@ def _bullets(report: Report) -> list[Bullet]:
 class EngineerService:
     def __init__(self, comparisons: ComparisonService, tires: TireService, *,
                  client_factory: Callable[[], LLMClient | None], llm_enabled: Callable[[], bool],
-                 store: ConversationStore | None = None, metrics: Metrics = METRICS,
+                 store: ConversationStore | RedisConversationStore | None = None, metrics: Metrics = METRICS,
                  cache: Cache | None = None) -> None:
         self.comparisons = comparisons
         self.tires = tires
         self._client_factory = client_factory
         self._llm_enabled = llm_enabled
-        self.store = store or ConversationStore()
+        self.store: ConversationStore | RedisConversationStore = store or ConversationStore()
         self.metrics = metrics
         self.cache: Cache = cache if cache is not None else MemoryCache(max_entries=512)
 

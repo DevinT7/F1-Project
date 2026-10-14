@@ -3,7 +3,7 @@ uvicorn[standard]==0.34.0
 httpx==0.28.1
 pydantic==2.10.4
 pydantic-settings==2.7.1
-redis==5.2.1
+redis==8.1.0
 numpy==2.2.1
 pandas==2.2.3
 python-dotenv==1.0.1
@@ -11,7 +11,7 @@ python-dotenv==1.0.1
 # Secondary data source (heavier; used by analysis + ml)
 fastf1==3.5.3
 # Phase 1 ingestion store (Parquet) + CLI progress logging
-pyarrow==26.0.0
+pyarrow==25.0.1  # mlflow 3.17 requires pyarrow<26
 structlog==26.1.0
 # Phase 2 delta engine: Savitzky-Golay smoothing (already pulled in by scikit-learn)
 scipy==1.17.1

@@ -1,30 +1,115 @@
-# Dev stack (Person 1). Phase 5 will add Postgres/TimescaleDB for stored analyses.
+# RaceIQ local stack (Phase 8): PostgreSQL + TimescaleDB, Redis, S3 (SeaweedFS), API, worker, frontend.
+#
+#   make up        build and start everything (seeded with sample data on first run)
+#   make down      stop (data volumes are kept; `docker compose down -v` wipes them)
+#   make migrate   apply database migrations
+#
+# Open http://localhost:${FRONTEND_PORT:-3000}. Register admin@raceiq.local (RACEIQ_ADMIN_EMAILS) to
+# get the admin role (ingest / training). Secrets below are DEV-ONLY defaults; override them in .env.
+# LLM_* (optional, docs/api_keys.md) are passed through from your environment / .env.
+
+x-backend-env: &backend-env
+  APP_ENV: ${APP_ENV:-development}
+  RACEIQ_STORAGE_BACKEND: postgres
+  RACEIQ_DATABASE_URL: postgresql://raceiq:${POSTGRES_PASSWORD:-raceiq-dev}@db:5432/raceiq
+  RACEIQ_REDIS_URL: redis://redis:6379/0
+  RACEIQ_JOB_QUEUE: rq
+  RACEIQ_OBJECT_STORE: s3
+  RACEIQ_S3_BUCKET: raceiq
+  RACEIQ_S3_ENDPOINT_URL: http://s3:8333
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-raceiq-dev}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-raceiq-dev-secret}
+  RACEIQ_MODEL_REGISTRY: db
+  RACEIQ_TIRE_REGISTRY_PATH: /models/registry.json
+  RACEIQ_DATA_DIR: /data
+  RACEIQ_FASTF1_CACHE_DIR: /cache/fastf1
+  RACEIQ_JWT_SECRET: ${RACEIQ_JWT_SECRET:-dev-only-jwt-secret-change-me-0123456789abcdef}
+  RACEIQ_ADMIN_EMAILS: ${RACEIQ_ADMIN_EMAILS:-admin@raceiq.local}
+  FRONTEND_ORIGIN: http://localhost:${FRONTEND_PORT:-3000}
+  ENGINEER_LLM_ENABLED: ${ENGINEER_LLM_ENABLED:-true}
+  LLM_PROVIDER: ${LLM_PROVIDER:-}
+  LLM_MODEL: ${LLM_MODEL:-}
+  LLM_API_KEY: ${LLM_API_KEY:-}
+  LLM_BASE_URL: ${LLM_BASE_URL:-}
+
 services:
-  backend:
-    build: ./backend
-    ports: ["8000:8000"]
+  db:
+    image: timescale/timescaledb:2.17.2-pg16
     environment:
-      - APP_ENV=${APP_ENV:-development}
-      - APP_VERSION=${APP_VERSION:-0.1.0}
-      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:5173}
-      - REDIS_URL=redis://redis:6379/0
-      - CACHE_DEFAULT_TTL_SECONDS=${CACHE_DEFAULT_TTL_SECONDS:-3600}
-      - FASTF1_CACHE_DIR=/app/.fastf1_cache
-      - FASTF1_ENABLED=${FASTF1_ENABLED:-true}
-      - FASTF1_DEFAULT_TIMEOUT_SECONDS=${FASTF1_DEFAULT_TIMEOUT_SECONDS:-90}
-      - TELEMETRY_CACHE_TTL_SECONDS=${TELEMETRY_CACHE_TTL_SECONDS:-3600}
-      - RACEIQ_REDIS_URL=redis://redis:6379/0
-      - RACEIQ_FASTF1_CACHE_DIR=/app/.fastf1_cache
-      - RACEIQ_ENABLE_FASTF1=${FASTF1_ENABLED:-true}
-      - RACEIQ_CORS_ORIGINS=${FRONTEND_ORIGIN:-http://localhost:5173}
-    volumes:
-      - ./backend:/app
-      - fastf1_cache:/app/.fastf1_cache
-    depends_on: [redis]
+      POSTGRES_USER: raceiq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-raceiq-dev}
+      POSTGRES_DB: raceiq
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raceiq -d raceiq"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
 
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  s3:
+    # S3-compatible object storage (MinIO no longer publishes pullable images; docs/decisions.md)
+    image: chrislusf/seaweedfs:4.48
+    command: ["server", "-dir=/data", "-s3", "-s3.port=8333"]
+    volumes: [s3data:/data]
+
+  seed:
+    build: ./backend
+    command: ["python", "-m", "scripts.seed"]
+    environment:
+      <<: *backend-env
+      SEED_FULL_DATA: ${SEED_FULL_DATA:-0}
+      RACEIQ_SEED_DATA_DIR: /seed-data
+    volumes:
+      - ./models:/models:ro
+      - ./data:/seed-data:ro
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      s3: {condition: service_started}
+    restart: "no"
+
+  backend:
+    build: ./backend
+    environment: *backend-env
+    ports: ["${BACKEND_PORT:-8000}:8000"]
+    volumes:
+      - ./models:/models:ro
+      - fastf1_cache:/cache
+    depends_on:
+      seed: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  worker:
+    build: ./backend
+    command: ["python", "-m", "app.jobs.worker"]
+    environment: *backend-env
+    volumes:
+      - ./models:/models
+      - fastf1_cache:/cache
+    depends_on:
+      seed: {condition: service_completed_successfully}
+
+  frontend:
+    build:
+      context: ./frontend
+      args: {BACKEND_URL: "http://backend:8000"}
+    ports: ["${FRONTEND_PORT:-3000}:3000"]
+    depends_on:
+      backend: {condition: service_healthy}
 
 volumes:
+  pgdata:
+  s3data:
   fastf1_cache:

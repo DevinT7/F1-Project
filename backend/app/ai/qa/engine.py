@@ -23,7 +23,7 @@ from ..llm_client import LLMClient, LLMResult, Message
 from ..report_generator import parse_strict
 from ..schemas import Bullet, FactSheet
 from ..validator import ValidationResult, Violation
-from .conversation import DEFAULT_STORE, ConversationStore, Turn
+from .conversation import DEFAULT_STORE, ConversationStore, RedisConversationStore, Turn
 from .intents import Entities, Intent, Route, route
 from .prompts import PROMPT_VERSION, retry_message, system_prompt, user_message
 from .schemas import AnswerDraft, FollowUp, QAAnswer, draft_json_schema
@@ -65,7 +65,8 @@ def _check(res: LLMResult, fs: FactSheet, slc: Slice) -> tuple[AnswerDraft | Non
 
 
 def answer_question(fs: FactSheet, question: str, *, client: LLMClient | None = None,
-                    store: ConversationStore = DEFAULT_STORE, conversation_id: str | None = None) -> QAResult:
+                    store: ConversationStore | RedisConversationStore = DEFAULT_STORE,
+                    conversation_id: str | None = None) -> QAResult:
     cid = conversation_id or store.new_id()
     conv = store.get(cid, fs.factsheet_hash)
     r = route(question, fs, previous=conv.previous(), client=client)
