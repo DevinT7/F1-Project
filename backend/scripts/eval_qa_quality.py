@@ -21,7 +21,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.ai.llm_client import LLMClient, ProviderClient, ProviderConfig
+from app.ai.llm_client import LLMClient
 from app.ai.qa.conversation import ConversationStore
 from app.ai.qa.engine import QAResult, answer_question
 from app.ai.qa.prompts import PROMPT_VERSION
@@ -31,7 +31,7 @@ from app.storage.repository import ParquetRepository
 from app.tires.registry import ModelRegistry
 from app.tires.service import TireService
 
-from scripts.eval_report_quality import REPO, build, choose_cases, load_env_file
+from scripts.eval_report_quality import build, choose_cases, live_client, load_env_file, record_progress
 
 OUTCOMES = ("llm_first_try", "llm_after_retry", "template_validation", "template_provider_error", "template_no_llm",
             "refused", "clarification")
@@ -108,7 +108,11 @@ def main(argv: list[str] | None = None) -> int:
         print("refusing to run the live check in CI", file=sys.stderr)
         return 2
     load_env_file()
-    client: LLMClient | None = ProviderClient(ProviderConfig.from_env()) if args.live else None
+    client: LLMClient | None = None
+    if args.live:
+        client = live_client()
+        if client is None:
+            return 3
     repo = ParquetRepository(args.data_dir)
     tires = TireService(repo, ModelRegistry(settings.tire_registry_path))
     rng = random.Random(args.seed)
@@ -170,9 +174,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"\nTranscripts: {out / 'transcripts.md'}\n")
     print("\n".join(convs))
     if args.live and not args.no_progress:
-        progress = REPO / "docs" / "progress.md"
-        progress.write_text(progress.read_text(encoding="utf-8").rstrip() + "\n\n### 7E live Q&A check\n\n"
-                            + "\n".join(summary) + f"\n\nTranscripts: `{out / 'transcripts.md'}`.\n", encoding="utf-8")
+        record_progress("7E live Q&A check", "\n".join(summary) + f"\n\nTranscripts: `{out / 'transcripts.md'}`.")
     return 0
 
 

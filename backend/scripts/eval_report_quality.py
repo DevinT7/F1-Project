@@ -29,7 +29,7 @@ from typing import Any
 
 from app.ai.factsheet import FactSheetContext, build_factsheet
 from app.ai.fallback import build_template_report
-from app.ai.llm_client import FakeLLMClient, LLMClient, ProviderClient, ProviderConfig
+from app.ai.llm_client import API_KEY_NEEDED, FakeLLMClient, LLMClient, LLMConfigError, ProviderClient, ProviderConfig
 from app.ai.prompts import PROMPT_VERSION
 from app.ai.report_generator import GenerationResult, Outcome, generate_report
 from app.ai.schemas import REPORT_SECTIONS, FactSheet
@@ -44,6 +44,31 @@ from app.tires.service import TireService
 
 REPO = Path(__file__).resolve().parents[2]
 RUBRIC = "accuracy, clarity, usefulness, tone (1–5 each)"
+
+
+def record_progress(title: str, body: str) -> None:
+    """Write a live result into docs/progress.md: replaces the section of that title (its
+    "API KEY NEEDED" placeholder, or a previous run), else appends it."""
+    progress = REPO / "docs" / "progress.md"
+    text = progress.read_text(encoding="utf-8")
+    head = f"### {title}"
+    block = f"{head}\n\n{body.rstrip()}\n"
+    start = text.find(head)
+    if start < 0:
+        progress.write_text(text.rstrip() + "\n\n" + block, encoding="utf-8")
+        return
+    nxt = [i for i in (text.find("\n### ", start + 1), text.find("\n## ", start + 1)) if i >= 0]
+    rest = text[min(nxt) + 1:] if nxt else ""
+    progress.write_text(text[:start] + block + ("\n" + rest if rest else ""), encoding="utf-8")
+
+
+def live_client() -> LLMClient | None:
+    """The real provider, or None after printing what to set (no traceback, never a key)."""
+    try:
+        return ProviderClient(ProviderConfig.from_env())
+    except LLMConfigError as exc:
+        print(f"\n{API_KEY_NEEDED}\n  ({exc})\n", file=sys.stderr)
+        return None
 
 
 @dataclass
@@ -143,7 +168,11 @@ def main(argv: list[str] | None = None) -> int:
     rng = random.Random(args.seed)
     repo = ParquetRepository(args.data_dir)
     tires = TireService(repo, ModelRegistry(settings.tire_registry_path))
-    client: LLMClient | None = ProviderClient(ProviderConfig.from_env()) if args.live else None
+    client: LLMClient | None = None
+    if args.live:
+        client = live_client()
+        if client is None:
+            return 3
 
     rows: list[tuple[Case, FactSheet, GenerationResult]] = []
     for case in choose_cases(repo, args.n, rng):
@@ -202,9 +231,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"\nTen sampled reports (side by side with their facts): {out / 'samples.md'}")
     print(samples_md)
     if args.live and not args.no_progress:
-        progress = REPO / "docs" / "progress.md"
-        progress.write_text(progress.read_text(encoding="utf-8").rstrip() + "\n\n### 7D live evaluation\n\n"
-                            + "\n".join(summary) + f"\n\nSamples for grading: `{out / 'samples.md'}`.\n", encoding="utf-8")
+        record_progress("7D live evaluation", "\n".join(summary) + f"\n\nSamples for grading: `{out / 'samples.md'}`.")
     return 0
 
 

@@ -242,3 +242,22 @@ class ProviderClient:
             raise err from (None if cause is None else LLMError(type(cause).__name__))
 
 
+
+
+# ---------------------------------------------------------------- the no-key path
+API_KEY_NEEDED = ("API KEY NEEDED: set LLM_PROVIDER (anthropic | openai), LLM_MODEL and LLM_API_KEY in backend/.env "
+                  "(template: backend/.env.example; which phases need it: docs/api_keys.md)")
+_warned_unconfigured = False
+
+
+def client_from_env(env: dict[str, str] | None = None) -> ProviderClient | None:
+    """The provider client, or None when no LLM is configured (the app then serves templates).
+    Logs `ai.llm_unconfigured` once per process with what to set; never the key itself."""
+    global _warned_unconfigured
+    try:
+        return ProviderClient(ProviderConfig.from_env(env))
+    except LLMConfigError as exc:
+        if not _warned_unconfigured:
+            log.warning("ai.llm_unconfigured", reason=str(exc), action=API_KEY_NEEDED)
+            _warned_unconfigured = True
+        return None

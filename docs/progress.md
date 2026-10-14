@@ -338,3 +338,11 @@ frontend fixtures for all of it are real API responses (`scripts/export_frontend
 - **FactSheet:** gained `conditions.traffic_data`, so the goldens and report snapshots were regenerated.
 - **Shared loop:** the 7D retry/fallback loop moved to `app/ai/guarded.py`, used by both reports and Q&A.
 
+
+### 7D live evaluation
+
+⏳ **PLACEHOLDER — API KEY NEEDED.** Set `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` in `backend/.env`, then run `python -m scripts.eval_report_quality --live`. The script replaces this section with the outcome table (target ≥ 95% valid within one retry, ≥ 80% first try), violations by rule, latency, tokens and cost. Then grade the ten sampled reports (accuracy ≥ 4/5).
+
+### 7E live Q&A check
+
+⏳ **PLACEHOLDER — API KEY NEEDED.** Same three variables, then run `python -m scripts.eval_qa_quality --live`: 40 questions over 8 comparisons (target ≥ 95% valid within one retry). The script replaces this section with the results. Then review the ten LLM transcripts, adversarial ones included.
