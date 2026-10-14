@@ -1,0 +1,7 @@
+# Model artifacts are checksummed (SHA-256 in models/registry.json and the model_registry table):
+# git must store and check them out byte-for-byte, never converting line endings. Before this,
+# Windows checkouts (CRLF) and the repository (LF) differed and non-Windows clones failed the
+# checksum, so the tyre endpoint refused to serve models (found by CI, Phase 8).
+models/tires/** -text
+*.npz binary
+*.parquet binary
