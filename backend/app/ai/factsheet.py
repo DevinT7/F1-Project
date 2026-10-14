@@ -430,6 +430,11 @@ def build_factsheet(findings: FindingsReport, tire: Any | None, context: FactShe
                "aligned delta agrees with official sector times within 0.03 s")
     b.category("quality.alignment", "findings", "/quality/alignment", "how the laps were aligned", allowed=["xy", "distance"])
     b.category("data_quality.notes", "findings", "/notes", "qualifications of the whole comparison")
+    # no source carries traffic: its availability is itself a fact, so answers can cite it (7E)
+    b.categorical.append(CategoricalFact(
+        id="conditions.traffic_data", value="unavailable", allowed=["available", "unavailable"],
+        meaning="whether traffic (cars ahead) data exists for these laps; when unavailable, no time loss can be "
+                "attributed to traffic", source="derived:no traffic data source"))
 
     # tyre
     if tdoc is None:

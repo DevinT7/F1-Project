@@ -318,3 +318,23 @@ frontend fixtures for all of it are real API responses (`scripts/export_frontend
   both directions and proves it catches drift.
 - **`make check`:** a new target (`test typecheck openapi-check check-frontend`). This machine has
   no `make`, so its commands were run directly and are green.
+
+## Phase 7 — AI race engineer (P1, 2026-10-13)
+
+| Part | Status |
+|---|---|
+| 7A FactSheet | done; human gate approved |
+| 7B validator | done; corpus, mutation test, 10 human-gate cases |
+| 7C template report | done; review changes applied |
+| 7D LLM report generation | code done (client, prompts `report-v1`, generator, eval script). **Live eval pending: no LLM API key is configured yet** |
+| 7E follow-up Q&A | code done (router, slices, evidence, templates, conversation, prompt `qa-v1`). **Live 40-question check pending: same key** |
+
+### 7E offline results
+
+- **Router:** 106 phrasings, 100% routed (≥ 90% required).
+- **Templates:** every intent's template answer validates on all 5 fixtures.
+- **Offline run:** the 40-question run over 8 stored comparisons (7 races, the one qualifying session in `data/`) routed every question to its intended intent.
+- **Transcripts:** the ten transcripts are in `data/ai_eval/qa_<timestamp>/transcripts.md`.
+- **FactSheet:** gained `conditions.traffic_data`, so the goldens and report snapshots were regenerated.
+- **Shared loop:** the 7D retry/fallback loop moved to `app/ai/guarded.py`, used by both reports and Q&A.
+

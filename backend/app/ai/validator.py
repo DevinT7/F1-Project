@@ -269,7 +269,12 @@ class _Grounded:
     facts: list[Fact]                # cited facts the token's digits and unit match
 
 
-def _check_bullet(bullet: Bullet, section: str, i: int, idx: _Index) -> tuple[list[Violation], int]:
+def _check_bullet(bullet: Bullet, section: str, i: int | None, idx: _Index, *, max_words: int = MAX_BULLET_WORDS,
+                  hedge_required: bool = False,
+                  allowed_keywords: re.Pattern[str] | None = None) -> tuple[list[Violation], int]:
+    """All per-bullet rules. Q&A answers (7E) reuse it with their own word limit, the strategy hedge
+    for pit questions, and `allowed_keywords`: 'unsupported' cause words the evidence does list
+    (tyre age, compound) for a cause-attribution answer."""
     out: list[Violation] = []
     text = bullet.text
 
@@ -389,7 +394,8 @@ def _check_bullet(bullet: Bullet, section: str, i: int, idx: _Index) -> tuple[li
             hedged = bool(HEDGE_BEFORE.search(" ".join(before.split()[-5:]))) or "contributing factor" in m.group(0).lower()
             lo, hi = _sentence_bounds(text, m.start())
             clause = text[lo:hi]
-            bad_kw = lex.unsupported_causes.search(clause)
+            bad_kw = next((k for k in lex.unsupported_causes.finditer(clause)
+                           if not (allowed_keywords and allowed_keywords.fullmatch(k.group(0)))), None)
             groups: dict[str, frozenset[str]] = {}
             taken: list[tuple[int, int]] = []
             for name, pat, gcauses in lex.cause_groups:      # specific groups consume their span first
@@ -418,13 +424,13 @@ def _check_bullet(bullet: Bullet, section: str, i: int, idx: _Index) -> tuple[li
         m = pattern.search(text)
         if m:
             v("out_of_scope", f"{category}: '{m.group(0)}'")
-    if section == "strategy_options" and not STRATEGY_HEDGE.search(text):
+    if (section == "strategy_options" or hedge_required) and not STRATEGY_HEDGE.search(text):
         v("out_of_scope", "hedge: strategy options must use hedged language (e.g. 'indicative', 'may')")
 
     # 9 style (per bullet)
     words = len(text.split())
-    if words > MAX_BULLET_WORDS:
-        v("style", f"{words} words (max {MAX_BULLET_WORDS})")
+    if words > max_words:
+        v("style", f"{words} words (max {max_words})")
     return out, words
 
 
@@ -450,7 +456,7 @@ def validate_report(report: Report | dict[str, Any], fs: FactSheet) -> Validatio
         violations.append(Violation("schema", None, None, "factsheet_hash does not match the FactSheet"))
     total = 0
     for section, i, bullet in _bullets(report):
-        found, words = _check_bullet(bullet, section, i if section != "headline" else None, idx)  # type: ignore[arg-type]
+        found, words = _check_bullet(bullet, section, i if section != "headline" else None, idx)
         violations += found
         total += words
     if total > MAX_REPORT_WORDS:

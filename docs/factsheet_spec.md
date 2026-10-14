@@ -25,7 +25,7 @@ fs = build_factsheet(findings_report, tire_prediction_or_None, FactSheetContext(
 | `segments` | per corner, straight and sector: `label`, `fact_prefix`, `kind`, `time_loss_s`, `confidence`, `causes`, `rank` |
 | `rankings` | `largest_losses` and `largest_gains` as fact prefixes, biggest first |
 | `tire` | the tyre contract values keyed without `tire.`, plus `status`; or `{"status": "unavailable", "reason": "…"}` |
-| `conditions` | `track_temp_c`, `air_temp_c` (target lap), `track_status_flags` (both laps), `traffic_data: "unavailable"` |
+| `conditions` | `track_temp_c`, `air_temp_c` (target lap), `track_status_flags` (both laps), `traffic_data: "unavailable"` also the categorical fact `conditions.traffic_data` (`"unavailable"`, allowed `available` / `unavailable`; added in 7E so answers can cite it) |
 | `data_quality` | `low_confidence_segments` (prefixes), `notes` (whole-comparison, context and per-segment notes, the latter prefixed `T6: …`) |
 | `facts` | every numeric value, see below |
 | `categorical_facts` | every non-numeric value: labels, codes, causes, confidences, flags, notes |

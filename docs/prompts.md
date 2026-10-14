@@ -1,6 +1,6 @@
 # Report prompts (Phase 7D)
 
-Code: `backend/app/ai/prompts.py`, `llm_client.py`, `report_generator.py`. Current version: **`report-v1`**.
+Code: `backend/app/ai/prompts.py`, `llm_client.py`, `report_generator.py`, `guarded.py` (the retry/fallback loop, shared with 7E Q&A). Current version: **`report-v1`**.
 
 ## Versioning
 

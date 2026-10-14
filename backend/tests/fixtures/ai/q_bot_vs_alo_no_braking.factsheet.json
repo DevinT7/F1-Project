@@ -11127,6 +11127,16 @@
    "source": "findings:/notes"
   },
   {
+   "id": "conditions.traffic_data",
+   "value": "unavailable",
+   "allowed": [
+    "available",
+    "unavailable"
+   ],
+   "meaning": "whether traffic (cars ahead) data exists for these laps; when unavailable, no time loss can be attributed to traffic",
+   "source": "derived:no traffic data source"
+  },
+  {
    "id": "tire.session_key",
    "value": null,
    "allowed": null,
@@ -11239,5 +11249,5 @@
    "source": "derived:tyre forecast unavailable (tyre forecasting requires a race session; this is qualifying)"
   }
  ],
- "factsheet_hash": "5276616a4dfb69d8cbcc16d16e56b6cc923bca82c7147e3957ac63ae536e6915"
+ "factsheet_hash": "87e1d3d0ae0f8d7d8dc2220fabc1fe2840f9f6797757407395c252a2da8b6bd6"
 }

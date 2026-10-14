@@ -12758,6 +12758,16 @@
    "source": "findings:/notes"
   },
   {
+   "id": "conditions.traffic_data",
+   "value": "unavailable",
+   "allowed": [
+    "available",
+    "unavailable"
+   ],
+   "meaning": "whether traffic (cars ahead) data exists for these laps; when unavailable, no time loss can be attributed to traffic",
+   "source": "derived:no traffic data source"
+  },
+  {
    "id": "tire.session_key",
    "value": "2024-14-R",
    "allowed": null,
@@ -12870,5 +12880,5 @@
    "source": "tire:/model/trained_through"
   }
  ],
- "factsheet_hash": "6a809069b655cb7cc2bcbe1f584b2881f596aa76043bf4dc2a795eed027024d6"
+ "factsheet_hash": "9c0edeb645f708eb6dc0d74b7994dbf4610b4df09db0bf2b5fc4cc3b70d6cc49"
 }

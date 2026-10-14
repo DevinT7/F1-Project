@@ -12275,6 +12275,16 @@
    "source": "findings:/notes"
   },
   {
+   "id": "conditions.traffic_data",
+   "value": "unavailable",
+   "allowed": [
+    "available",
+    "unavailable"
+   ],
+   "meaning": "whether traffic (cars ahead) data exists for these laps; when unavailable, no time loss can be attributed to traffic",
+   "source": "derived:no traffic data source"
+  },
+  {
    "id": "tire.session_key",
    "value": null,
    "allowed": null,
@@ -12387,5 +12397,5 @@
    "source": "derived:tyre forecast unavailable (tyre model unavailable (HTTP 503: model_not_available))"
   }
  ],
- "factsheet_hash": "72841b3249d3f89123b65d0a97339a0fb23abcf0e9ca27c6f93977bbc69bbb53"
+ "factsheet_hash": "99a2e921f2cd1e0bc65789e6faf57a5673b8ca1d59387b2d5a7c7fc3f360a9f8"
 }
