@@ -49,3 +49,6 @@ alembic==1.20.0
 psycopg[binary]==3.3.6
 # tests: throwaway Postgres/Redis containers when Docker runs (CI uses service containers)
 testcontainers[postgres,redis]==4.15.0
+# Phase 8 background jobs (RQ on Redis) and object storage (S3-compatible: SeaweedFS locally, S3/MinIO in prod)
+rq==2.12.0
+boto3==1.43.113

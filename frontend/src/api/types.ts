@@ -349,6 +349,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Background job status
+         * @description Status and progress of an ingest or training job (poll every 1–2 s until `succeeded` or `failed`). Failed attempts are retried with backoff up to `max_attempts` unless the error is permanent (e.g. the session does not exist).
+         */
+        get: operations["get_job_api_v1_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ready": {
         parameters: {
             query?: never;
@@ -499,8 +519,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Ingest a session
-         * @description Downloads (FastF1) and stores the session. **Synchronous** in this version: a cold qualifying session takes ~2.5 min, a race ~7.5 min. Idempotent: an already-stored session returns `skipped: true` immediately unless `force=true`.
+         * Ingest a session (job)
+         * @description Queues a background job that downloads (FastF1) and stores the session, and returns it (202, `Location: /api/v1/jobs/{id}`). Poll `GET /api/v1/jobs/{id}` for progress: a cold qualifying session takes ~2.5 min, a race ~7.5 min. Idempotent: an already-stored session finishes at once with `result.skipped: true` unless `force=true`; a second request while one is running returns the running job.
          */
         post: operations["ingest_session_api_v1_sessions__session_key__ingest_post"];
         delete?: never;
@@ -1286,23 +1306,63 @@ export interface components {
              */
             lap_time_s: number | null;
         };
-        /** IngestResponse */
-        IngestResponse: {
-            /** Elapsed S */
-            elapsed_s: number;
-            /** Laps */
-            laps: number;
-            /** Session Key */
-            session_key: string;
+        /** JobResponse */
+        JobResponse: {
+            /** Attempts */
+            attempts: number;
             /**
-             * Skipped
-             * @description true when the session was already stored (no network calls made)
+             * Created At
+             * Format: date-time
              */
-            skipped: boolean;
-            /** Telemetry Laps */
-            telemetry_laps: number;
-            /** Valid Laps */
-            valid_laps: number;
+            created_at: string;
+            /**
+             * Error
+             * @description exception type and message of the last failed attempt
+             */
+            error: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "ingest" | "train";
+            /** Max Attempts */
+            max_attempts: number;
+            /** Message */
+            message: string | null;
+            /**
+             * Progress
+             * @description 0–1; never goes backwards
+             */
+            progress: number;
+            /**
+             * Result
+             * @description ingest: session_key, skipped, laps, telemetry_laps, valid_laps, elapsed_s
+             */
+            result: Record<string, never> | null;
+            /**
+             * Run After
+             * @description when a retry is scheduled
+             */
+            run_after: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "retrying" | "succeeded" | "failed";
+            /** Status Url */
+            status_url: string;
+            /**
+             * Target
+             * @description session key (ingest) or model name (train)
+             */
+            target: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** LapChannels */
         LapChannels: {
@@ -2835,6 +2895,64 @@ export interface operations {
             };
         };
     };
+    get_job_api_v1_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobResponse"];
+                };
+            };
+            /** @description Session not ingested / not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unexpected error (body carries the request id) */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     ready_api_v1_ready_get: {
         parameters: {
             query?: never;
@@ -3221,30 +3339,12 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IngestResponse"];
-                };
-            };
-            /** @description Session not ingested / not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
-            /** @description Request body too large */
-            413: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
+                    "application/json": components["schemas"]["JobResponse"];
                 };
             };
             /** @description Invalid request, invalid lap, or comparison failed an integrity check */

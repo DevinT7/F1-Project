@@ -33,6 +33,9 @@ class SessionSource(Protocol):
     def event_schedule(self, year: int) -> pd.DataFrame: ...
 
 
+Progress = Callable[[float, str], None]
+
+
 @dataclass(frozen=True)
 class IngestResult:
     key: str
@@ -56,7 +59,10 @@ class IngestionService:
         self.source = source
         self.clock = clock
 
-    def ingest(self, year: int, round_number: int, session: str, *, force: bool = False) -> IngestResult:
+    def ingest(self, year: int, round_number: int, session: str, *, force: bool = False,
+               progress: Progress | None = None) -> IngestResult:
+        """`progress(fraction, message)` is called as the ingest advances (background jobs, 8)."""
+        report = progress or (lambda fraction, message: None)
         started = time.monotonic()
         key = N.make_session_key(year, round_number, session)
         if not force and self.repo.has_session(key):
@@ -64,9 +70,13 @@ class IngestionService:
             return IngestResult(key=key, skipped=True, elapsed_s=time.monotonic() - started)
 
         log.info("ingest.load", key=key)
+        report(0.02, "loading the session from FastF1")
         raw = self.source.load_session(year, round_number, session)
-        bundle = self.build_bundle(raw)
+        report(0.10, "session loaded; reading telemetry")
+        bundle = self.build_bundle(raw, progress=report)
+        report(0.92, "saving")
         self.repo.save_session(bundle)
+        report(1.0, "stored")
         result = IngestResult(
             key=key,
             skipped=False,
@@ -79,7 +89,7 @@ class IngestionService:
                  valid_laps=result.valid_laps, elapsed_s=round(result.elapsed_s, 1))
         return result
 
-    def build_bundle(self, raw: RawSession) -> SessionBundle:
+    def build_bundle(self, raw: RawSession, progress: Progress | None = None) -> SessionBundle:
         info = N.normalize_session_info(raw.info)
         weather = N.normalize_weather(raw.weather)
         # First pass only to learn which laps exist; validity needs telemetry stats.
@@ -100,6 +110,8 @@ class IngestionService:
                 stats[(driver, lap_number)] = N.telemetry_stats(frame)
             if i % 50 == 0 or i == len(lap_keys):
                 log.info("ingest.telemetry", key=info.key, done=i, total=len(lap_keys))
+                if progress is not None:
+                    progress(0.10 + 0.80 * i / len(lap_keys), f"telemetry {i}/{len(lap_keys)} laps")
         if missing:
             log.warning("ingest.telemetry_missing_total", key=info.key, missing=missing, total=len(lap_keys))
 

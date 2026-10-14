@@ -27,7 +27,7 @@ from . import pit_window as pw
 from .config import WET_COMPOUNDS, ExclusionConfig
 from .dataset import build_rows, laps_frame
 from .exclusions import apply_rules
-from .registry import ModelRegistry, RegistryEntry
+from .registry import ModelRegistry, Registry, RegistryEntry
 from .serving import ServedModel
 
 MAX_HORIZON = pw.HORIZON_CAP_LAPS
@@ -113,7 +113,7 @@ class _Session:
 
 
 class TireService:
-    def __init__(self, repo: SessionRepository, registry: ModelRegistry,
+    def __init__(self, repo: SessionRepository, registry: Registry,
                  config: TireServiceConfig = TireServiceConfig()) -> None:
         self.repo, self.registry, self.config = repo, registry, config
         self._cache: OrderedDict[tuple[Any, ...], Prediction] = OrderedDict()

@@ -9,7 +9,7 @@ export type SeasonsResponse = Schemas["SeasonsResponse"];
 export type EventsResponse = Schemas["EventsResponse"];
 export type EventInfo = Schemas["EventInfo"];
 export type SessionStatus = Schemas["SessionStatusResponse"];
-export type IngestResponse = Schemas["IngestResponse"];
+export type JobResponse = Schemas["JobResponse"];
 export type DriversResponse = Schemas["DriversResponse"];
 export type DriverInfo = Schemas["DriverInfo"];
 export type LapsResponse = Schemas["LapsResponse"];
@@ -92,10 +92,14 @@ export function createApi(demoMode: boolean) {
           : Promise.resolve({ session_key: key, status: "not_ingested", info: null, manifest: null })
         : apiGet("/api/v1/sessions/{session_key}", { path: { session_key: key } }),
 
-    ingest: (key: string, force = false): Promise<IngestResponse> =>
+    /** Starts a background ingest job (202); poll it with `job`. */
+    ingest: (key: string, force = false): Promise<JobResponse> =>
       demoMode
         ? demoOnly("ingestion needs the backend")
         : apiPost("/api/v1/sessions/{session_key}/ingest", { path: { session_key: key }, query: { force } }),
+
+    job: (id: string): Promise<JobResponse> =>
+      demoMode ? demoOnly("jobs need the backend") : apiGet("/api/v1/jobs/{job_id}", { path: { job_id: id } }),
 
     drivers: (key: string): Promise<DriversResponse> =>
       demoMode ? isDemoSession(key) ? demo("drivers") : demoOnly(key)

@@ -53,13 +53,34 @@ export function useSessionStatus(key: string | null) {
   });
 }
 
+/** Start an ingest job (POST → 202); the job is then polled with useJob. */
 export function useIngest(key: string | null) {
   const { api, demo } = useApi();
-  const client = useQueryClient();
   return useMutation({
     mutationKey: ["ingest", demo, key],
     mutationFn: () => api.ingest(key!),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.session(demo, key ?? "") }),
+  });
+}
+
+const JOB_DONE = new Set(["succeeded", "failed"]);
+export const JOB_POLL_MS = 1500;
+
+/** Poll a background job until it succeeds or fails; on success the session status is refreshed. */
+export function useJob(id: string | null, sessionKey: string | null) {
+  const { api, demo } = useApi();
+  const client = useQueryClient();
+  return useQuery({
+    queryKey: ["job", demo, id],
+    queryFn: async () => {
+      const job = await api.job(id!);
+      if (job.status === "succeeded" && sessionKey) {
+        await client.invalidateQueries({ queryKey: keys.session(demo, sessionKey) });
+      }
+      return job;
+    },
+    enabled: id !== null,
+    refetchInterval: (query) => (query.state.data && JOB_DONE.has(query.state.data.status) ? false : JOB_POLL_MS),
+    retry: 2,
   });
 }
 

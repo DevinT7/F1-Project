@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { useEvents, useIngest, useSeasons, useSessionStatus } from "@/lib/queries";
+import { useEvents, useIngest, useJob, useSeasons, useSessionStatus } from "@/lib/queries";
 import { parseSessionKey, sessionKey } from "@/lib/url-state";
 
 /** Season → Grand Prix → Session. Emits a session key; triggers ingest when needed. */
@@ -78,14 +78,10 @@ export function SessionSelector({ value, onChange, demo }: { value: string | nul
 function SessionStatusBar({ sessionKey: key, demo }: { sessionKey: string; demo: boolean }) {
   const status = useSessionStatus(key);
   const ingest = useIngest(key);
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (!ingest.isPending) return;
-    const started = Date.now();
-    const timer = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 1000);
-    return () => { clearInterval(timer); setElapsed(0); };
-  }, [ingest.isPending]);
+  const jobId = ingest.data?.id ?? null;
+  const job = useJob(jobId, key);
+  const running = ingest.isPending || (jobId !== null && (!job.data || !["succeeded", "failed"].includes(job.data.status)));
+  const failed = job.data?.status === "failed" ? job.data : null;
 
   if (status.isPending) return <p className="mt-2 text-sm text-muted" role="status">Checking {key}…</p>;
   if (status.isError) return null; // the toast already explains it
@@ -98,25 +94,36 @@ function SessionStatusBar({ sessionKey: key, demo }: { sessionKey: string; demo:
       </p>
     );
   }
+  const pct = Math.round((job.data?.progress ?? 0) * 100);
   return (
     <div className="card mt-3 flex flex-wrap items-center gap-4 p-4" aria-live="polite">
       <div className="min-w-[240px] flex-1">
         <div className="text-sm font-semibold">
           {s.status === "stale_schema" ? `${key} was stored by an older version.` : `${key} isn't stored yet.`}
         </div>
-        {ingest.isPending ? (
+        {running ? (
           <>
-            <p className="text-sm text-muted" role="status">Ingesting from FastF1… {elapsed}s (qualifying ≈ 2.5 min, race ≈ 7.5 min)</p>
-            <div className="progress-bar mt-2 h-1.5 overflow-hidden rounded bg-line" role="progressbar" aria-label="Ingest progress" aria-busy="true"><i /></div>
+            <p className="text-sm text-muted" role="status" data-testid="ingest-progress">
+              Ingesting from FastF1… {pct}%{job.data?.message ? ` · ${job.data.message}` : ""}
+              {job.data?.status === "retrying" ? " (retrying after an error)" : ""}
+            </p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded bg-line" role="progressbar" aria-label="Ingest progress"
+              aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+              <i className="block h-full bg-[var(--accent)] transition-[width]" style={{ width: `${pct}%` }} />
+            </div>
           </>
+        ) : failed ? (
+          <p className="text-sm text-red-ink" role="alert" data-testid="ingest-failed">
+            Ingest failed after {failed.attempts} attempt{failed.attempts === 1 ? "" : "s"}: {failed.error}
+          </p>
         ) : (
           <p className="text-sm text-muted">
             {demo ? "Demo mode can't ingest; switch to live data with the backend running." : "Download and store it once; later visits load instantly."}
           </p>
         )}
       </div>
-      <button type="button" className="btn" disabled={demo || ingest.isPending} onClick={() => ingest.mutate()}>
-        {ingest.isPending ? "Ingesting…" : s.status === "stale_schema" ? "Re-ingest" : "Ingest session"}
+      <button type="button" className="btn" disabled={demo || running} onClick={() => ingest.mutate()}>
+        {running ? "Ingesting…" : failed ? "Try again" : s.status === "stale_schema" ? "Re-ingest" : "Ingest session"}
       </button>
     </div>
   );

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, Response
 
-from ..deps import get_session_service
-from ..schemas.common import SESSION_KEY_DESCRIPTION, SESSION_KEY_PATTERN, error_responses
+from ...jobs.runner import JobSystem
+from ..deps import get_job_system, get_session_service
+from ..schemas.common import SESSION_KEY_DESCRIPTION, SESSION_KEY_PATTERN, canonical_session_key, error_responses
+from ..schemas.jobs import JobResponse
 from ..schemas.sessions import (
     CornersResponse,
     DriversResponse,
     FastestLapsResponse,
-    IngestResponse,
     LapsResponse,
     SessionStatusResponse,
     StintsResponse,
@@ -29,17 +30,23 @@ def get_session(session_key: str = SessionKey,
     return service.status(session_key)
 
 
-@router.post("/{session_key}/ingest", response_model=IngestResponse, summary="Ingest a session",
-             description="Downloads (FastF1) and stores the session. **Synchronous** in this version: a cold "
-                         "qualifying session takes ~2.5 min, a race ~7.5 min. Idempotent: an already-stored "
-                         "session returns `skipped: true` immediately unless `force=true`.",
-             responses=error_responses(404, 413, 422))
+@router.post("/{session_key}/ingest", response_model=JobResponse, status_code=202, summary="Ingest a session (job)",
+             description="Queues a background job that downloads (FastF1) and stores the session, and returns it "
+                         "(202, `Location: /api/v1/jobs/{id}`). Poll `GET /api/v1/jobs/{id}` for progress: a cold "
+                         "qualifying session takes ~2.5 min, a race ~7.5 min. Idempotent: an already-stored session "
+                         "finishes at once with `result.skipped: true` unless `force=true`; a second request while "
+                         "one is running returns the running job.",
+             responses=error_responses(422))
 def ingest_session(
+    response: Response,
     session_key: str = SessionKey,
     force: bool = Query(False, description="re-ingest even if already stored"),
-    service: SessionQueryService = Depends(get_session_service),
-) -> IngestResponse:
-    return service.ingest(session_key, force=force)
+    jobs: JobSystem = Depends(get_job_system),
+) -> JobResponse:
+    job = jobs.submit("ingest", canonical_session_key(session_key), {"force": force})
+    job = jobs.store.get(job.id) or job                # an inline queue may have finished it already
+    response.headers["Location"] = f"/api/v1/jobs/{job.id}"
+    return JobResponse.of(job)
 
 
 @router.get("/{session_key}/drivers", response_model=DriversResponse, summary="Drivers in a session",

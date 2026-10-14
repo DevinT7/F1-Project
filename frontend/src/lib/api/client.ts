@@ -18,7 +18,9 @@ export type PostPath = Extract<HasMethod<"post">, `/api/v1/${string}`>;
 type Params<O> = O extends { parameters: infer P } ? P : never;
 type PathParams<O> = Params<O> extends { path: infer X } ? X : undefined;
 type QueryParams<O> = Params<O> extends { query?: infer Q } ? Q : undefined;
-type Ok<O> = O extends { responses: { 200: infer R } } ? JsonOf<R> : never;
+// 200, or 202 for endpoints that start a background job (POST .../ingest)
+type Ok<O> = O extends { responses: { 200: infer R } } ? JsonOf<R>
+  : O extends { responses: { 202: infer R } } ? JsonOf<R> : never;
 type Body<O> = O extends { requestBody: { content: { "application/json": infer B } } } ? B : undefined;
 
 export type GetResponse<P extends GetPath> = Ok<Op<P, "get">>;

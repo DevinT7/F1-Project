@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     # --- Phase 8 storage: "parquet" (files under data_dir) or "postgres" (database_url) ---
     storage_backend: str = "parquet"
     database_url: str | None = None
+    # background jobs: "rq" (Redis + the worker container) or "thread" (in the API process)
+    job_queue: str = "rq"
+    # object storage for model artifacts / datasets: "local" (models/) or "s3" (MinIO / S3)
+    object_store: str = "local"
+    s3_bucket: str | None = None
+    s3_endpoint_url: str | None = None
+    s3_region: str | None = None
+    # tyre model registry: "file" (models/registry.json) or "db" (model_registry table → object keys)
+    model_registry: str = "file"
 
     # --- App cache (in-memory dev default; point at Redis in prod) ---
     cache_ttl_seconds: int = 60 * 60  # historical data is immutable, cache hard

@@ -150,23 +150,8 @@ async def test_session_status_not_ingested_and_bad_key(client):
     _assert_error(await client.get("/api/v1/sessions/not-a-key"), 422, "validation_error")
 
 
-async def test_ingest_then_skip(client, source, tmp_path):
-    app.dependency_overrides[deps.get_repository] = lambda: ParquetRepository(tmp_path)
-    first = (await client.post("/api/v1/sessions/2024-05-Q/ingest")).json()
-    assert first["skipped"] is False and first["laps"] == 3 and first["session_key"] == KEY
-    second = (await client.post("/api/v1/sessions/2024-05-Q/ingest")).json()
-    assert second["skipped"] is True and source.load_session.call_count == 1
-    forced = (await client.post("/api/v1/sessions/2024-05-Q/ingest?force=true")).json()
-    assert forced["skipped"] is False and source.load_session.call_count == 2
-    assert (await client.get("/api/v1/sessions/2024-05-Q")).json()["status"] == "ready"
-
-
-async def test_ingest_unknown_session_is_404(client, source, tmp_path):
-    from app.ingestion.errors import SessionNotFoundError
-
-    app.dependency_overrides[deps.get_repository] = lambda: ParquetRepository(tmp_path)
-    source.load_session.side_effect = SessionNotFoundError("FastF1 could not load 2024 round 99 Q")
-    _assert_error(await client.post("/api/v1/sessions/2024-99-Q/ingest"), 404, "session_not_found")
+# Ingest is a background job since Phase 8: POST → 202 + job, GET /jobs/{id}. Covered in tests/test_jobs.py
+# (ingest then skip, force, a session that does not exist, polling).
 
 
 async def test_drivers(client):
@@ -360,7 +345,8 @@ def test_openapi_documents_every_v1_route():
     v1 = {(m.upper(), p) for p, item in doc["paths"].items() if p.startswith("/api/v1") for m in item}
     # 11 from Phase 4 + GET /sessions/{key}/stints (6A) + GET /tires/predict, /tires/models (6E)
     # + POST /engineer/report, /engineer/ask, GET /engineer/facts/{hash} (7F; /engineer/metrics is admin, undocumented)
-    assert len(v1) == 17
+    # + GET /jobs/{id} (8)
+    assert len(v1) == 18
     for path, item in doc["paths"].items():
         if path.startswith("/api/v1"):
             for op in item.values():

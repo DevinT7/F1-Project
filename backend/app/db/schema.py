@@ -211,6 +211,10 @@ ingest_jobs = Table(
     Column("message", Text),
     Column("error", Text),
     Column("attempts", Integer, nullable=False, server_default=text("0")),
+    Column("max_attempts", Integer, nullable=False, server_default=text("3")),     # 0002
+    Column("run_after", DateTime(timezone=True)),                                   # 0002: retry backoff
+    Column("params", JSONB, nullable=False, server_default=text("'{}'::jsonb")),     # 0002
+    Column("result", JSONB),                                                        # 0002
     Column("created_by", UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")),
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=NOW),
     Column("updated_at", DateTime(timezone=True), nullable=False, server_default=NOW),

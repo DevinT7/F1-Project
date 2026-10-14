@@ -311,3 +311,30 @@ Full contract: `docs/tire_api.md`.
 - **Single flight.** `SET NX` lock with a TTL. Waiters poll for the value; a failed leader releases the lock and one waiter takes over; nobody waits forever. Tested: 16 concurrent identical requests and three "workers" sharing Redis each compute once.
 - **Redis unavailable** → logged, and requests compute uncached (never fail because of the cache).
 - **Engineer report fallbacks** are still never cached under the LLM key (`ttl_for` → 0).
+
+## Phase 8 — Background jobs: RQ (P1, 2026-10-14)
+
+- **RQ, not Arq or Celery.** Ingestion (FastF1) and training are synchronous, CPU- and IO-heavy Python. RQ runs plain sync functions with no event loop, needs only Redis (already there for the cache), and has delayed jobs (`enqueue_in`) for retry backoff. Celery is more machinery than two job kinds need.
+- **The lifecycle is ours, not the queue's** (`app/jobs/runner.py`). RQ only executes `run_job(id)`; status, progress, attempts, retries and errors live in `ingest_jobs` (Postgres) or in memory, so `GET /jobs/{id}` works the same with any queue. Retries:
+  - up to 3 attempts, with backoff 5 s → 20 s → 60 s;
+  - permanent errors (a session that does not exist, invalid input) fail at once;
+  - stored errors are the type and message only;
+  - a second submit for an active target returns the running job.
+- **Queues.**
+  - `RQQueue` (Redis + the `worker` container, `python -m app.jobs.worker`; Linux/macOS, since RQ forks);
+  - `ThreadQueue` (no Redis: jobs run in the API process, local dev only);
+  - `InlineQueue` (tests).
+
+  A real RQ round trip on Redis is tested with `SimpleWorker` + `TimerDeathPenalty`, so it also runs on Windows.
+- **API.** `POST /sessions/{key}/ingest` → **202** + job (`Location: /api/v1/jobs/{id}`). The frontend polls every 1.5 s and shows real progress (percent and stage, e.g. "telemetry 200/500 laps"), a retry note, and the error with a "Try again" button.
+- **Migration 0002** adds `params`, `result`, `max_attempts` and `run_after` to `ingest_jobs`, which also tests the migration chain (up/down across two revisions).
+
+## Phase 8 — Object storage and the database model registry (P1, 2026-10-14)
+
+- **`app/objectstore.py`.** `LocalObjectStore` (a directory, the default) and `S3ObjectStore` (boto3; any S3-compatible service). Keys are validated (no `..`, absolute paths, backslashes); every put returns the SHA-256.
+- **Local S3 server: SeaweedFS** (`chrislusf/seaweedfs:4.48`, S3 gateway on :8333), not MinIO. MinIO no longer publishes pullable community images (Docker Hub: "pull access denied"; quay.io: 401), so docker-compose and the tests use SeaweedFS. The code is plain S3, so MinIO, AWS S3 or R2 work unchanged (`RACEIQ_S3_ENDPOINT_URL`).
+- **`DbModelRegistry`.** `model_registry` rows (name, version, kind, status, `object_key`, `sha256`, metadata) with artifacts in object storage. It shares checksum-verified loading with the file registry. Retired versions are never served, and promoting a version to production demotes the previous one in the same transaction. Tested: same predictions as the file registry, tampered or missing artifacts refused.
+- **Publishing and training.**
+  - `scripts/publish_models.py` publishes the existing `models/registry.json` idempotently.
+  - The training job (kind `train`, admin only) rebuilds the models with the 6E builder and publishes them.
+  - `RACEIQ_MODEL_REGISTRY=file|db` (default `file`, so a checkout works with no services).

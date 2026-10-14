@@ -10,11 +10,12 @@ from fastapi import Depends, Request
 from ..ai.llm_client import LLMClient, client_from_env
 from ..ai.testing import FAKES
 from ..caching import get_cache
+from ..jobs.runner import JobSystem
 from ..config import settings
 from ..ingestion.fastf1_client import FastF1Client
 from ..ingestion.service import SessionSource
 from ..storage.repository import ParquetRepository, SessionRepository
-from ..tires.registry import ModelRegistry
+from ..tires.registry import DbModelRegistry, ModelRegistry, Registry
 from ..tires.service import TireService
 from .engineer_service import EngineerService
 from .services import ComparisonService, SessionQueryService
@@ -64,7 +65,19 @@ def get_comparison_service() -> ComparisonService:
 
 @lru_cache(maxsize=1)
 def _tire_service() -> TireService:
-    return TireService(get_repository(), ModelRegistry(settings.tire_registry_path))
+    return TireService(get_repository(), get_model_registry())
+
+
+def get_model_registry() -> Registry:
+    """RACEIQ_MODEL_REGISTRY=file (models/registry.json, the default) or db (model_registry table →
+    object storage). Both verify artifact checksums before serving."""
+    if settings.model_registry == "db":
+        if not settings.database_url:
+            raise RuntimeError("RACEIQ_MODEL_REGISTRY=db needs RACEIQ_DATABASE_URL")
+        from ..db.engine import make_engine
+        from ..objectstore import get_object_store
+        return DbModelRegistry(make_engine(settings.database_url), get_object_store())
+    return ModelRegistry(settings.tire_registry_path)
 
 
 def get_tire_service() -> TireService:
@@ -112,3 +125,10 @@ def _engineer_service() -> EngineerService:
 def get_engineer_service() -> EngineerService:
     """One instance per process: its report cache, FactSheet store and conversations live in memory."""
     return _engineer_service()
+
+
+# ---------------------------------------------------------------- Phase 8 background jobs
+def get_job_system() -> JobSystem:
+    """RQ + the worker when Redis is configured, else a thread pool in this process (app/jobs/system.py)."""
+    from ..jobs.system import get_job_system as system
+    return system()
