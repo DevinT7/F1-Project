@@ -252,7 +252,7 @@ async def test_comparison_cache_is_bounded():
     svc.compare(ComparisonRequest.model_validate(_compare_body()))
     svc.compare(ComparisonRequest.model_validate(_compare_body(tgt="PER")))
     svc.compare(ComparisonRequest.model_validate(_compare_body()))
-    assert (svc.hits, svc.misses, len(svc._cache)) == (0, 3, 1)
+    assert (svc.hits, svc.misses, len(svc.cache._data)) == (0, 3, 1)  # type: ignore[attr-defined]
 
 
 async def test_comparison_gzip(client):

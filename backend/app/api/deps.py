@@ -9,6 +9,7 @@ from fastapi import Depends, Request
 
 from ..ai.llm_client import LLMClient, client_from_env
 from ..ai.testing import FAKES
+from ..caching import get_cache
 from ..config import settings
 from ..ingestion.fastf1_client import FastF1Client
 from ..ingestion.service import SessionSource
@@ -48,12 +49,12 @@ def get_session_service(
     repo: SessionRepository = Depends(get_repository),
     source_factory: Callable[[], SessionSource] = Depends(get_source_factory),
 ) -> SessionQueryService:
-    return SessionQueryService(repo, source_factory)
+    return SessionQueryService(repo, source_factory, cache=get_cache())
 
 
 @lru_cache(maxsize=1)
 def _comparison_service() -> ComparisonService:
-    return ComparisonService(get_repository())
+    return ComparisonService(get_repository(), cache=get_cache())
 
 
 def get_comparison_service() -> ComparisonService:
@@ -105,7 +106,7 @@ def llm_enabled() -> bool:
 @lru_cache(maxsize=1)
 def _engineer_service() -> EngineerService:
     return EngineerService(_comparison_service(), _tire_service(), client_factory=lambda: get_llm_client(),
-                           llm_enabled=lambda: llm_enabled())
+                           llm_enabled=lambda: llm_enabled(), cache=get_cache())
 
 
 def get_engineer_service() -> EngineerService:

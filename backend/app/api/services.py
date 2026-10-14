@@ -24,9 +24,11 @@ from ..ingestion.errors import (
     PayloadTooLargeError,
     SessionNotFoundError,
 )
+from ..caching import TTL_S, Cache, MemoryCache, cache_key, digest, get_cache, invalidate_session, single_flight
 from ..ingestion.models import SCHEMA_VERSION, DriverInfo, FloatArray, IntArray, LapRecord
 from ..ingestion.service import IngestionService, SessionSource, fastest_valid_lap
 from ..processing.delta import compare_laps
+from ..processing.insights import SCHEMA_VERSION as FINDINGS_SCHEMA_VERSION
 from ..processing.insights import build_session_context, generate_findings
 from ..processing.models import AlignedLap, LapData
 from ..storage.repository import SessionRepository
@@ -68,10 +70,21 @@ def _find_driver(drivers: list[DriverInfo], driver: str) -> DriverInfo | None:
     return next((d for d in drivers if d.code.upper() == wanted or d.number == driver.strip()), None)
 
 
+def storage_scope(repo: SessionRepository) -> str:
+    """Which store a cached value came from (a Parquet root or a database), so two stores never
+    share cache entries."""
+    root = getattr(repo, "root", None)
+    engine = getattr(repo, "engine", None)
+    ident = str(root) if root is not None else (engine.url.render_as_string(hide_password=True) if engine else "repo")
+    return digest(type(repo).__name__, ident)[:12]
+
+
 class SessionQueryService:
-    def __init__(self, repo: SessionRepository, source_factory: Callable[[], SessionSource]) -> None:
+    def __init__(self, repo: SessionRepository, source_factory: Callable[[], SessionSource],
+                 cache: Cache | None = None) -> None:
         self.repo = repo
         self._source_factory = source_factory
+        self.cache = cache
 
     def _ingestion(self) -> IngestionService:
         return IngestionService(self.repo, self._source_factory())
@@ -94,7 +107,13 @@ class SessionQueryService:
         )
 
     def events(self, year: int) -> EventsResponse:
-        return EventsResponse(year=year, events=self._ingestion().list_events(year))
+        """The year's schedule; cached as raceiq:v1:sched:{year}:{store+schema} (6 h)."""
+        if self.cache is None:
+            return EventsResponse(year=year, events=self._ingestion().list_events(year))
+        key = cache_key("sched", str(int(year)), digest(SCHEMA_VERSION, storage_scope(self.repo)))
+        raw, _ = single_flight(self.cache, key, lambda: EventsResponse(
+            year=year, events=self._ingestion().list_events(year)).model_dump_json().encode("utf-8"), TTL_S["sched"])
+        return EventsResponse.model_validate_json(raw)
 
     def status(self, session_key: str) -> SessionStatusResponse:
         key = canonical_session_key(session_key)
@@ -112,6 +131,8 @@ class SessionQueryService:
         key = canonical_session_key(session_key)
         year, rnd, code = key.split("_")
         result = self._ingestion().ingest(int(year), int(rnd), code, force=force)
+        if not result.skipped:
+            invalidate_session(get_cache(), key)      # free the old comparisons / FactSheets at once
         return IngestResponse(
             session_key=public_session_key(result.key), skipped=result.skipped, laps=result.laps,
             telemetry_laps=result.telemetry_laps, valid_laps=result.valid_laps, elapsed_s=round(result.elapsed_s, 3),
@@ -203,15 +224,17 @@ class _SessionTables:
 
 
 class ComparisonService:
-    """Thread-safe. Two in-process LRUs: per-session lap/driver tables (so resolving
-    "fastest" never re-reads Parquet) and finished comparisons, stored as model + the
-    JSON a cache hit returns. Keys include the manifest's ingested_at, so a re-ingest
-    invalidates both."""
+    """Thread-safe. Finished comparisons live in the app cache (app/caching.py: Redis when
+    configured, else an in-process LRU) under raceiq:v1:cmp:{session}:{digest}; the digest includes
+    the storage and findings schema versions and the session's ingested_at, so a re-ingest or a
+    schema bump never serves stale data. Identical concurrent requests compute once
+    (single_flight). Per-session lap/driver tables stay in a small in-process LRU so resolving
+    "fastest" never re-reads storage."""
 
-    def __init__(self, repo: SessionRepository, cache_size: int = CACHE_SIZE) -> None:
+    def __init__(self, repo: SessionRepository, cache_size: int = CACHE_SIZE, cache: Cache | None = None) -> None:
         self.repo = repo
         self.cache_size = cache_size
-        self._cache: OrderedDict[tuple[object, ...], tuple[ComparisonResponse, str]] = OrderedDict()
+        self.cache: Cache = cache if cache is not None else MemoryCache(max_entries=cache_size)
         self._tables: OrderedDict[str, _SessionTables] = OrderedDict()
         self._lock = threading.Lock()
         self.hits = self.misses = 0
@@ -249,44 +272,43 @@ class ComparisonService:
             )
         return match, info
 
-    def _lookup(self, request: ComparisonRequest) -> tuple[tuple[object, ...], tuple[ComparisonResponse, str] | None, Callable[[], ComparisonResponse]]:
+    def _lookup(self, request: ComparisonRequest) -> tuple[str, Callable[[], ComparisonResponse]]:
         key = canonical_session_key(request.session_key)
         tables = self._session_tables(key)
         ref_rec, ref_driver = self._resolve(key, request.reference, tables)
         tgt_rec, tgt_driver = self._resolve(key, request.target, tables)
-        cache_key = (key, tables.ingested_at, ref_rec.driver, ref_rec.lap_number,
-                     tgt_rec.driver, tgt_rec.lap_number, float(request.resolution_m))
-        with self._lock:
-            hit = self._cache.get(cache_key)
-            if hit is not None:
-                self._cache.move_to_end(cache_key)
-                self.hits += 1
-            else:
-                self.misses += 1
-        return cache_key, hit, lambda: self._build(key, request.resolution_m, ref_rec, ref_driver, tgt_rec, tgt_driver)
+        digest_ = digest(SCHEMA_VERSION, FINDINGS_SCHEMA_VERSION, tables.ingested_at.isoformat(), ref_rec.driver,
+                         ref_rec.lap_number, tgt_rec.driver, tgt_rec.lap_number, float(request.resolution_m))
+        return (cache_key("cmp", key, digest_),
+                lambda: self._build(key, request.resolution_m, ref_rec, ref_driver, tgt_rec, tgt_driver))
 
-    def _store(self, cache_key: tuple[object, ...], response: ComparisonResponse) -> str:
-        cached = response.model_copy(update={"meta": response.meta.model_copy(update={"cached": True})})
+    def _fetch(self, request: ComparisonRequest) -> tuple[bytes, ComparisonResponse | None]:
+        """(the JSON a cache hit returns, the freshly built response when this call computed it)."""
+        key, build = self._lookup(request)
+        built: list[ComparisonResponse] = []
+
+        def compute() -> bytes:
+            response = build()
+            built.append(response)
+            cached = response.model_copy(update={"meta": response.meta.model_copy(update={"cached": True})})
+            return cached.model_dump_json().encode("utf-8")
+
+        value, hit = single_flight(self.cache, key, compute, TTL_S["cmp"])
         with self._lock:
-            self._cache[cache_key] = (cached, cached.model_dump_json())
-            while len(self._cache) > self.cache_size:
-                self._cache.popitem(last=False)
-        return response.model_dump_json()
+            if built:
+                self.misses += 1
+            else:
+                self.hits += 1
+        return value, (built[0] if built else None)
 
     def compare(self, request: ComparisonRequest) -> ComparisonResponse:
-        cache_key, hit, build = self._lookup(request)
-        if hit is not None:
-            return hit[0]
-        response = build()
-        self._store(cache_key, response)
-        return response
+        value, fresh = self._fetch(request)
+        return fresh if fresh is not None else ComparisonResponse.model_validate_json(value)
 
     def compare_json(self, request: ComparisonRequest) -> str:
         """Same as compare(), already serialized: a cache hit costs no serialization at all."""
-        cache_key, hit, build = self._lookup(request)
-        if hit is not None:
-            return hit[1]
-        return self._store(cache_key, build())
+        value, fresh = self._fetch(request)
+        return fresh.model_dump_json() if fresh is not None else value.decode("utf-8")
 
     def _build(
         self, key: str, resolution_m: float,

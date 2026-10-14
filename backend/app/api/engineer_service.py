@@ -15,9 +15,7 @@ question text unless RACEIQ_AI_DEBUG_LOG_FACTSHEET=1) and updates ai/metrics.py.
 from __future__ import annotations
 
 import os
-import threading
 import time
-from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any
 
@@ -31,7 +29,8 @@ from ..ai.prompts import PROMPT_VERSION
 from ..ai.qa.conversation import ConversationStore
 from ..ai.qa.engine import answer_question
 from ..ai.report_generator import generate_report
-from ..ai.schemas import Bullet, FactSheet, Report
+from ..ai.schemas import FACTSHEET_VERSION, Bullet, FactSheet, Report
+from ..caching import TTL_S, Cache, MemoryCache, cache_key, digest, single_flight
 from ..ai.validator import validate_report
 from ..processing.insights import FindingsReport
 from ..tires.registry import ModelNotAvailableError
@@ -46,8 +45,6 @@ from .services import ComparisonService
 
 log = structlog.get_logger("raceiq.ai")
 
-REPORT_CACHE_SIZE = 256
-FACTSHEET_CACHE_SIZE = 128
 NON_RACE = "tyre forecasting requires a race session; this is not a race"
 NOT_REQUESTED = "no tyre forecast was requested for this comparison"
 
@@ -58,31 +55,6 @@ class FactSheetNotFoundError(LookupError):
 
 def _debug() -> bool:
     return os.environ.get("RACEIQ_AI_DEBUG_LOG_FACTSHEET") == "1"
-
-
-class _LRU:
-    def __init__(self, size: int) -> None:
-        self.size = size
-        self._data: OrderedDict[Any, Any] = OrderedDict()
-        self._lock = threading.Lock()
-
-    def get(self, key: Any) -> Any:
-        with self._lock:
-            if key in self._data:
-                self._data.move_to_end(key)
-                return self._data[key]
-            return None
-
-    def put(self, key: Any, value: Any) -> None:
-        with self._lock:
-            self._data[key] = value
-            self._data.move_to_end(key)
-            while len(self._data) > self.size:
-                self._data.popitem(last=False)
-
-    def keys(self) -> list[Any]:
-        with self._lock:
-            return list(self._data)
 
 
 def fact_views(fs: FactSheet, ids: set[str] | None = None) -> dict[str, FactView]:
@@ -111,16 +83,15 @@ def _bullets(report: Report) -> list[Bullet]:
 class EngineerService:
     def __init__(self, comparisons: ComparisonService, tires: TireService, *,
                  client_factory: Callable[[], LLMClient | None], llm_enabled: Callable[[], bool],
-                 store: ConversationStore | None = None, metrics: Metrics = METRICS) -> None:
+                 store: ConversationStore | None = None, metrics: Metrics = METRICS,
+                 cache: Cache | None = None) -> None:
         self.comparisons = comparisons
         self.tires = tires
         self._client_factory = client_factory
         self._llm_enabled = llm_enabled
         self.store = store or ConversationStore()
         self.metrics = metrics
-        self.reports = _LRU(REPORT_CACHE_SIZE)
-        self.factsheets = _LRU(FACTSHEET_CACHE_SIZE)
-        self._findings: dict[str, FindingsReport] = {}
+        self.cache: Cache = cache if cache is not None else MemoryCache(max_entries=512)
 
     # ------------------------------------------------------------ FactSheet
     def _tire(self, key: str, driver: str, lap: int, ctx: TireContext | None, session_code: str | None
@@ -140,28 +111,38 @@ class EngineerService:
             return None, f"tyre forecast unavailable ({type(exc).__name__})"
 
     def factsheet(self, req: EngineerReportRequest | EngineerAskRequest) -> tuple[FactSheet, FindingsReport]:
+        """The comparison's FactSheet, cached (raceiq:v1:fs:{session}:{digest}) and also stored by
+        hash for GET /engineer/facts/{hash}. The digest includes the session's ingested_at, the
+        FactSheet version, the laps and the tyre context."""
         key = canonical_session_key(req.session_key)
         cmp = self.comparisons.compare(ComparisonRequest(session_key=req.session_key, reference=req.reference,
                                                          target=req.target))
         findings = cmp.findings
-        info = self.comparisons.repo.get_session_info(key)
-        tgt = cmp.meta.target
-        tire, reason = self._tire(key, tgt.driver, tgt.lap_number, req.tire_context, info.session_code)
-        teams = {m.driver: m.team for m in (cmp.meta.reference, cmp.meta.target) if m.team}
-        context = FactSheetContext(session_date=info.date.date().isoformat() if info.date else None, teams=teams,
-                                   tire_unavailable_reason=reason)
-        fs = build_factsheet(findings, tire, context)
-        self.factsheets.put(fs.factsheet_hash, fs)
-        self._findings[fs.factsheet_hash] = findings
-        if len(self._findings) > FACTSHEET_CACHE_SIZE:
-            live = set(self.factsheets.keys())
-            self._findings = {h: f for h, f in self._findings.items() if h in live}
+        manifest = self.comparisons.repo.get_manifest(key)
+        ctx = req.tire_context.model_dump() if req.tire_context else None
+        fs_key = cache_key("fs", key, digest(FACTSHEET_VERSION, manifest.ingested_at.isoformat() if manifest else None,
+                                             findings.comparison_id, cmp.meta.reference.lap_number,
+                                             cmp.meta.target.lap_number, ctx))
+
+        def build() -> bytes:
+            info = self.comparisons.repo.get_session_info(key)
+            tgt = cmp.meta.target
+            tire, reason = self._tire(key, tgt.driver, tgt.lap_number, req.tire_context, info.session_code)
+            teams = {m.driver: m.team for m in (cmp.meta.reference, cmp.meta.target) if m.team}
+            context = FactSheetContext(session_date=info.date.date().isoformat() if info.date else None, teams=teams,
+                                       tire_unavailable_reason=reason)
+            return build_factsheet(findings, tire, context).model_dump_json().encode("utf-8")
+
+        raw, _ = single_flight(self.cache, fs_key, build, TTL_S["fs"])
+        fs = FactSheet.model_validate_json(raw)
+        self.cache.set(cache_key("fsh", "all", fs.factsheet_hash), raw, TTL_S["fsh"])
         return fs, findings
 
     def facts(self, factsheet_hash: str) -> FactsResponse:
-        fs = self.factsheets.get(factsheet_hash)
-        if fs is None:
+        raw = self.cache.get(cache_key("fsh", "all", factsheet_hash))
+        if raw is None:
             raise FactSheetNotFoundError(factsheet_hash)
+        fs = FactSheet.model_validate_json(raw)
         return FactsResponse(factsheet_hash=fs.factsheet_hash, factsheet_version=fs.factsheet_version,
                              session=fs.session.model_dump(), drivers=fs.drivers.model_dump(),
                              facts=list(fact_views(fs).values()))
@@ -170,45 +151,68 @@ class EngineerService:
         return self._client_factory() if self._llm_enabled() else None
 
     # ------------------------------------------------------------ report
+    def _report_key(self, fs: FactSheet, client: LLMClient | None, model: str | None) -> str:
+        """raceiq:v1:rpt:{session}:{digest}: FactSheet hash + prompt version + model (LLM) or the
+        template version, so a prompt or model change can never serve an old report."""
+        scope = canonical_session_key(fs.session.key or "0000-00-X")
+        parts: tuple[Any, ...] = (("llm", fs.factsheet_hash, PROMPT_VERSION, model) if client is not None
+                                  else ("template", fs.factsheet_hash, TEMPLATE_VERSION))
+        return cache_key("rpt", scope, digest(*parts))
+
     def report(self, req: EngineerReportRequest, request_id: str | None = None) -> EngineerReport:
         start = time.perf_counter()
         fs, findings = self.factsheet(req)
         enabled = self._llm_enabled()
         client = self._client_factory() if enabled else None
         model = getattr(client, "model", None) if client is not None else None
-        key: tuple[Any, ...] = (("llm", fs.factsheet_hash, PROMPT_VERSION, model) if client is not None
-                                else ("template", fs.factsheet_hash, TEMPLATE_VERSION))
-        cached: EngineerReport | None = None if req.regenerate else self.reports.get(key)
-        if cached is not None:
-            out = cached.model_copy(update={"cached": True})
-            self._done("report", out.outcome, fs, start, cached=True, request_id=request_id,
+        key = self._report_key(fs, client, model)
+        if req.regenerate:
+            self.cache.delete(key)
+        run: dict[str, Any] = {}
+
+        def compute() -> bytes:
+            attempts: Any = ()
+            first: Any = ()
+            reason = None
+            if client is None:
+                report = build_template_report(fs)
+                outcome = "template_no_llm" if enabled else "template_disabled"
+            else:
+                result = generate_report(fs, client)
+                report, outcome, reason = result.report, result.outcome.value, result.fallback_reason
+                attempts, first = result.attempts, result.first_attempt_violations
+            assert validate_report(report, fs).ok
+            ids = {i for b in _bullets(report) for i in b.fact_ids}
+            sections = EngineerReportSections.model_validate(report.model_dump(include={
+                "headline", "biggest_time_loss", "strongest_areas", "tire_notes", "driving_suggestions",
+                "strategy_options", "data_limitations"}))
+            out = EngineerReport(report=sections, generated_by=report.generated_by, outcome=outcome,
+                                 fallback_reason=reason, prompt_version=report.prompt_version,
+                                 factsheet_hash=fs.factsheet_hash, facts=fact_views(fs, ids),
+                                 segments=_segment_map(findings, ids), retried=report.retried, cached=False,
+                                 model=model if report.generated_by == "llm" else None)
+            run.update(out=out, attempts=attempts, first=first, reason=reason)
+            if client is not None and report.generated_by != "llm":   # a fallback: cache it as the template
+                template = out.model_copy(update={"outcome": "template_no_llm", "fallback_reason": None})
+                self.cache.set(self._report_key(fs, None, None), template.model_dump_json().encode("utf-8"),
+                               TTL_S["rpt"])
+            return out.model_dump_json().encode("utf-8")
+
+        def ttl_for(value: bytes) -> int:
+            # never cache a fallback under the LLM key: the LLM is tried again on the next request
+            return TTL_S["rpt"] if client is None or b'"generated_by":"llm"' in value else 0
+
+        raw, _ = single_flight(self.cache, key, compute, TTL_S["rpt"], ttl_for=ttl_for)
+        if "out" in run:
+            out: EngineerReport = run["out"]
+            self._done("report", out.outcome, fs, start, cached=False, request_id=request_id,
+                       attempts=run["attempts"], first=run["first"], reason=run["reason"],
                        prompt_version=out.prompt_version)
             return out
-        attempts, first, reason = [], [], None
-        if client is None:
-            report = build_template_report(fs)
-            outcome = "template_no_llm" if enabled else "template_disabled"
-        else:
-            result = generate_report(fs, client)
-            report, outcome, reason = result.report, result.outcome.value, result.fallback_reason
-            attempts, first = result.attempts, result.first_attempt_violations
-        assert validate_report(report, fs).ok
-        ids = {i for b in _bullets(report) for i in b.fact_ids}
-        sections = EngineerReportSections.model_validate(report.model_dump(include={
-            "headline", "biggest_time_loss", "strongest_areas", "tire_notes", "driving_suggestions",
-            "strategy_options", "data_limitations"}))
-        out = EngineerReport(report=sections, generated_by=report.generated_by, outcome=outcome, fallback_reason=reason,
-                             prompt_version=report.prompt_version, factsheet_hash=fs.factsheet_hash,
-                             facts=fact_views(fs, ids), segments=_segment_map(findings, ids), retried=report.retried,
-                             cached=False, model=model if report.generated_by == "llm" else None)
-        if report.generated_by == "llm" or client is None:
-            self.reports.put(key, out)               # never cache a fallback under the LLM key
-        else:
-            self.reports.put(("template", fs.factsheet_hash, TEMPLATE_VERSION),
-                             out.model_copy(update={"outcome": "template_no_llm", "fallback_reason": None}))
-        self._done("report", outcome, fs, start, cached=False, request_id=request_id, attempts=attempts, first=first,
-                   reason=reason, prompt_version=report.prompt_version)
-        return out
+        cached = EngineerReport.model_validate_json(raw).model_copy(update={"cached": True})
+        self._done("report", cached.outcome, fs, start, cached=True, request_id=request_id,
+                   prompt_version=cached.prompt_version)
+        return cached
 
     # ------------------------------------------------------------ ask
     def ask(self, req: EngineerAskRequest, request_id: str | None = None) -> EngineerAnswer:
