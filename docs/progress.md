@@ -410,3 +410,10 @@ API key: **not needed** (all services run locally).
 - `requirements.txt` could never resolve on a fresh install: `pyarrow==26.0.0` conflicts with `mlflow 3.17`, which requires <26. The pins now match the tested environment (pyarrow 25.0.1, redis 8.1.0); the Docker build caught it.
 
 **Test totals:** backend 1116 passed (mypy strict, 107 files); frontend 144; Playwright 7. The engineer e2e signs in through the real dialog.
+
+**CI (GitHub Actions, first runs of the new workflow).** It is now green on all three jobs: backend (Alembic round trip, mypy, OpenAPI check, full suite against TimescaleDB + Redis service containers, `pip-audit`), frontend (check + `npm audit`) and Playwright. Getting there surfaced four real problems, all fixed:
+
+1. **boto3 type stubs** were installed locally only; now pinned.
+2. **18 known vulnerabilities** in starlette 0.41.3, python-dotenv 1.0.1 and pytest 8.3.4. Upgraded to FastAPI 0.143.1 / Starlette 1.8.0, python-dotenv 1.2.4 and pytest 9.1.1; `pip-audit` is clean.
+3. **The 6E tyre model checksums failed on every non-Windows checkout.** Hashes were computed over CRLF working copies while git stored LF, so on Linux the tyre endpoint returned 503. `.gitattributes` now keeps `models/tires/**` byte-exact.
+4. **Test isolation.** A job-wide `RACEIQ_DATABASE_URL` made the app under test share the CI database; it is now scoped to the migration step, and `conftest.py` pins tests to in-memory infrastructure.
