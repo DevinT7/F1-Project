@@ -19,7 +19,9 @@ async function signIn(page: Page) {
   await page.getByTestId("signin-email").fill(`e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`);
   await page.getByTestId("signin-password").fill("e2e password 123");
   await page.getByTestId("signin-submit").click();
-  await expect(page.getByTestId("account-menu")).toBeVisible();
+  // the spec files run in parallel against ONE backend process: under that load (several CPU-bound
+  // comparisons at once) registration can take longer than the 5 s default
+  await expect(page.getByTestId("account-menu")).toBeVisible({ timeout: 30_000 });
 }
 
 async function assertClean(page: Page) {
