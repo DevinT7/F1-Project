@@ -20,7 +20,10 @@ export default defineConfig({
       url: `http://localhost:${BACKEND_PORT}/api/v1/health`,
       // RACEIQ_ENGINEER_FAKE_LLM=inject: the engineer's LLM is a scripted fake that injects an ungrounded
       // number and a fabricated cause into every draft (e2e/engineer.spec.ts asserts neither reaches the DOM)
-      env: { RACEIQ_DATA_DIR: "tests/fixtures/ingestion/store", RACEIQ_ENGINEER_FAKE_LLM: "inject" },
+      // the per-IP limiter is off here (one page makes dozens of requests); tests/test_auth.py covers it
+      // the frontend's origin must be allowlisted: the refresh cookie endpoint checks Origin (CSRF)
+      env: { RACEIQ_DATA_DIR: "tests/fixtures/ingestion/store", RACEIQ_ENGINEER_FAKE_LLM: "inject",
+        RACEIQ_RATE_LIMIT_ENABLED: "false", FRONTEND_ORIGIN: `http://localhost:${FRONTEND_PORT}` },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },

@@ -44,7 +44,10 @@ class ErrorResponse(BaseModel):
 def error_responses(*codes: int) -> dict[int | str, dict[str, Any]]:
     """OpenAPI `responses=` entries for the documented error statuses of a route."""
     text = {
+        401: "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)",
+        403: "Signed in but not allowed (admin role required) or CSRF check failed",
         404: "Session not ingested / not found",
+        409: "Conflict (e.g. the email is already registered)",
         413: "Request body too large",
         422: "Invalid request, invalid lap, or comparison failed an integrity check",
         424: "Telemetry unavailable for a requested lap",

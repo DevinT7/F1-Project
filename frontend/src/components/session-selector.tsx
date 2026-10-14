@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { isAdmin, useAuth } from "@/lib/auth";
 import { useEvents, useIngest, useJob, useSeasons, useSessionStatus } from "@/lib/queries";
 import { parseSessionKey, sessionKey } from "@/lib/url-state";
 
@@ -82,6 +83,8 @@ function SessionStatusBar({ sessionKey: key, demo }: { sessionKey: string; demo:
   const job = useJob(jobId, key);
   const running = ingest.isPending || (jobId !== null && (!job.data || !["succeeded", "failed"].includes(job.data.status)));
   const failed = job.data?.status === "failed" ? job.data : null;
+  const user = useAuth((st) => st.user);
+  const canIngest = !demo && isAdmin(user);
 
   if (status.isPending) return <p className="mt-2 text-sm text-muted" role="status">Checking {key}…</p>;
   if (status.isError) return null; // the toast already explains it
@@ -117,12 +120,14 @@ function SessionStatusBar({ sessionKey: key, demo }: { sessionKey: string; demo:
             Ingest failed after {failed.attempts} attempt{failed.attempts === 1 ? "" : "s"}: {failed.error}
           </p>
         ) : (
-          <p className="text-sm text-muted">
-            {demo ? "Demo mode can't ingest; switch to live data with the backend running." : "Download and store it once; later visits load instantly."}
+          <p className="text-sm text-muted" data-testid="ingest-hint">
+            {demo ? "Demo mode can't ingest; switch to live data with the backend running."
+              : canIngest ? "Download and store it once; later visits load instantly."
+                : "Only admins can ingest new sessions. Sign in with an admin account."}
           </p>
         )}
       </div>
-      <button type="button" className="btn" disabled={demo || running} onClick={() => ingest.mutate()}>
+      <button type="button" className="btn" disabled={!canIngest || running} onClick={() => ingest.mutate()}>
         {running ? "Ingesting…" : failed ? "Try again" : s.status === "stale_schema" ? "Re-ingest" : "Ingest session"}
       </button>
     </div>

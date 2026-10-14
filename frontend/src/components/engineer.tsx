@@ -12,8 +12,11 @@ import {
   FOOTER_NOTE, MAX_QUESTION, REGENERATE_COOLDOWN_S, SECTIONS, badgeFor, defaultSuggestions, factValue, factsFor,
   fallbackExplanation, isNeutral, reportText, segmentFor,
 } from "@/lib/engineer";
-import { useAskEngineer, useEngineerReport, useRegenerateReport } from "@/lib/queries";
+import { useAuth } from "@/lib/auth";
+import { useApi, useAskEngineer, useEngineerReport, useRegenerateReport } from "@/lib/queries";
 import { useUiStore } from "@/lib/store";
+
+import { SignInPrompt } from "./account";
 
 type LapSel = EngineerReportRequest["reference"];
 
@@ -23,15 +26,25 @@ export function EngineerSection({ session, reference, target, sessionCode }: {
   const request = useMemo<EngineerReportRequest>(() => ({
     session_key: session, reference, target, ...(sessionCode === "R" ? { tire_context: {} } : {}),
   }), [session, reference, target, sessionCode]);
+  const { demo } = useApi();
+  const status = useAuth((s) => s.status);
+  const signedIn = demo || status === "signed_in";      // demo mode serves the exported report, no account
   return (
     <section id="engineer" className="card" aria-labelledby="engineer-title">
       <div className="kick">✦ AI engineer</div>
       <h2 id="engineer-title" className="mt-1 text-[15px] font-bold">Race engineer report</h2>
+      {!signedIn ? (
+        <div className="mt-3">
+          {status === "unknown" ? <div className="skeleton h-24" aria-label="Checking your session" />
+            : <SignInPrompt what="Sign in to get the AI race engineer's report and ask it questions (accounts keep LLM costs in check)." />}
+        </div>
+      ) : (
       <div className="mt-3 grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <ReportCard request={request} />
         {/* keyed by the comparison: a different comparison starts a new conversation */}
         <EngineerChat key={JSON.stringify(request)} request={request} target={target.driver} sessionCode={sessionCode} />
       </div>
+      )}
       <p className="mt-4 border-t border-line pt-3 text-xs text-muted" data-testid="engineer-footer">{FOOTER_NOTE}</p>
     </section>
   );

@@ -67,7 +67,9 @@ export function ThemeToggle() {
   );
 }
 
-export function Topbar({ demo, demoHref, liveHref, season }: { demo: boolean; demoHref: string; liveHref: string; season: number | null }) {
+export function Topbar({ demo, demoHref, liveHref, season, account }: {
+  demo: boolean; demoHref: string; liveHref: string; season: number | null; account?: ReactNode;
+}) {
   return (
     <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -75,6 +77,7 @@ export function Topbar({ demo, demoHref, liveHref, season }: { demo: boolean; de
         <h1 className="mt-1 font-serif text-[34px] italic leading-tight">Pit Wall</h1>
       </div>
       <div className="flex flex-wrap gap-2.5">
+        {account}
         <ThemeToggle />
         {demo
           ? <Link className="btn btn-ghost" href={liveHref}>⏻ Live data</Link>

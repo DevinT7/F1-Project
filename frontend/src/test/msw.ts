@@ -60,6 +60,8 @@ export const handlers = [
   http.get(`${V1}/sessions/:key/fastest-laps`, () => HttpResponse.json(fastestLaps)),
   http.get(`${V1}/sessions/:key/corners`, () => HttpResponse.json(corners)),
   http.post(`${V1}/comparisons`, () => HttpResponse.json(comparison)),
+  // signed out by default; tests sign in with signInAs() (src/test/auth.ts)
+  http.post(`${V1}/auth/refresh`, () => new HttpResponse(null, { status: 204 })),
   http.post(`${V1}/engineer/report`, () => HttpResponse.json(engineerReport)),
   http.post(`${V1}/engineer/ask`, async ({ request }) => {
     const { question } = (await request.json()) as { question: string };

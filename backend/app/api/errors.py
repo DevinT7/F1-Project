@@ -27,6 +27,7 @@ from ..ingestion.errors import (
     TelemetryUnavailableError,
 )
 from ..processing.errors import InsufficientDataError
+from ..ratelimit import Decision, RateLimited
 from ..tires.registry import ChecksumMismatchError, ModelNotAvailableError
 from ..tires.service import NotARaceSessionError
 
@@ -122,15 +123,35 @@ class RequestContextMiddleware:
         await self.app(scope, receive, send_with_id)
 
 
-RateLimiter = Callable[[Request], bool]
+RateLimiter = Callable[[Request], "Decision | bool"]
 
 
 def allow_all(request: Request) -> bool:
     return True
 
 
+AUTH_PATHS = ("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh")
+
+
+def default_limiter(request: Request) -> Decision | bool:
+    """Per-IP token buckets (app/ratelimit.py): `auth` for the credential endpoints, `api` for the rest."""
+    from ..config import settings
+    if not settings.rate_limit_enabled:
+        return True
+    from ..ratelimit import POLICIES, client_ip, get_limiter
+    policy = POLICIES["auth"] if request.url.path in AUTH_PATHS else POLICIES["api"]
+    return get_limiter().hit(policy, client_ip(request))
+
+
+def rate_limited_response(request: Request, decision: Decision, message: str = "too many requests") -> JSONResponse:
+    response = error_response(request, code="rate_limited", status_code=429,
+                              message=f"{message}; retry in {decision.retry_after_s} s")
+    response.headers["Retry-After"] = str(decision.retry_after_s)
+    return response
+
+
 class RateLimitMiddleware:
-    """Placeholder: plug a real limiter in Phase 8 (e.g. Redis token bucket per client)."""
+    """Rate limits every /api/v1 request per client IP (Phase 8: Redis token buckets)."""
 
     def __init__(self, app: ASGIApp, limiter: RateLimiter = allow_all, prefix: str = "/api/v1") -> None:
         self.app = app
@@ -140,11 +161,27 @@ class RateLimitMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http" and scope["path"].startswith(self.prefix):
             request = Request(scope)
-            if not self.limiter(request):
-                response = error_response(request, code="rate_limited", status_code=429, message="too many requests")
+            result = self.limiter(request)
+            if not (result if isinstance(result, bool) else result.allowed):
+                response = (rate_limited_response(request, result) if not isinstance(result, bool) else
+                            error_response(request, code="rate_limited", status_code=429, message="too many requests"))
                 await response(scope, receive, send)
                 return
         await self.app(scope, receive, send)
+
+
+async def _auth_error(request: Request, exc: Exception) -> JSONResponse:
+    from ..auth.deps import AuthError
+    assert isinstance(exc, AuthError)
+    response = error_response(request, code=exc.code, status_code=exc.status, message=str(exc))
+    if exc.status == 401:
+        response.headers["WWW-Authenticate"] = 'Bearer realm="raceiq"'
+    return response
+
+
+async def _rate_limited(request: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, RateLimited)
+    return rate_limited_response(request, exc.decision, f"rate limit '{exc.policy}' exceeded")
 
 
 async def _domain_error(request: Request, exc: Exception) -> JSONResponse:
@@ -161,6 +198,9 @@ async def _unexpected_error(request: Request, exc: Exception) -> JSONResponse:
 def install(app: FastAPI, *, limiter: RateLimiter = allow_all) -> None:
     for cls, _, _ in ERROR_MAP:
         app.add_exception_handler(cls, _domain_error)
+    from ..auth.deps import AuthError
+    app.add_exception_handler(AuthError, _auth_error)
+    app.add_exception_handler(RateLimited, _rate_limited)
     app.add_exception_handler(Exception, _unexpected_error)
     app.add_middleware(RateLimitMiddleware, limiter=limiter)
     app.add_middleware(RequestContextMiddleware)  # added last = outermost: every response gets an id

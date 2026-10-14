@@ -36,6 +36,16 @@ class Settings(BaseSettings):
     # tyre model registry: "file" (models/registry.json) or "db" (model_registry table → object keys)
     model_registry: str = "file"
 
+    # --- Phase 8 auth (docs/security.md) ---
+    jwt_secret: str | None = None              # required when APP_ENV=production (≥ 32 chars)
+    admin_emails: str = ""                     # comma-separated: these accounts get the admin role
+    trust_proxy: bool = False                  # use X-Forwarded-For for the client IP (behind a proxy only)
+    rate_limit_enabled: bool = True
+
+    @property
+    def admin_email_set(self) -> set[str]:
+        return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
+
     # --- App cache (in-memory dev default; point at Redis in prod) ---
     cache_ttl_seconds: int = 60 * 60  # historical data is immutable, cache hard
     redis_url: str | None = None
@@ -76,3 +86,16 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def allowed_origins() -> list[str]:
+    """The CORS allowlist (also the Origin check of cookie-authenticated endpoints): FRONTEND_ORIGIN,
+    RACEIQ_CORS_ORIGINS and settings.cors_origins, de-duplicated in that order."""
+    import os
+    origins: list[str] = []
+    for value in (os.getenv("FRONTEND_ORIGIN"), os.getenv("RACEIQ_CORS_ORIGINS"), settings.cors_origins):
+        for origin in (o.strip() for o in (value or "").split(",")):
+            if origin and origin not in origins:
+                origins.append(origin)
+    return origins
+

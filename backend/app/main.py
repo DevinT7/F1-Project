@@ -26,7 +26,7 @@ from .clients.openf1 import (
     ProviderTimeoutError,
     ProviderUnavailableError,
 )
-from .config import settings
+from .config import allowed_origins, settings
 from .routers import (
     ai,
     analysis,
@@ -51,16 +51,7 @@ def _split_origins(value: str | None) -> list[str]:
 
 
 def _cors_origins() -> list[str]:
-    origins: list[str] = []
-    for value in (
-        os.getenv("FRONTEND_ORIGIN"),
-        os.getenv("RACEIQ_CORS_ORIGINS"),
-        settings.cors_origins,
-    ):
-        for origin in _split_origins(value):
-            if origin not in origins:
-                origins.append(origin)
-    return origins
+    return allowed_origins()
 
 
 def _utc_timestamp() -> str:
@@ -89,7 +80,7 @@ app = FastAPI(
     openapi_tags=V1_TAGS,
 )
 
-api_errors.install(app)
+api_errors.install(app, limiter=api_errors.default_limiter)
 app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
 
 app.add_middleware(

@@ -338,3 +338,16 @@ Full contract: `docs/tire_api.md`.
   - `scripts/publish_models.py` publishes the existing `models/registry.json` idempotently.
   - The training job (kind `train`, admin only) rebuilds the models with the 6E builder and publishes them.
   - `RACEIQ_MODEL_REGISTRY=file|db` (default `file`, so a checkout works with no services).
+
+## Phase 8 — Authentication and public endpoints (P1, 2026-10-14)
+
+- **Public stays public.** Comparisons, sessions, laps, tyres and seasons need no account, so the demo stays frictionless (the plan's pitfall). Accounts are needed for the AI engineer (LLM cost control) and saved comparisons. **Admin** is needed for ingest, training, job status and the engineer metrics.
+- **Email + password in-house** (argon2id, PyJWT), not an external auth provider: no third-party keys, and it works offline and in CI. An OAuth provider can be added later behind the same `current_user` dependency.
+- **Tokens.**
+  - **Access:** a 15-minute Bearer JWT, kept in memory in the browser.
+  - **Refresh:** a single-use, rotated, httpOnly / Secure / SameSite=Strict cookie scoped to `/api/v1/auth`, with reuse detection that revokes everything.
+  - **Revocation:** `token_version` on the user.
+
+  CSRF is handled by a custom header plus an Origin check on the two cookie endpoints. A refresh with no cookie returns 204 (signed out is not an error).
+- **Rate limits** are Redis token buckets per IP (API, auth) and per user (engineer, admin) → 429 + `Retry-After`. They fail open. The e2e backend disables the per-IP limit (one page legitimately makes dozens of requests); unit tests cover it.
+- **Details:** `docs/security.md`.

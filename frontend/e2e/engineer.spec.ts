@@ -12,6 +12,16 @@ const URL = "/?s=2024-05-Q&ref=VER:fastest&tgt=ALO:fastest";
 // engineer section is held to the stricter "no 0.35 at all".
 const INJECTED = ["lost 0.35 s", "tyre wear", "because of"];
 
+/** The engineer needs an account (Phase 8): register a fresh one through the real dialog. */
+async function signIn(page: Page) {
+  await page.getByTestId("signin-open").click({ timeout: 60_000 });
+  await page.getByRole("button", { name: "New here? Create an account" }).click();
+  await page.getByTestId("signin-email").fill(`e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`);
+  await page.getByTestId("signin-password").fill("e2e password 123");
+  await page.getByTestId("signin-submit").click();
+  await expect(page.getByTestId("account-menu")).toBeVisible();
+}
+
 async function assertClean(page: Page) {
   const text = await page.locator("body").innerText();
   for (const bad of INJECTED) expect(text, `"${bad}" reached the DOM`).not.toContain(bad);
@@ -21,6 +31,7 @@ async function assertClean(page: Page) {
 
 test("injected numbers and causes never reach the DOM (report, popovers and chat)", async ({ page }) => {
   await page.goto(URL);
+  await signIn(page);
   const report = page.getByTestId("engineer-report");
   await expect(report).toBeVisible({ timeout: 60_000 });
 
@@ -57,6 +68,7 @@ test("injected numbers and causes never reach the DOM (report, popovers and chat
 
 test("clicking a report bullet highlights its corner on the map panel", async ({ page }) => {
   await page.goto(URL);
+  await signIn(page);
   const report = page.getByTestId("engineer-report");
   await expect(report).toBeVisible({ timeout: 60_000 });
   await report.getByRole("button", { name: /^Turn 16:/ }).click();

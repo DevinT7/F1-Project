@@ -10,6 +10,9 @@ export type EventsResponse = Schemas["EventsResponse"];
 export type EventInfo = Schemas["EventInfo"];
 export type SessionStatus = Schemas["SessionStatusResponse"];
 export type JobResponse = Schemas["JobResponse"];
+export type TokenResponse = Schemas["TokenResponse"];
+export type SavedAnalysis = Schemas["SavedAnalysisOut"];
+export type AnalysisParams = Schemas["AnalysisParams"];
 export type DriversResponse = Schemas["DriversResponse"];
 export type DriverInfo = Schemas["DriverInfo"];
 export type LapsResponse = Schemas["LapsResponse"];
@@ -97,6 +100,18 @@ export function createApi(demoMode: boolean) {
       demoMode
         ? demoOnly("ingestion needs the backend")
         : apiPost("/api/v1/sessions/{session_key}/ingest", { path: { session_key: key }, query: { force } }),
+
+    register: (email: string, password: string): Promise<TokenResponse> =>
+      demoMode ? demoOnly("accounts need the backend") : apiPost("/api/v1/auth/register", { body: { email, password } }),
+
+    login: (email: string, password: string): Promise<TokenResponse> =>
+      demoMode ? demoOnly("accounts need the backend") : apiPost("/api/v1/auth/login", { body: { email, password } }),
+
+    analyses: (): Promise<{ analyses: SavedAnalysis[] }> =>
+      demoMode ? Promise.resolve({ analyses: [] }) : apiGet("/api/v1/me/analyses"),
+
+    saveAnalysis: (title: string, params: AnalysisParams): Promise<SavedAnalysis> =>
+      demoMode ? demoOnly("saving needs the backend") : apiPost("/api/v1/me/analyses", { body: { title, params } }),
 
     job: (id: string): Promise<JobResponse> =>
       demoMode ? demoOnly("jobs need the backend") : apiGet("/api/v1/jobs/{job_id}", { path: { job_id: id } }),

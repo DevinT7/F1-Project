@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import session from "@/fixtures/api/session_2024-05-Q.json";
 import { useUiStore } from "@/lib/store";
+import { signInAs } from "@/test/auth";
 import { server } from "@/test/msw";
 
 vi.mock("next/navigation", async () => (await import("@/test/render")).nextNavigationMock);
@@ -16,7 +17,7 @@ const JOB = {
   updated_at: "2026-10-14T00:00:00Z", status_url: `/api/v1/jobs/${"a".repeat(32)}`,
 };
 
-beforeEach(() => useUiStore.setState({ toasts: [] }));
+beforeEach(() => { useUiStore.setState({ toasts: [] }); signInAs("admin"); });
 
 describe("ingest as a background job", () => {
   it("POST → 202 job, then polls progress until the session is ready", async () => {
@@ -56,5 +57,16 @@ describe("ingest as a background job", () => {
     await user.click(await screen.findByRole("button", { name: "Ingest session" }));
     expect(await screen.findByTestId("ingest-failed")).toHaveTextContent("after 1 attempt: PermanentJobError");
     expect(screen.getByRole("button", { name: "Try again" })).toBeEnabled();
+  });
+});
+
+describe("ingest is admin-only", () => {
+  it("a signed-in user who is not an admin sees why the button is disabled", async () => {
+    signInAs("user");
+    server.use(http.get("*/api/v1/sessions/:key", ({ params }) =>
+      HttpResponse.json({ session_key: params.key, status: "not_ingested", info: null, manifest: null })));
+    await renderDashboard("s=2024-06-Q");
+    expect(await screen.findByTestId("ingest-hint")).toHaveTextContent("Only admins can ingest");
+    expect(screen.getByRole("button", { name: "Ingest session" })).toBeDisabled();
   });
 });

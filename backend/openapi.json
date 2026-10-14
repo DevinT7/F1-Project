@@ -109,6 +109,34 @@
         "title": "AIReportRequest",
         "type": "object"
       },
+      "AnalysisParams": {
+        "additionalProperties": false,
+        "properties": {
+          "reference": {
+            "$ref": "#/components/schemas/LapSelector"
+          },
+          "resolution_m": {
+            "default": 2.0,
+            "title": "Resolution M",
+            "type": "number"
+          },
+          "session_key": {
+            "description": "Session key \"<year>-<round>-<session>\", e.g. \"2024-05-Q\" (2024 round 5 qualifying). Underscores (\"2024_05_Q\") are accepted too. Session codes: FP1 FP2 FP3 SQ SS S Q R.",
+            "title": "Session Key",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LapSelector"
+          }
+        },
+        "required": [
+          "session_key",
+          "reference",
+          "target"
+        ],
+        "title": "AnalysisParams",
+        "type": "object"
+      },
       "BulletOut": {
         "additionalProperties": false,
         "properties": {
@@ -469,6 +497,32 @@
           "corners"
         ],
         "title": "CornersResponse",
+        "type": "object"
+      },
+      "Credentials": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "examples": [
+              "driver@example.com"
+            ],
+            "maxLength": 320,
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "description": "10–256 characters",
+            "maxLength": 256,
+            "minLength": 10,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "Credentials",
         "type": "object"
       },
       "DeltaPoint": {
@@ -3328,6 +3382,74 @@
         "title": "ReportQuality",
         "type": "object"
       },
+      "SaveAnalysisRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "params": {
+            "$ref": "#/components/schemas/AnalysisParams"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "params"
+        ],
+        "title": "SaveAnalysisRequest",
+        "type": "object"
+      },
+      "SavedAnalysesResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "analyses": {
+            "items": {
+              "$ref": "#/components/schemas/SavedAnalysisOut"
+            },
+            "title": "Analyses",
+            "type": "array"
+          }
+        },
+        "required": [
+          "analyses"
+        ],
+        "title": "SavedAnalysesResponse",
+        "type": "object"
+      },
+      "SavedAnalysisOut": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "params": {
+            "title": "Params",
+            "type": "object"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "params",
+          "created_at"
+        ],
+        "title": "SavedAnalysisOut",
+        "type": "object"
+      },
       "Season": {
         "additionalProperties": false,
         "properties": {
@@ -4372,6 +4494,90 @@
         "title": "TirePrediction",
         "type": "object"
       },
+      "TokenResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "expires_in": {
+            "description": "seconds until the access token expires",
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "token_type": {
+            "const": "bearer",
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "required": [
+          "access_token",
+          "expires_in",
+          "user"
+        ],
+        "title": "TokenResponse",
+        "type": "object"
+      },
+      "TrainRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "production": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "model kind to mark production (default: the 6E choice)",
+            "title": "Production"
+          }
+        },
+        "title": "TrainRequest",
+        "type": "object"
+      },
+      "UserOut": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "created_at"
+        ],
+        "title": "UserOut",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -4404,6 +4610,13 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "description": "access token from POST /api/v1/auth/login",
+        "scheme": "bearer",
+        "type": "http"
       }
     }
   },
@@ -5433,6 +5646,435 @@
         ]
       }
     },
+    "/api/v1/admin/models/train": {
+      "post": {
+        "description": "Admin only. Rebuilds the servable tyre models and publishes them to the model registry; poll the returned job.",
+        "operationId": "train_api_v1_admin_models_train_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Signed in but not allowed (admin role required) or CSRF check failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Retrain the tyre models (job)",
+        "tags": [
+          "v1: admin"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Returns an access token (15 min) and sets the refresh cookie (14 days, httpOnly, Secure, SameSite=Strict, path /api/v1/auth). Unknown email and wrong password give the same 401.",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Sign in",
+        "tags": [
+          "v1: auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "description": "Revokes every token of the user (token version bump) and clears the cookie. Needs `X-RaceIQ-CSRF: 1`.",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-raceiq-csrf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Raceiq-Csrf"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "raceiq_refresh",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Raceiq Refresh"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Signed in but not allowed (admin role required) or CSRF check failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Sign out everywhere",
+        "tags": [
+          "v1: auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "description": "Needs the `raceiq_refresh` cookie and the `X-RaceIQ-CSRF: 1` header. Rotates the refresh cookie; a refresh token is single-use: presenting one twice revokes every session of that user. No cookie at all → 204 (signed out is a normal state, not an error).",
+        "operationId": "refresh_api_v1_auth_refresh_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-raceiq-csrf",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Raceiq-Csrf"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "raceiq_refresh",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Raceiq Refresh"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "204": {
+            "description": "no session (no refresh cookie)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Signed in but not allowed (admin role required) or CSRF check failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "New access token from the refresh cookie",
+        "tags": [
+          "v1: auth"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "description": "Email + password (≥ 10 characters, stored as an argon2id hash). Returns an access token and sets the refresh cookie. Emails listed in RACEIQ_ADMIN_EMAILS get the admin role.",
+        "operationId": "register_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict (e.g. the email is already registered)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "summary": "Create an account",
+        "tags": [
+          "v1: auth"
+        ]
+      }
+    },
     "/api/v1/comparisons": {
       "post": {
         "description": "Aligns the target lap to the reference lap by distance (analysis at 1 m), then returns both laps' channels, the cumulative time delta and the Phase 3 verified findings. Every array has `meta.points` entries aligned to `distance_m`; booleans are JSON booleans; missing samples are null. Either lap may be `\"fastest\"`. Laps not valid for comparison are rejected (422) with the reason.\n\n**Sign convention:** delta_s = target elapsed time − reference elapsed time at the same distance. Positive = the target is behind (has lost time); negative = the target is ahead. delta_s[0] is 0 and delta_s[-1] equals the official lap-time gap (target − reference) within 0.02 s.\n\nResponses are gzip-compressed when the client sends `Accept-Encoding: gzip`, and memoized in-process (`meta.cached`).",
@@ -5550,6 +6192,16 @@
             },
             "description": "Successful Response"
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -5601,6 +6253,11 @@
             "description": "Unexpected error (body carries the request id)"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Ask the race engineer about a comparison",
         "tags": [
           "v1: engineer"
@@ -5634,6 +6291,16 @@
             },
             "description": "Successful Response"
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -5675,6 +6342,11 @@
             "description": "Unexpected error (body carries the request id)"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Every fact of a FactSheet (audit)",
         "tags": [
           "v1: engineer"
@@ -5705,6 +6377,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
           },
           "404": {
             "content": {
@@ -5757,6 +6439,11 @@
             "description": "Unexpected error (body carries the request id)"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Race engineer report for a comparison",
         "tags": [
           "v1: engineer"
@@ -5832,6 +6519,26 @@
             },
             "description": "Successful Response"
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Signed in but not allowed (admin role required) or CSRF check failed"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -5873,9 +6580,372 @@
             "description": "Unexpected error (body carries the request id)"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Background job status",
         "tags": [
           "v1: jobs"
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "description": "Email, role and creation time of the account behind the access token.",
+        "operationId": "whoami_api_v1_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The signed-in user",
+        "tags": [
+          "v1: auth"
+        ]
+      }
+    },
+    "/api/v1/me/analyses": {
+      "get": {
+        "description": "The signed-in user's saved comparisons, newest first (only their own).",
+        "operationId": "list_analyses_api_v1_me_analyses_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedAnalysesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Saved comparisons",
+        "tags": [
+          "v1: auth"
+        ]
+      },
+      "post": {
+        "description": "Stores the comparison parameters (session, laps, resolution) under a title; re-open it later from the account menu.",
+        "operationId": "save_analysis_api_v1_me_analyses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedAnalysisOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request, invalid lap, or comparison failed an integrity check"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save a comparison",
+        "tags": [
+          "v1: auth"
+        ]
+      }
+    },
+    "/api/v1/me/analyses/{analysis_id}": {
+      "delete": {
+        "description": "Deletes one of the signed-in user's saved comparisons.",
+        "operationId": "delete_analysis_api_v1_me_analyses__analysis_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Session not ingested / not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete a saved comparison",
+        "tags": [
+          "v1: auth"
+        ]
+      },
+      "get": {
+        "description": "404 when it does not exist or belongs to another user (indistinguishable on purpose).",
+        "operationId": "get_analysis_api_v1_me_analyses__analysis_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedAnalysisOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Session not ingested / not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected error (body carries the request id)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "One saved comparison",
+        "tags": [
+          "v1: auth"
         ]
       }
     },
@@ -6401,6 +7471,26 @@
             },
             "description": "Successful Response"
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Signed in but not allowed (admin role required) or CSRF check failed"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -6432,6 +7522,11 @@
             "description": "Unexpected error (body carries the request id)"
           }
         },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "summary": "Ingest a session (job)",
         "tags": [
           "v1: sessions"
@@ -7359,6 +8454,14 @@
     {
       "description": "Tyre forecasts and a heuristic pit window from the registered production model, using only laps up to the requested lap.",
       "name": "v1: tires"
+    },
+    {
+      "description": "Accounts (argon2 passwords), JWT access tokens, the refresh cookie, saved comparisons. Public: comparisons, sessions, tyres. Signed in: the AI engineer. Admin: ingest, training, jobs.",
+      "name": "v1: auth"
+    },
+    {
+      "description": "Admin-only operations (training).",
+      "name": "v1: admin"
     },
     {
       "description": "Background jobs (ingestion, model training): status and progress.",

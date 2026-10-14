@@ -346,7 +346,9 @@ def test_openapi_documents_every_v1_route():
     # 11 from Phase 4 + GET /sessions/{key}/stints (6A) + GET /tires/predict, /tires/models (6E)
     # + POST /engineer/report, /engineer/ask, GET /engineer/facts/{hash} (7F; /engineer/metrics is admin, undocumented)
     # + GET /jobs/{id} (8)
-    assert len(v1) == 18
+    # + auth: register, login, refresh, logout; /me, /me/analyses (list, save, get, delete);
+    #   POST /admin/models/train (8)
+    assert len(v1) == 28
     for path, item in doc["paths"].items():
         if path.startswith("/api/v1"):
             for op in item.values():

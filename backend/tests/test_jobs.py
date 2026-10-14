@@ -156,7 +156,7 @@ def source():
 
 
 @pytest.fixture
-async def api(tmp_path, source):
+async def api(tmp_path, source, as_admin):            # ingest and job status are admin-only (8)
     repo = ParquetRepository(tmp_path)
     js = system({"ingest": make_ingest_handler(lambda: repo, lambda: source)})
     app.dependency_overrides[deps.get_repository] = lambda: repo

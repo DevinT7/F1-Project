@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Path, Query, Response
 
+from ...auth.deps import admin_limit
+from ...auth.store import User
 from ...jobs.runner import JobSystem
 from ..deps import get_job_system, get_session_service
 from ..schemas.common import SESSION_KEY_DESCRIPTION, SESSION_KEY_PATTERN, canonical_session_key, error_responses
@@ -36,14 +38,15 @@ def get_session(session_key: str = SessionKey,
                          "qualifying session takes ~2.5 min, a race ~7.5 min. Idempotent: an already-stored session "
                          "finishes at once with `result.skipped: true` unless `force=true`; a second request while "
                          "one is running returns the running job.",
-             responses=error_responses(422))
+             responses=error_responses(401, 403, 422, 429))
 def ingest_session(
     response: Response,
     session_key: str = SessionKey,
     force: bool = Query(False, description="re-ingest even if already stored"),
     jobs: JobSystem = Depends(get_job_system),
+    user: User = Depends(admin_limit),
 ) -> JobResponse:
-    job = jobs.submit("ingest", canonical_session_key(session_key), {"force": force})
+    job = jobs.submit("ingest", canonical_session_key(session_key), {"force": force}, created_by=user.id)
     job = jobs.store.get(job.id) or job                # an inline queue may have finished it already
     response.headers["Location"] = f"/api/v1/jobs/{job.id}"
     return JobResponse.of(job)

@@ -6,7 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 
-import type { Api, ComparisonRequest, EngineerAskRequest, EngineerReportRequest } from "./api/endpoints";
+import type { AnalysisParams, Api, ComparisonRequest, EngineerAskRequest, EngineerReportRequest } from "./api/endpoints";
 import { HANDLED_CODES } from "./tires";
 import type { LapRef } from "./url-state";
 
@@ -165,5 +165,21 @@ export function useAskEngineer() {
     mutationKey: ["engineer-ask", demo],
     mutationFn: (body: EngineerAskRequest) => api.engineerAsk(body),
     meta: { inlineErrors: true },
+  });
+}
+
+/** The signed-in user's saved comparisons (empty when signed out). */
+export function useAnalyses(enabled: boolean) {
+  const { api, demo } = useApi();
+  return useQuery({ queryKey: ["analyses", demo], queryFn: () => api.analyses(), enabled, staleTime: 30_000 });
+}
+
+export function useSaveAnalysis() {
+  const { api, demo } = useApi();
+  const client = useQueryClient();
+  return useMutation({
+    mutationKey: ["save-analysis", demo],
+    mutationFn: (v: { title: string; params: AnalysisParams }) => api.saveAnalysis(v.title, v.params),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["analyses", demo] }),
   });
 }

@@ -12,6 +12,7 @@ import { useUiStore } from "@/lib/store";
 import { isComparable, parseSessionKey, serializeUrlState, type UrlState } from "@/lib/url-state";
 import { useUrlState } from "@/lib/use-url-state";
 
+import { AccountMenu, SignInDialog } from "./account";
 import { ComparisonHeader } from "./comparison-header";
 import { EngineerSection } from "./engineer";
 import { ErrorBoundary } from "./error-boundary";
@@ -59,7 +60,7 @@ export function Dashboard() {
     <div className="lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
       <Sidebar sessionLabel={sessionLabel} />
       <main className="mx-auto w-full max-w-[1500px] px-4 pt-6 pb-16 sm:px-8">
-        <Topbar demo={state.demo} season={parts?.year ?? null}
+        <Topbar demo={state.demo} season={parts?.year ?? null} account={<AccountMenu demo={state.demo} current={state} />}
           demoHref={`?${serializeUrlState(demoState)}`}
           liveHref={`?${serializeUrlState({ ...state, demo: false })}`} />
         {state.demo && (
@@ -139,6 +140,7 @@ export function Dashboard() {
         <p className="mt-8 text-center text-[11px] text-muted">Data: FastF1 · every figure is computed by the RaceIQ backend</p>
       </main>
       <Toaster />
+      <SignInDialog />
     </div>
   );
 }

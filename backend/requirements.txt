@@ -52,3 +52,6 @@ testcontainers[postgres,redis]==4.15.0
 # Phase 8 background jobs (RQ on Redis) and object storage (S3-compatible: SeaweedFS locally, S3/MinIO in prod)
 rq==2.12.0
 boto3==1.43.113
+# Phase 8 auth: argon2id password hashing, JWT access/refresh tokens
+argon2-cffi==25.1.0
+PyJWT==2.15.1

@@ -4,6 +4,8 @@
  */
 import type { components, paths } from "@/api/types";
 
+import { refreshSession, useAuth } from "../auth";
+
 export type Schemas = components["schemas"];
 export type ApiErrorBody = Schemas["ErrorResponse"];
 
@@ -85,12 +87,25 @@ async function parse<T>(response: Response): Promise<T> {
   );
 }
 
-async function send(url: string, init: RequestInit): Promise<Response> {
+async function rawSend(url: string, init: RequestInit): Promise<Response> {
   try {
     return await fetch(url, init);
   } catch (cause) {
     throw new ApiError(0, "network_error", "Cannot reach the RaceIQ API. Is the backend running on :8000?", null, cause);
   }
+}
+
+/** Adds the access token (when signed in); on a 401 tries one silent refresh and retries once. */
+async function send(url: string, init: RequestInit): Promise<Response> {
+  const withToken = (): RequestInit => {
+    const token = useAuth.getState().accessToken;
+    return token ? { ...init, headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${token}` } } : init;
+  };
+  const response = await rawSend(url, withToken());
+  if (response.status === 401 && useAuth.getState().accessToken && !url.includes("/api/v1/auth/")) {
+    if (await refreshSession()) return rawSend(url, withToken());
+  }
+  return response;
 }
 
 export async function apiGet<P extends GetPath>(

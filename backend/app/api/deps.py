@@ -86,12 +86,6 @@ def get_tire_service() -> TireService:
 
 
 # ---------------------------------------------------------------- Phase 7F engineer
-def engineer_rate_limit(request: Request) -> None:
-    """Rate-limit hook for /api/v1/engineer (stub: allows everything). Phase 8 enforces a
-    per-client token bucket here (LLM calls cost money); the global limiter stays in errors.py."""
-    return None
-
-
 def get_llm_client() -> LLMClient | None:
     """The LLM used by the engineer: the test-only fake when RACEIQ_ENGINEER_FAKE_LLM is set, else
     the provider from LLM_* env (None without a key: templates are served)."""
