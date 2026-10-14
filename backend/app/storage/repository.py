@@ -59,6 +59,7 @@ class SessionRepository(Protocol):
     def get_telemetry(self, key: str, driver: str, lap: int) -> TelemetryFrame: ...
     def get_corners(self, key: str) -> list[CornerInfo]: ...
     def get_weather(self, key: str) -> list[WeatherSample]: ...
+    def get_corners_raw(self, key: str) -> list[dict[str, Any]]: ...
     def list_sessions(self, year: int | None = None) -> list[SessionInfo]: ...
     def get_manifest(self, key: str) -> Manifest | None: ...
     def save_events(self, year: int, events: list[EventInfo]) -> None: ...
@@ -284,3 +285,18 @@ class ParquetRepository:
             return fetched_at, [EventInfo.model_validate(item) for item in payload["events"]]
         except (ValueError, KeyError, TypeError):
             return None
+
+
+def load_bundle(repo: ParquetRepository, key: str) -> SessionBundle:
+    """Everything stored for a session, as the SessionBundle that produced it (Parquet → Postgres
+    migration; scripts/migrate_parquet_to_postgres.py)."""
+    root = repo._require(key)
+    manifest = repo.get_manifest(key)
+    telemetry: dict[tuple[str, int], TelemetryFrame] = {}
+    for path in sorted((root / "telemetry").glob("*.parquet")):
+        driver, lap = path.stem.rsplit("_", 1)
+        telemetry[(driver, int(lap))] = repo.get_telemetry(key, driver, int(lap))
+    return SessionBundle(info=repo.get_session_info(key), drivers=repo.list_drivers(key), laps=repo.list_laps(key),
+                         weather=repo.get_weather(key), corners=repo.get_corners(key), telemetry=telemetry,
+                         corners_raw=repo.get_corners_raw(key),
+                         fastf1_version=manifest.fastf1_version if manifest else "unknown")

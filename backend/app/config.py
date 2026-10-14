@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     # Normalized session store written by `python -m app.ingestion` (Parquet + JSON)
     data_dir: str = str(_REPO_ROOT / "data")
 
+    # --- Phase 8 storage: "parquet" (files under data_dir) or "postgres" (database_url) ---
+    storage_backend: str = "parquet"
+    database_url: str | None = None
+
     # --- App cache (in-memory dev default; point at Redis in prod) ---
     cache_ttl_seconds: int = 60 * 60  # historical data is immutable, cache hard
     redis_url: str | None = None

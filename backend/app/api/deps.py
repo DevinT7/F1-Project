@@ -21,6 +21,16 @@ from .services import ComparisonService, SessionQueryService
 
 @lru_cache(maxsize=1)
 def get_repository() -> SessionRepository:
+    """RACEIQ_STORAGE_BACKEND=parquet (files under RACEIQ_DATA_DIR, the default) or postgres
+    (RACEIQ_DATABASE_URL). Both satisfy the same contract (tests/test_repository_contract.py)."""
+    if settings.storage_backend == "postgres":
+        if not settings.database_url:
+            raise RuntimeError("RACEIQ_STORAGE_BACKEND=postgres needs RACEIQ_DATABASE_URL")
+        from ..db.engine import make_engine
+        from ..storage.postgres import PostgresRepository
+        return PostgresRepository(make_engine(settings.database_url))
+    if settings.storage_backend != "parquet":
+        raise RuntimeError(f"unknown RACEIQ_STORAGE_BACKEND {settings.storage_backend!r} (parquet | postgres)")
     return ParquetRepository(settings.data_dir)
 
 
