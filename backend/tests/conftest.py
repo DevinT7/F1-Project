@@ -12,7 +12,13 @@ from app.ratelimit import get_limiter
 
 
 @pytest.fixture(autouse=True)
-def _fresh_limits_and_accounts():
+def _fresh_limits_and_accounts(monkeypatch):
+    # The app under test never inherits infrastructure from the environment (a CI job or a developer
+    # shell may set RACEIQ_DATABASE_URL / RACEIQ_REDIS_URL): accounts, jobs, cache and limits are in
+    # memory unless a test wires a backend explicitly (RACEIQ_TEST_DATABASE_URL / _REDIS_URL).
+    from app.config import settings
+    monkeypatch.setattr(settings, "database_url", None)
+    monkeypatch.setattr(settings, "redis_url", None)
     get_limiter.cache_clear()
     auth_deps._account_store.cache_clear()
     yield

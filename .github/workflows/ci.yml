@@ -32,7 +32,6 @@ jobs:
     env:
       RACEIQ_TEST_DATABASE_URL: postgresql://raceiq:raceiq@localhost:5432/raceiq_test
       RACEIQ_TEST_REDIS_URL: redis://localhost:6379/0
-      RACEIQ_DATABASE_URL: postgresql://raceiq:raceiq@localhost:5432/raceiq_test
     defaults:
       run:
         working-directory: backend
@@ -46,6 +45,8 @@ jobs:
       - name: Install
         run: pip install -r requirements.txt pip-audit
       - name: Migrations are reversible (upgrade → downgrade base → upgrade)
+        env:
+          RACEIQ_DATABASE_URL: postgresql://raceiq:raceiq@localhost:5432/raceiq_test
         run: |
           alembic upgrade head
           alembic downgrade base
