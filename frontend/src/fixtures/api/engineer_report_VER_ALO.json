@@ -3,7 +3,7 @@
  "outcome": "template_no_llm",
  "fallback_reason": null,
  "prompt_version": "template-v1",
- "factsheet_hash": "0c6e4f30f6bf67da60210686e6d497e614d387ef49b816873a1c3830ed36aec9",
+ "factsheet_hash": "f740e79c473a99f5185adcfa8adf23483bf168049c4d9263b76df0e138bec2ef",
  "facts": {
   "LAP.time_loss_s": {
    "id": "LAP.time_loss_s",
@@ -143,7 +143,7 @@
    "value": null,
    "unit": "s/lap",
    "display": null,
-   "meaning": "unavailable — no tyre forecast was requested for this comparison"
+   "meaning": "unavailable — tyre forecasting requires a race session; this is not a race"
   },
   "session.notes": {
    "id": "session.notes",
@@ -266,7 +266,7 @@
   ],
   "tire_notes": [
    {
-    "text": "Tyre forecast unavailable: no tyre forecast was requested for this comparison.",
+    "text": "Tyre forecast unavailable: tyre forecasting requires a race session; this is not a race.",
     "fact_ids": [
      "tire.deg_s_per_lap"
     ]

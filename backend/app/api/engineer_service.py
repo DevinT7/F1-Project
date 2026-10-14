@@ -126,10 +126,10 @@ class EngineerService:
     def _tire(self, key: str, driver: str, lap: int, ctx: TireContext | None, session_code: str | None
               ) -> tuple[dict[str, Any] | None, str | None]:
         from .routes.tires import to_schema       # here: routes import deps, which import this module
+        if session_code != "R":                   # first: "not a race" is the real reason, requested or not
+            return None, NON_RACE
         if ctx is None:
             return None, NOT_REQUESTED
-        if session_code != "R":
-            return None, NON_RACE
         try:
             return to_schema(self.tires.predict(key, driver, ctx.lap or lap, ctx.horizon)).model_dump(mode="json"), None
         except ModelNotAvailableError:
