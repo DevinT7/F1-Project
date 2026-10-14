@@ -13,7 +13,7 @@ Status as of 2026-10-13: **no key is configured.**
 | 7A FactSheet, 7B Validator, 7C Template report | No | — | — | done |
 | **7D LLM report generation** | **Yes, for the gate** | `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY` | live eval (≥ 30 reports: ≥ 95% valid within one retry, ≥ 80% first try), cost/latency numbers, human grading of 10 reports | ⏳ **placeholder: API key needed** |
 | **7E Follow-up Q&A** | **Yes, for the gate** | same `LLM_*` | live check (40 questions / 8 comparisons, ≥ 95% valid within one retry), review of ten LLM transcripts | ⏳ **placeholder: API key needed** |
-| 7F API, caching, frontend, observability | No for the build and gate (fake client + templates) | same `LLM_*`, optional | only an optional live smoke test of the endpoints | not started |
+| 7F API, caching, frontend, observability | No for the build, the E2E safety test, kill switch, cache and metrics (fake LLMs + templates); **yes for the final live evaluation** | same `LLM_*` | final live evaluation (first-try / post-retry / fallback rates, cost per report), LLM-path p95 latency < 8 s, the LLM run of the demo script | code done; ⏳ **placeholder: API key needed** for the live items |
 | 8 and later | to be assessed when each phase spec arrives | | | |
 
 ## Where the key is needed (placeholders)
@@ -23,8 +23,10 @@ Status as of 2026-10-13: **no key is configured.**
 | `backend/.env.example` → `LLM_PROVIDER` / `LLM_MODEL` / `LLM_API_KEY` | commented-out placeholders marked "API KEY NEEDED" |
 | `python -m scripts.eval_report_quality --live` (7D) | prints **"API KEY NEEDED"** with the variables to set, exit code 3 |
 | `python -m scripts.eval_qa_quality --live` (7E) | same message, exit code 3 |
-| `app.ai.llm_client.client_from_env()` (for 7F endpoints) | returns `None` and logs `ai.llm_unconfigured` once; reports and answers come from the templates (`template_no_llm`) |
+| `app.ai.llm_client.client_from_env()` (used by the 7F endpoints) | returns `None` and logs `ai.llm_unconfigured` once; reports and answers come from the templates (`template_no_llm`) |
 | `docs/progress.md` → "7D live evaluation" / "7E live Q&A check" | placeholder sections, replaced by the eval scripts' results |
+| `docs/progress.md` → "7F final live evaluation" | placeholder; filled from the 7D script's output (it reports p95 latency too) |
+| `/api/v1/engineer/*` with no key | serve validated templates (`outcome: template_no_llm`), badged "Template summary" in the UI |
 
 ## When a key is added
 

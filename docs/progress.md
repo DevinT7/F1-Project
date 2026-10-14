@@ -328,6 +328,7 @@ frontend fixtures for all of it are real API responses (`scripts/export_frontend
 | 7C template report | done; review changes applied |
 | 7D LLM report generation | code done (client, prompts `report-v1`, generator, eval script). **Live eval pending: no LLM API key is configured yet** |
 | 7E follow-up Q&A | code done (router, slices, evidence, templates, conversation, prompt `qa-v1`). **Live 40-question check pending: same key** |
+| 7F API, frontend, observability | code done (endpoints, cache, kill switch, report card, chat, metrics, E2E safety test). **Final live evaluation pending: same key** |
 
 ### 7E offline results
 
@@ -346,3 +347,28 @@ frontend fixtures for all of it are real API responses (`scripts/export_frontend
 ### 7E live Q&A check
 
 ⏳ **PLACEHOLDER — API KEY NEEDED.** Same three variables, then run `python -m scripts.eval_qa_quality --live`: 40 questions over 8 comparisons (target ≥ 95% valid within one retry). The script replaces this section with the results. Then review the ten LLM transcripts, adversarial ones included.
+
+### 7F results (no API key needed)
+
+- **Endpoints:** `POST /api/v1/engineer/report`, `POST /api/v1/engineer/ask`, `GET /api/v1/engineer/facts/{hash}` (OpenAPI and TS types regenerated); admin `GET /api/v1/engineer/metrics` (`docs/runbook.md`).
+- **End-to-end safety** (`frontend/e2e/engineer.spec.ts`): Playwright runs the real backend with a scripted fake LLM that injects "0.35 s" and "tyre wear" into every draft. Neither reaches the DOM (report, every fact popover, chat); the card shows the validated template badged "Template summary", with the rejected rules (`ungrounded_number`, `unsupported_causal_claim`, `ungrounded_label`).
+- **Kill switch:** with `ENGINEER_LLM_ENABLED=false`, templates are served (`template_disabled`) and the fake LLM records zero calls.
+- **Cache:** an identical request hits; changing the prompt version or the model misses; template reports are cached under their own key; a fallback is never cached under the LLM key.
+- **Validation:** an empty, control-only or over-300-character question is a 422. Control and format characters are stripped, and the question never reaches the system prompt.
+- **Latency:** the template path is 54 ms with the comparison warm (27 ms on a cache hit); the test asserts < 200 ms. The LLM path keeps a loading state in the card and chat, and its p95 is reported by the live eval.
+- **Metrics:** every outcome path is counted, plus violations by rule, latency, tokens, cost, cache hit ratio, intents and out-of-scope rate.
+- **Frontend:**
+  - the report card has badges with fallback reasons, keyboard/hover fact popovers, an always-visible limitations block, copy, regenerate (10 s cooldown) and the footer note;
+  - the chat has suggestion chips, a 300-character limit, a loading state, an inline error with the request id, neutral refusals and a live region;
+  - clicking a bullet highlights its segment.
+- **Docs:** `docs/runbook.md`, `docs/limitations.md` (question retention policy), `docs/demo_script.md` (the human gate: three comparisons).
+
+### 7F final live evaluation
+
+⏳ **PLACEHOLDER — API KEY NEEDED.**
+
+1. Set `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY` (and optionally the two price variables) in `backend/.env`.
+2. Run `python -m scripts.eval_report_quality --live` and `python -m scripts.eval_qa_quality --live`.
+3. Record here: first-try pass rate, post-retry pass rate, fallback rate, cost per report, and LLM-path p95 latency (target < 8 s).
+4. Then walk through `docs/demo_script.md` with the LLM on.
+

@@ -358,7 +358,9 @@ def test_openapi_snapshot_is_reviewed():
 def test_openapi_documents_every_v1_route():
     doc = openapi_document()
     v1 = {(m.upper(), p) for p, item in doc["paths"].items() if p.startswith("/api/v1") for m in item}
-    assert len(v1) == 14  # 11 from Phase 4 + GET /sessions/{key}/stints (6A) + GET /tires/predict, /tires/models (6E)
+    # 11 from Phase 4 + GET /sessions/{key}/stints (6A) + GET /tires/predict, /tires/models (6E)
+    # + POST /engineer/report, /engineer/ask, GET /engineer/facts/{hash} (7F; /engineer/metrics is admin, undocumented)
+    assert len(v1) == 17
     for path, item in doc["paths"].items():
         if path.startswith("/api/v1"):
             for op in item.values():

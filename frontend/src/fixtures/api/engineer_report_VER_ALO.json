@@ -1,0 +1,335 @@
+{
+ "generated_by": "template",
+ "outcome": "template_no_llm",
+ "fallback_reason": null,
+ "prompt_version": "template-v1",
+ "factsheet_hash": "0c6e4f30f6bf67da60210686e6d497e614d387ef49b816873a1c3830ed36aec9",
+ "facts": {
+  "LAP.time_loss_s": {
+   "id": "LAP.time_loss_s",
+   "value": 0.48799999999999955,
+   "unit": "s",
+   "display": "0.488",
+   "meaning": "time the target lost to the reference over Lap (positive = target slower, negative = faster)"
+  },
+  "LAP.sector_3_delta_s": {
+   "id": "LAP.sector_3_delta_s",
+   "value": 0.27199999999999847,
+   "unit": "s",
+   "display": "0.272",
+   "meaning": "Lap: official sector 3 time difference, target − reference (positive = target was slower)"
+  },
+  "T1.time_loss_s": {
+   "id": "T1.time_loss_s",
+   "value": -0.05861798056147922,
+   "unit": "s",
+   "display": "0.059",
+   "meaning": "time the target lost to the reference over Turn 1 (positive = target slower, negative = faster)"
+  },
+  "T1.braking_start_diff_m": {
+   "id": "T1.braking_start_diff_m",
+   "value": 9.0,
+   "unit": "m",
+   "display": "9.0",
+   "meaning": "Turn 1: braking point, target − reference (positive = target started braking later (further along the lap))"
+  },
+  "T1.exit_speed_diff_kph": {
+   "id": "T1.exit_speed_diff_kph",
+   "value": 5.378731967591847,
+   "unit": "km/h",
+   "display": "5.4",
+   "meaning": "Turn 1: exit speed, target − reference (positive = target left the corner faster)"
+  },
+  "T6.time_loss_s": {
+   "id": "T6.time_loss_s",
+   "value": 0.09829616515525605,
+   "unit": "s",
+   "display": "0.098",
+   "meaning": "time the target lost to the reference over Turn 6 (positive = target slower, negative = faster)"
+  },
+  "T6.braking_start_diff_m": {
+   "id": "T6.braking_start_diff_m",
+   "value": 5.0,
+   "unit": "m",
+   "display": "5.0",
+   "meaning": "Turn 6: braking point, target − reference (positive = target started braking later (further along the lap))"
+  },
+  "T6.exit_speed_diff_kph": {
+   "id": "T6.exit_speed_diff_kph",
+   "value": -7.317475030275574,
+   "unit": "km/h",
+   "display": "7.3",
+   "meaning": "Turn 6: exit speed, target − reference (positive = target left the corner faster)"
+  },
+  "T6.time_to_full_throttle_diff_s": {
+   "id": "T6.time_to_full_throttle_diff_s",
+   "value": 0.5672635455241917,
+   "unit": "s",
+   "display": "0.567",
+   "meaning": "Turn 6: time from throttle pick-up to full throttle, target − reference (positive = target took longer to reach full throttle)"
+  },
+  "T10.time_loss_s": {
+   "id": "T10.time_loss_s",
+   "value": -0.06760286236399704,
+   "unit": "s",
+   "display": "0.068",
+   "meaning": "time the target lost to the reference over Turn 10 (positive = target slower, negative = faster)"
+  },
+  "T11.time_loss_s": {
+   "id": "T11.time_loss_s",
+   "value": -0.045619393207036396,
+   "unit": "s",
+   "display": "0.046",
+   "meaning": "time the target lost to the reference over Turn 11 (positive = target slower, negative = faster)"
+  },
+  "T11.braking_start_diff_m": {
+   "id": "T11.braking_start_diff_m",
+   "value": 16.0,
+   "unit": "m",
+   "display": "16.0",
+   "meaning": "Turn 11: braking point, target − reference (positive = target started braking later (further along the lap))"
+  },
+  "T15.time_loss_s": {
+   "id": "T15.time_loss_s",
+   "value": 0.11205730949980683,
+   "unit": "s",
+   "display": "0.112",
+   "meaning": "time the target lost to the reference over Turn 15 (positive = target slower, negative = faster)"
+  },
+  "T15.braking_start_diff_m": {
+   "id": "T15.braking_start_diff_m",
+   "value": null,
+   "unit": "m",
+   "display": null,
+   "meaning": "unavailable — no braking detected for either driver"
+  },
+  "T15.min_speed_diff_kph": {
+   "id": "T15.min_speed_diff_kph",
+   "value": -6.0,
+   "unit": "km/h",
+   "display": "6.0",
+   "meaning": "Turn 15: minimum speed, target − reference (positive = target was faster at the slowest point)"
+  },
+  "T16.time_loss_s": {
+   "id": "T16.time_loss_s",
+   "value": 0.1763146446856993,
+   "unit": "s",
+   "display": "0.176",
+   "meaning": "time the target lost to the reference over Turn 16 (positive = target slower, negative = faster)"
+  },
+  "T16.min_speed_diff_kph": {
+   "id": "T16.min_speed_diff_kph",
+   "value": -14.092767950360724,
+   "unit": "km/h",
+   "display": "14.1",
+   "meaning": "Turn 16: minimum speed, target − reference (positive = target was faster at the slowest point)"
+  },
+  "T16.exit_speed_diff_kph": {
+   "id": "T16.exit_speed_diff_kph",
+   "value": -6.673361060837692,
+   "unit": "km/h",
+   "display": "6.7",
+   "meaning": "Turn 16: exit speed, target − reference (positive = target left the corner faster)"
+  },
+  "quality.sector_check_max_discrepancy_s": {
+   "id": "quality.sector_check_max_discrepancy_s",
+   "value": 0.04086057300492346,
+   "unit": "s",
+   "display": "0.041",
+   "meaning": "largest disagreement between the aligned delta and official sector times"
+  },
+  "tire.deg_s_per_lap": {
+   "id": "tire.deg_s_per_lap",
+   "value": null,
+   "unit": "s/lap",
+   "display": null,
+   "meaning": "unavailable — no tyre forecast was requested for this comparison"
+  },
+  "session.notes": {
+   "id": "session.notes",
+   "value": [
+    "traffic data unavailable: do not attribute time loss to traffic"
+   ],
+   "unit": null,
+   "display": null,
+   "meaning": "context qualifications (e.g. traffic data unavailable)"
+  },
+  "T2.confidence": {
+   "id": "T2.confidence",
+   "value": "low",
+   "unit": null,
+   "display": null,
+   "meaning": "confidence of this finding"
+  },
+  "T5.confidence": {
+   "id": "T5.confidence",
+   "value": "low",
+   "unit": null,
+   "display": null,
+   "meaning": "confidence of this finding"
+  },
+  "T8.confidence": {
+   "id": "T8.confidence",
+   "value": "low",
+   "unit": null,
+   "display": null,
+   "meaning": "confidence of this finding"
+  },
+  "T13.confidence": {
+   "id": "T13.confidence",
+   "value": "low",
+   "unit": null,
+   "display": null,
+   "meaning": "confidence of this finding"
+  },
+  "data_quality.notes": {
+   "id": "data_quality.notes",
+   "value": [
+    "causes are rules whose thresholds were met (contributing factors), not proof of cause",
+    "braking uses the on/off brake channel; brake pressure is not available",
+    "sector cross-check: the grid delta differs from official sector times by up to 0.041 s at a sector boundary (tolerance 0.03 s); corner-level losses carry that uncertainty, so corner confidence is capped at medium"
+   ],
+   "unit": null,
+   "display": null,
+   "meaning": "qualifications of the whole comparison"
+  }
+ },
+ "segments": {
+  "LAP": "2024-05-Q:ALO-vs-VER:LAP",
+  "T1": "2024-05-Q:ALO-vs-VER:T1",
+  "T2": "2024-05-Q:ALO-vs-VER:T2",
+  "T5": "2024-05-Q:ALO-vs-VER:T5",
+  "T6": "2024-05-Q:ALO-vs-VER:T6",
+  "T8": "2024-05-Q:ALO-vs-VER:T8",
+  "T10": "2024-05-Q:ALO-vs-VER:T10",
+  "T11": "2024-05-Q:ALO-vs-VER:T11",
+  "T13": "2024-05-Q:ALO-vs-VER:T13",
+  "T15": "2024-05-Q:ALO-vs-VER:T15",
+  "T16": "2024-05-Q:ALO-vs-VER:T16"
+ },
+ "report": {
+  "headline": {
+   "text": "ALO was 0.488 s slower than VER over the lap, losing the most in Sector 3 (0.272 s).",
+   "fact_ids": [
+    "LAP.time_loss_s",
+    "LAP.sector_3_delta_s"
+   ]
+  },
+  "biggest_time_loss": [
+   {
+    "text": "Turn 16: ALO lost 0.176 s (carried 14.1 km/h less minimum speed; exited 6.7 km/h slower).",
+    "fact_ids": [
+     "T16.time_loss_s",
+     "T16.min_speed_diff_kph",
+     "T16.exit_speed_diff_kph"
+    ]
+   },
+   {
+    "text": "Turn 15: ALO lost 0.112 s (carried 6.0 km/h less minimum speed).",
+    "fact_ids": [
+     "T15.time_loss_s",
+     "T15.min_speed_diff_kph"
+    ]
+   },
+   {
+    "text": "Turn 6: ALO lost 0.098 s (reached full throttle 0.567 s later; exited 7.3 km/h slower), despite braking 5.0 m later.",
+    "fact_ids": [
+     "T6.time_loss_s",
+     "T6.braking_start_diff_m",
+     "T6.time_to_full_throttle_diff_s",
+     "T6.exit_speed_diff_kph"
+    ]
+   }
+  ],
+  "strongest_areas": [
+   {
+    "text": "Turn 10: ALO gained 0.068 s; the time gain has no single clear driving cause in the available data.",
+    "fact_ids": [
+     "T10.time_loss_s"
+    ]
+   },
+   {
+    "text": "Turn 1: ALO gained 0.059 s (braked 9.0 m later; exited 5.4 km/h faster).",
+    "fact_ids": [
+     "T1.time_loss_s",
+     "T1.braking_start_diff_m",
+     "T1.exit_speed_diff_kph"
+    ]
+   },
+   {
+    "text": "Turn 11: ALO gained 0.046 s (braked 16.0 m later).",
+    "fact_ids": [
+     "T11.time_loss_s",
+     "T11.braking_start_diff_m"
+    ]
+   }
+  ],
+  "tire_notes": [
+   {
+    "text": "Tyre forecast unavailable: no tyre forecast was requested for this comparison.",
+    "fact_ids": [
+     "tire.deg_s_per_lap"
+    ]
+   }
+  ],
+  "driving_suggestions": [
+   {
+    "text": "Work on minimum speed in Turn 16; VER carried 14.1 km/h more minimum speed.",
+    "fact_ids": [
+     "T16.min_speed_diff_kph"
+    ]
+   },
+   {
+    "text": "Carry more speed through the middle of Turn 15; VER carried 6.0 km/h more minimum speed.",
+    "fact_ids": [
+     "T15.min_speed_diff_kph"
+    ]
+   },
+   {
+    "text": "Aim for full throttle sooner out of Turn 6; ALO took 0.567 s longer to reach full throttle.",
+    "fact_ids": [
+     "T6.time_to_full_throttle_diff_s"
+    ]
+   }
+  ],
+  "strategy_options": [],
+  "data_limitations": [
+   {
+    "text": "Traffic data is unavailable, so no time loss is attributed to traffic.",
+    "fact_ids": [
+     "session.notes"
+    ]
+   },
+   {
+    "text": "Listed causes are rule-based contributing factors, not proof.",
+    "fact_ids": [
+     "data_quality.notes"
+    ]
+   },
+   {
+    "text": "Corner-level times carry up to 0.041 s of alignment uncertainty (the sector cross-check is outside tolerance).",
+    "fact_ids": [
+     "quality.sector_check_max_discrepancy_s"
+    ]
+   },
+   {
+    "text": "Low confidence: Turn 2, Turn 5, Turn 8, Turn 13 and one other segment.",
+    "fact_ids": [
+     "T2.confidence",
+     "T5.confidence",
+     "T8.confidence",
+     "T13.confidence"
+    ]
+   },
+   {
+    "text": "Turn 15: braking points cannot be compared; no braking was detected for either driver.",
+    "fact_ids": [
+     "T15.braking_start_diff_m"
+    ]
+   }
+  ]
+ },
+ "retried": false,
+ "cached": false,
+ "model": null
+}

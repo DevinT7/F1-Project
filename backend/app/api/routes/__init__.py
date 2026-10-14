@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from ..schemas.common import error_responses
-from . import comparisons, meta, seasons, sessions, tires
+from . import comparisons, engineer, meta, seasons, sessions, tires
 
 API_V1_PREFIX = "/api/v1"
 
@@ -16,6 +16,8 @@ TAGS_METADATA = [
                                                "Sign convention: positive delta / time loss = the target lost time."},
     {"name": "v1: tires", "description": "Tyre forecasts and a heuristic pit window from the registered production "
                                          "model, using only laps up to the requested lap."},
+    {"name": "v1: engineer", "description": "AI race engineer: validated reports and follow-up Q&A over a comparison's "
+                                            "FactSheet. Numbers come from the analysis engine; the AI only explains them."},
 ]
 
 # Any v1 route can be rate limited or fail unexpectedly; document both once here.
@@ -25,3 +27,4 @@ router.include_router(seasons.router)
 router.include_router(sessions.router)
 router.include_router(comparisons.router)
 router.include_router(tires.router)
+router.include_router(engineer.router)

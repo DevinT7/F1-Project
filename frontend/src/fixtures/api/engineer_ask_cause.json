@@ -1,0 +1,147 @@
+{
+ "generated_by": "template",
+ "outcome": "template_no_llm",
+ "fallback_reason": null,
+ "prompt_version": "qa-template-v1",
+ "factsheet_hash": "0c6e4f30f6bf67da60210686e6d497e614d387ef49b816873a1c3830ed36aec9",
+ "facts": {
+  "T15.time_loss_s": {
+   "id": "T15.time_loss_s",
+   "value": 0.11205730949980683,
+   "unit": "s",
+   "display": "0.112",
+   "meaning": "time the target lost to the reference over Turn 15 (positive = target slower, negative = faster)"
+  },
+  "T15.min_speed_diff_kph": {
+   "id": "T15.min_speed_diff_kph",
+   "value": -6.0,
+   "unit": "km/h",
+   "display": "6.0",
+   "meaning": "Turn 15: minimum speed, target − reference (positive = target was faster at the slowest point)"
+  },
+  "T16.time_loss_s": {
+   "id": "T16.time_loss_s",
+   "value": 0.1763146446856993,
+   "unit": "s",
+   "display": "0.176",
+   "meaning": "time the target lost to the reference over Turn 16 (positive = target slower, negative = faster)"
+  },
+  "T16.min_speed_diff_kph": {
+   "id": "T16.min_speed_diff_kph",
+   "value": -14.092767950360724,
+   "unit": "km/h",
+   "display": "14.1",
+   "meaning": "Turn 16: minimum speed, target − reference (positive = target was faster at the slowest point)"
+  },
+  "T16.exit_speed_diff_kph": {
+   "id": "T16.exit_speed_diff_kph",
+   "value": -6.673361060837692,
+   "unit": "km/h",
+   "display": "6.7",
+   "meaning": "Turn 16: exit speed, target − reference (positive = target left the corner faster)"
+  },
+  "target.compound": {
+   "id": "target.compound",
+   "value": "SOFT",
+   "unit": null,
+   "display": null,
+   "meaning": "tyre compound of the target lap"
+  },
+  "reference.compound": {
+   "id": "reference.compound",
+   "value": "SOFT",
+   "unit": null,
+   "display": null,
+   "meaning": "tyre compound of the reference lap"
+  },
+  "T6.confidence": {
+   "id": "T6.confidence",
+   "value": "medium",
+   "unit": null,
+   "display": null,
+   "meaning": "confidence of this finding"
+  },
+  "T15.causes": {
+   "id": "T15.causes",
+   "value": [
+    "low_min_speed"
+   ],
+   "unit": null,
+   "display": null,
+   "meaning": "triggered rules (contributing factors, not proof); the only causes a report may name"
+  },
+  "T15.confidence": {
+   "id": "T15.confidence",
+   "value": "medium",
+   "unit": null,
+   "display": null,
+   "meaning": "confidence of this finding"
+  },
+  "T16.causes": {
+   "id": "T16.causes",
+   "value": [
+    "low_min_speed",
+    "lower_exit_speed"
+   ],
+   "unit": null,
+   "display": null,
+   "meaning": "triggered rules (contributing factors, not proof); the only causes a report may name"
+  },
+  "T16.confidence": {
+   "id": "T16.confidence",
+   "value": "medium",
+   "unit": null,
+   "display": null,
+   "meaning": "confidence of this finding"
+  },
+  "conditions.traffic_data": {
+   "id": "conditions.traffic_data",
+   "value": "unavailable",
+   "unit": null,
+   "display": null,
+   "meaning": "whether traffic (cars ahead) data exists for these laps; when unavailable, no time loss can be attributed to traffic"
+  }
+ },
+ "segments": {
+  "T6": "2024-05-Q:ALO-vs-VER:T6",
+  "T15": "2024-05-Q:ALO-vs-VER:T15",
+  "T16": "2024-05-Q:ALO-vs-VER:T16"
+ },
+ "conversation_id": "fixture-conversation-2",
+ "question": "Was the time loss caused by the driver, the tyres or traffic?",
+ "intent": "cause_attribution",
+ "entities": {
+  "drivers": [
+   "target"
+  ]
+ },
+ "answer": {
+  "text": "Evidence suggests these may be contributing factors: Turn 16: ALO carried 14.1 km/h less minimum speed and exited 6.7 km/h slower; Turn 15: ALO carried 6.0 km/h less minimum speed. ALO and VER were on the same soft compound. Traffic cannot be assessed: traffic data is unavailable. Data quality: low.",
+  "fact_ids": [
+   "T16.time_loss_s",
+   "T16.min_speed_diff_kph",
+   "T16.causes",
+   "T16.exit_speed_diff_kph",
+   "T15.time_loss_s",
+   "T15.min_speed_diff_kph",
+   "T15.causes",
+   "target.compound",
+   "reference.compound",
+   "conditions.traffic_data",
+   "T16.confidence",
+   "T15.confidence",
+   "T6.confidence"
+  ]
+ },
+ "follow_up_suggestions": [
+  {
+   "intent": "corner_detail",
+   "question": "What happened in Turn 16?"
+  },
+  {
+   "intent": "focus_corners",
+   "question": "Which corners should ALO focus on?"
+  }
+ ],
+ "retried": false
+}

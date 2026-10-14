@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -41,6 +42,17 @@ class Settings(BaseSettings):
     # --- AI race engineer (optional) ---
     openai_api_key: str | None = None
     ai_model: str = "gpt-4o-mini"
+
+    # --- Phase 7F engineer endpoints (/api/v1/engineer) ---
+    # Kill switch: off → always the template report / template answers, zero LLM calls.
+    # Read from ENGINEER_LLM_ENABLED (the plan's name) or RACEIQ_ENGINEER_LLM_ENABLED.
+    engineer_llm_enabled: bool = Field(
+        default=True, validation_alias=AliasChoices("ENGINEER_LLM_ENABLED", "RACEIQ_ENGINEER_LLM_ENABLED"))
+    # TEST ONLY: a scripted fake LLM for the end-to-end safety test ("inject": every answer
+    # carries an ungrounded number and a fabricated cause). Never set in production.
+    engineer_fake_llm: str | None = None
+    # Admin token for GET /api/v1/engineer/metrics (unset → the endpoint is disabled).
+    admin_token: str | None = None
 
     # --- Server ---
     cors_origins: str = "http://localhost:5173,http://localhost:3000"

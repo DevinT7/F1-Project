@@ -1,0 +1,32 @@
+{
+ "generated_by": "router",
+ "outcome": "refused",
+ "fallback_reason": null,
+ "prompt_version": "qa-template-v1",
+ "factsheet_hash": "0c6e4f30f6bf67da60210686e6d497e614d387ef49b816873a1c3830ed36aec9",
+ "facts": {},
+ "segments": {},
+ "conversation_id": "fixture-conversation-3",
+ "question": "Who will win the championship?",
+ "intent": "out_of_scope",
+ "entities": {},
+ "answer": {
+  "text": "I do not predict future races or championships. I can only discuss this comparison: where time was lost or gained, why a sector was faster or slower, what happened in a corner, which corners to focus on, the current tyre stint, the pit window, and whether the evidence points to the driver, the tyres or traffic.",
+  "fact_ids": []
+ },
+ "follow_up_suggestions": [
+  {
+   "intent": "where_lost_time",
+   "question": "Where did ALO lose the most time?"
+  },
+  {
+   "intent": "focus_corners",
+   "question": "Which corners should ALO focus on?"
+  },
+  {
+   "intent": "cause_attribution",
+   "question": "Was the time loss caused by the driver, the tyres or traffic?"
+  }
+ ],
+ "retried": false
+}

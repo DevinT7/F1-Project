@@ -23,6 +23,12 @@ export type Finding = Schemas["Finding"];
 export type LapChannels = Schemas["LapChannels"];
 export type StintsResponse = Schemas["StintsResponse"];
 export type TirePrediction = Schemas["TirePrediction"];
+export type EngineerReportRequest = Schemas["EngineerReportRequest"];
+export type EngineerReport = Schemas["EngineerReport"];
+export type EngineerAskRequest = Schemas["EngineerAskRequest"];
+export type EngineerAnswer = Schemas["EngineerAnswer"];
+export type FactView = Schemas["FactView"];
+export type EngineerBullet = Schemas["BulletOut"];
 
 export const DEMO_SESSION = "2024-05-Q";
 export const DEMO_REFERENCE = { driver: "VER", lap: "fastest" } as const;
@@ -30,7 +36,7 @@ export const DEMO_TARGET = { driver: "ALO", lap: "fastest" } as const;
 
 type DemoName =
   | "seasons" | "events_2024" | "session_2024-05-Q" | "drivers" | "laps"
-  | "fastest_laps" | "corners" | "comparison_VER_ALO" | "stints_2024-05-Q";
+  | "fastest_laps" | "corners" | "comparison_VER_ALO" | "stints_2024-05-Q" | "engineer_report_VER_ALO";
 
 const demoLoaders: Record<DemoName, () => Promise<{ default: unknown }>> = {
   seasons: () => import("@/fixtures/api/seasons.json"),
@@ -42,6 +48,7 @@ const demoLoaders: Record<DemoName, () => Promise<{ default: unknown }>> = {
   corners: () => import("@/fixtures/api/corners.json"),
   comparison_VER_ALO: () => import("@/fixtures/api/comparison_VER_ALO.json"),
   "stints_2024-05-Q": () => import("@/fixtures/api/stints_2024-05-Q.json"),
+  engineer_report_VER_ALO: () => import("@/fixtures/api/engineer_report_VER_ALO.json"),
 };
 
 async function demo<T>(name: DemoName): Promise<T> {
@@ -56,6 +63,13 @@ function demoOnly(what: string): Promise<never> {
 
 function isDemoSession(key: string): boolean {
   return key.replace(/_/g, "-").toUpperCase() === DEMO_SESSION;
+}
+
+function isDemoPair(body: { session_key: string; reference: { driver: string; lap?: number | "fastest" };
+  target: { driver: string; lap?: number | "fastest" } }): boolean {
+  return isDemoSession(body.session_key)
+    && body.reference.driver.toUpperCase() === "VER" && lapLabel(body.reference.lap) === "fastest"
+    && body.target.driver.toUpperCase() === "ALO" && lapLabel(body.target.lap) === "fastest";
 }
 
 function lapLabel(lap: number | "fastest" | undefined): string {
@@ -114,11 +128,17 @@ export function createApi(demoMode: boolean) {
 
     compare: (body: ComparisonRequest): Promise<ComparisonResponse> => {
       if (!demoMode) return apiPost("/api/v1/comparisons", { body });
-      const isDemoPair = isDemoSession(body.session_key)
-        && body.reference.driver.toUpperCase() === "VER" && lapLabel(body.reference.lap) === "fastest"
-        && body.target.driver.toUpperCase() === "ALO" && lapLabel(body.target.lap) === "fastest";
-      return isDemoPair ? demo("comparison_VER_ALO") : demoOnly("pick VER (fastest) vs ALO (fastest)");
+      return isDemoPair(body) ? demo("comparison_VER_ALO") : demoOnly("pick VER (fastest) vs ALO (fastest)");
     },
+
+    engineerReport: (body: EngineerReportRequest): Promise<EngineerReport> => {
+      if (!demoMode) return apiPost("/api/v1/engineer/report", { body });
+      return isDemoPair(body) ? demo("engineer_report_VER_ALO") : demoOnly("pick VER (fastest) vs ALO (fastest)");
+    },
+
+    engineerAsk: (body: EngineerAskRequest): Promise<EngineerAnswer> =>
+      demoMode ? demoOnly("the engineer chat needs the backend")
+        : apiPost("/api/v1/engineer/ask", { body }),
   };
 }
 

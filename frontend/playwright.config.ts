@@ -18,7 +18,9 @@ export default defineConfig({
       command: `${python} -m uvicorn app.main:app --port ${BACKEND_PORT}`,
       cwd: "../backend",
       url: `http://localhost:${BACKEND_PORT}/api/v1/health`,
-      env: { RACEIQ_DATA_DIR: "tests/fixtures/ingestion/store" },
+      // RACEIQ_ENGINEER_FAKE_LLM=inject: the engineer's LLM is a scripted fake that injects an ungrounded
+      // number and a fabricated cause into every draft (e2e/engineer.spec.ts asserts neither reaches the DOM)
+      env: { RACEIQ_DATA_DIR: "tests/fixtures/ingestion/store", RACEIQ_ENGINEER_FAKE_LLM: "inject" },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },

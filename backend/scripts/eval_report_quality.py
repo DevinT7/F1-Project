@@ -212,7 +212,8 @@ def main(argv: list[str] | None = None) -> int:
         f"- Valid within one retry: **{llm_ok / n:.0%}** (target ≥ 95%); first try: **{outcomes[Outcome.LLM_FIRST_TRY] / n:.0%}** "
         f"(target ≥ 80%)",
         f"- First-attempt violations by rule: {', '.join(f'{k} {v}' for k, v in first_rules.most_common()) or 'none'}",
-        f"- Latency per report: mean {statistics.mean(lat):.0f} ms, max {max(lat)} ms; tokens per report: "
+        f"- Latency per report: mean {statistics.mean(lat):.0f} ms, p95 {sorted(lat)[int(0.95 * (len(lat) - 1))]} ms "
+        f"(target < 8000 ms), max {max(lat)} ms; tokens per report: "
         f"{statistics.mean(tin):.0f} in / {statistics.mean(tout):.0f} out"
         + (f"; estimated cost ${cost:.4f} total (${cost / n:.4f} per report)" if cost is not None else
            "; cost: set LLM_PRICE_IN_PER_MTOK / LLM_PRICE_OUT_PER_MTOK to estimate"),

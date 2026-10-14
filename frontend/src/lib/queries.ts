@@ -6,7 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 
-import type { Api, ComparisonRequest } from "./api/endpoints";
+import type { Api, ComparisonRequest, EngineerAskRequest, EngineerReportRequest } from "./api/endpoints";
 import { HANDLED_CODES } from "./tires";
 import type { LapRef } from "./url-state";
 
@@ -111,5 +111,38 @@ export function useComparison(req: ComparisonRequest | null) {
     enabled: req !== null,
     retry: false,
     ...forever,
+  });
+}
+
+/** The engineer report (non-streaming: it arrives only after the server validated it). */
+export function useEngineerReport(req: EngineerReportRequest | null) {
+  const { api, demo } = useApi();
+  return useQuery({
+    queryKey: ["engineer-report", demo, req] as const,
+    queryFn: () => api.engineerReport(req!),
+    enabled: req !== null,
+    retry: false,
+    ...forever,
+  });
+}
+
+/** Regenerate: bypasses the server cache and replaces the cached report. */
+export function useRegenerateReport(req: EngineerReportRequest | null) {
+  const { api, demo } = useApi();
+  const client = useQueryClient();
+  return useMutation({
+    mutationKey: ["engineer-regenerate", demo, req],
+    mutationFn: () => api.engineerReport({ ...req!, regenerate: true }),
+    onSuccess: (data) => client.setQueryData(["engineer-report", demo, req], data),
+  });
+}
+
+/** One question to the engineer. Errors are shown inline by the chat (meta.inlineErrors: no toast). */
+export function useAskEngineer() {
+  const { api, demo } = useApi();
+  return useMutation({
+    mutationKey: ["engineer-ask", demo],
+    mutationFn: (body: EngineerAskRequest) => api.engineerAsk(body),
+    meta: { inlineErrors: true },
   });
 }

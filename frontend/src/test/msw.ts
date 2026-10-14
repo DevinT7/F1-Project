@@ -4,6 +4,10 @@ import { setupServer } from "msw/node";
 
 import comparison from "@/fixtures/api/comparison_VER_ALO.json";
 import corners from "@/fixtures/api/corners.json";
+import engineerAskCause from "@/fixtures/api/engineer_ask_cause.json";
+import engineerAskRefused from "@/fixtures/api/engineer_ask_refused.json";
+import engineerAskT16 from "@/fixtures/api/engineer_ask_T16.json";
+import engineerReport from "@/fixtures/api/engineer_report_VER_ALO.json";
 import drivers from "@/fixtures/api/drivers.json";
 import events2024 from "@/fixtures/api/events_2024.json";
 import fastestLaps from "@/fixtures/api/fastest_laps.json";
@@ -56,6 +60,13 @@ export const handlers = [
   http.get(`${V1}/sessions/:key/fastest-laps`, () => HttpResponse.json(fastestLaps)),
   http.get(`${V1}/sessions/:key/corners`, () => HttpResponse.json(corners)),
   http.post(`${V1}/comparisons`, () => HttpResponse.json(comparison)),
+  http.post(`${V1}/engineer/report`, () => HttpResponse.json(engineerReport)),
+  http.post(`${V1}/engineer/ask`, async ({ request }) => {
+    const { question } = (await request.json()) as { question: string };
+    if (/championship/i.test(question)) return HttpResponse.json(engineerAskRefused);
+    if (/caused|traffic/i.test(question)) return HttpResponse.json(engineerAskCause);
+    return HttpResponse.json({ ...engineerAskT16, question });
+  }),
 ];
 
 export const server = setupServer(...handlers);

@@ -25,7 +25,10 @@ function toastFor(error: unknown, meta?: Record<string, unknown>) {
 export function makeQueryClient() {
   return new QueryClient({
     queryCache: new QueryCache({ onError: (error, query) => toastFor(error, query.meta) }),
-    mutationCache: new MutationCache({ onError: (error) => toastFor(error) }),
+    // a mutation that renders its own error (meta.inlineErrors, e.g. the engineer chat) is not toasted
+    mutationCache: new MutationCache({
+      onError: (error, _vars, _ctx, mutation) => { if (!mutation.meta?.inlineErrors) toastFor(error); },
+    }),
     defaultOptions: {
       queries: {
         refetchOnWindowFocus: false,

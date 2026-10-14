@@ -116,7 +116,9 @@ export function TelemetryStack({ comparison }: { comparison: ComparisonResponse 
   const cursorEl = useRef<HTMLDivElement | null>(null);
   const bandEl = useRef<HTMLDivElement | null>(null);
   const frame = useRef<number | null>(null);
-  const segments = useMemo(() => new Map(comparison.findings.corners.map((f) => [f.id, f.segment])), [comparison]);
+  // every segment can be highlighted (corners, straights, sectors: the engineer's bullets point at all three)
+  const segments = useMemo(() => new Map([...comparison.findings.corners, ...comparison.findings.straights,
+    ...comparison.findings.sectors].map((f) => [f.id, f.segment])), [comparison]);
 
   // Position the overlays from the current x-axis mapping (also after zoom / resize).
   const placeOverlays = useCallback(() => {

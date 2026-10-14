@@ -13,6 +13,7 @@ import { isComparable, parseSessionKey, serializeUrlState, type UrlState } from 
 import { useUrlState } from "@/lib/use-url-state";
 
 import { ComparisonHeader } from "./comparison-header";
+import { EngineerSection } from "./engineer";
 import { ErrorBoundary } from "./error-boundary";
 import { CornerPanel, FindingsList, SectorCard } from "./findings";
 import { LapPicker } from "./lap-picker";
@@ -110,10 +111,18 @@ export function Dashboard() {
               <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                 <div className="md:col-span-2"><FindingsList comparison={comparison.data} /></div>
                 <SectorCard comparison={comparison.data} />
-                <div className="flex flex-col gap-5">
-                  <PlaceholderCard id="engineer" kick="✦ AI engineer" title="Race engineer report" enabled={features.engineer} />
-                </div>
+                {!features.engineer && (
+                  <div className="flex flex-col gap-5">
+                    <PlaceholderCard id="engineer" kick="✦ AI engineer" title="Race engineer report" enabled={false} />
+                  </div>
+                )}
               </div>
+              {features.engineer && state.session && state.ref && state.tgt && (
+                <ErrorBoundary label="AI engineer">
+                  <EngineerSection session={state.session} reference={state.ref} target={state.tgt}
+                    sessionCode={status.data?.info?.session_code ?? null} />
+                </ErrorBoundary>
+              )}
             </div>
           )}
         </div>
