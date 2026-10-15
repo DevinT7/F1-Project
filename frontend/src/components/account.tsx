@@ -72,27 +72,31 @@ export function SignInDialog() {
 
   return (
     <dialog ref={ref} aria-labelledby={titleId} onClose={() => dialog.hide()} data-testid="signin-dialog"
-      className="m-auto w-[min(380px,92vw)] rounded-2xl border border-line bg-card p-5 text-ink backdrop:bg-black/50">
-      <form onSubmit={submit} className="flex flex-col gap-3">
-        <h2 id={titleId} className="text-lg font-bold">{mode === "login" ? "Sign in" : "Create an account"}</h2>
-        {dialog.reason && <p className="text-sm text-muted">{dialog.reason}</p>}
-        <label className="flex flex-col gap-1 text-sm">Email
+      className="m-auto w-[min(560px,94vw)] overflow-hidden rounded-xl border border-line bg-card p-0 text-ink shadow-[0_30px_80px_rgba(0,0,0,0.7)] backdrop:bg-black/70 backdrop:backdrop-blur-sm">
+      <div aria-hidden className="kerb h-1.5 w-full" />
+      <form onSubmit={submit} className="flex flex-col gap-5 p-8 sm:p-10">
+        <div>
+          <div className="kick">Senna · account</div>
+          <h2 id={titleId} className="display mt-1 text-[34px]">{mode === "login" ? "Sign in" : "Create an account"}</h2>
+          {dialog.reason && <p className="mt-2 text-[15px] text-muted">{dialog.reason}</p>}
+        </div>
+        <label className="field-label flex flex-col gap-2">Email
           <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
-            className="rounded-lg border border-line bg-card-2 px-3 py-2" data-testid="signin-email" />
+            className="rounded-lg border border-line bg-card-2 px-4 py-3.5 text-base font-normal tracking-normal normal-case text-ink focus:border-accent-strong" data-testid="signin-email" />
         </label>
-        <label className="flex flex-col gap-1 text-sm">Password
+        <label className="field-label flex flex-col gap-2">Password
           <input type="password" required minLength={10} autoComplete={mode === "login" ? "current-password" : "new-password"}
             value={password} onChange={(e) => setPassword(e.target.value)}
-            className="rounded-lg border border-line bg-card-2 px-3 py-2" data-testid="signin-password" />
+            className="rounded-lg border border-line bg-card-2 px-4 py-3.5 text-base font-normal tracking-normal normal-case text-ink focus:border-accent-strong" data-testid="signin-password" />
         </label>
-        {error && <p className="text-sm text-red-ink" role="alert" data-testid="signin-error">{error}</p>}
-        <div className="flex items-center justify-between gap-2">
-          <button type="button" className="text-sm text-muted underline" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(null); }}>
+        {error && <p className="text-[15px] text-red-ink" role="alert" data-testid="signin-error">{error}</p>}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <button type="button" className="text-[15px] text-muted underline hover:text-ink" onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(null); }}>
             {mode === "login" ? "New here? Create an account" : "Have an account? Sign in"}
           </button>
           <div className="flex gap-2">
-            <button type="button" className="btn btn-ghost" onClick={() => dialog.hide()}>Cancel</button>
-            <button type="submit" className="btn" disabled={busy} data-testid="signin-submit">
+            <button type="button" className="btn btn-ghost px-5 py-3" onClick={() => dialog.hide()}>Cancel</button>
+            <button type="submit" className="btn px-6 py-3" disabled={busy} data-testid="signin-submit">
               {busy ? "…" : mode === "login" ? "Sign in" : "Create account"}
             </button>
           </div>
