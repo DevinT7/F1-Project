@@ -26,7 +26,7 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Retrain on the fixed dataset and compare with the baseline
         run: python -m scripts.ml_regression | tee ml_regression.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ml-regression
