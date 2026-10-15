@@ -24,6 +24,8 @@ backend/tests/fixtures/ingestion/store/_schedule/
 ml/models/
 *.parquet
 !backend/tests/fixtures/ingestion/**/*.parquet
+# the fixed dataset of the weekly ML regression check (scripts/ml_regression.py)
+!backend/tests/fixtures/tires/*.parquet
 *.pkl
 
 # Node / frontend
