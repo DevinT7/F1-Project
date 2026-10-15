@@ -1,6 +1,7 @@
 /**
  * E2E smoke: real backend (Parquet fixture repo, 2024 R5 Q) + production frontend build.
- * Load a shared URL → charts render → hover syncs the map → click a corner → panel shows values.
+ * Load a shared URL → Lap Comparison: charts render, hover syncs the map → Track Map: click a corner →
+ * the panel shows its values.
  */
 import { expect, test } from "@playwright/test";
 
@@ -12,6 +13,8 @@ test("shared URL → charts → hover sync → corner panel", async ({ page }) =
   page.on("pageerror", (e) => consoleErrors.push(e.message));
 
   await page.goto(URL);
+  await page.getByRole("tab", { name: "Lap Comparison" }).click();
+  await expect(page).toHaveURL(/tab=laps/);
 
   // charts render (Plotly SVG with all 11 traces)
   const plot = page.getByTestId("telemetry-plot");
@@ -32,7 +35,9 @@ test("shared URL → charts → hover sync → corner panel", async ({ page }) =
   await page.mouse.move(box.x + box.width * 0.5, box.y + 40);
   await expect(page.getByTestId("map-marker")).toBeVisible();
 
-  // click a corner → the panel shows its values
+  // Track Map tab: click a corner → the panel shows its values
+  await page.getByRole("tab", { name: "Track Map" }).click();
+  await expect(page.getByTestId("corner-table")).toBeVisible();
   await page.getByTestId("corner-T6").click();
   const panel = page.getByTestId("corner-panel");
   await expect(panel.getByRole("heading", { level: 3 })).toHaveText("Turn 6");

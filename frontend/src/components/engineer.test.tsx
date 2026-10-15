@@ -10,10 +10,18 @@ import { useUiStore } from "@/lib/store";
 import { signInAs, signOutForTest } from "@/test/auth";
 import { apiError, server } from "@/test/msw";
 
-import { EngineerSection } from "./engineer";
+import { EngineerChat, EngineerSection } from "./engineer";
 
 const REF = { driver: "VER", lap: "fastest" as const };
 const TGT = { driver: "ALO", lap: "fastest" as const };
+
+function renderChat() {
+  return render(
+    <Providers demo={false}>
+      <EngineerChat request={{ session_key: "2024-05-Q", reference: REF, target: TGT }} target="ALO" sessionCode="Q" />
+    </Providers>,
+  );
+}
 
 function renderEngineer() {
   return render(
@@ -104,7 +112,7 @@ describe("engineer report card", () => {
 describe("engineer chat", () => {
   it("asks via a suggestion chip and renders the answer in a live region with fact hovers", async () => {
     const user = userEvent.setup();
-    renderEngineer();
+    renderChat();
     const chat = await screen.findByTestId("engineer-chat");
     const log = within(chat).getByRole("log");
     expect(log).toHaveAttribute("aria-live", "polite");
@@ -118,14 +126,14 @@ describe("engineer chat", () => {
   });
 
   it("limits the input to 300 characters", async () => {
-    renderEngineer();
+    renderChat();
     const input = await screen.findByTestId("engineer-input");
     expect(input).toHaveAttribute("maxLength", "300");
   });
 
   it("styles out-of-scope answers neutrally", async () => {
     const user = userEvent.setup();
-    renderEngineer();
+    renderChat();
     const input = await screen.findByTestId("engineer-input");
     await user.type(input, "Who will win the championship?{Enter}");
     const answer = await screen.findByTestId("engineer-answer");
@@ -137,7 +145,7 @@ describe("engineer chat", () => {
   it("shows a graceful inline error with the request id (no toast) and can retry", async () => {
     const user = userEvent.setup();
     server.use(http.post("*/api/v1/engineer/ask", () => apiError(503, "unavailable", "engineer offline", "req-ask-9")));
-    renderEngineer();
+    renderChat();
     const input = await screen.findByTestId("engineer-input");
     await user.type(input, "Where did ALO lose time?{Enter}");
     const err = await screen.findByTestId("engineer-error");
@@ -153,7 +161,7 @@ describe("engineer chat", () => {
       await new Promise<void>((r) => { release = r; });
       return HttpResponse.json({});
     }));
-    renderEngineer();
+    renderChat();
     await user.type(await screen.findByTestId("engineer-input"), "Where did ALO lose time?{Enter}");
     expect(await screen.findByTestId("engineer-thinking")).toHaveTextContent("Engineer is thinking");
     release();

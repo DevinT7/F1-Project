@@ -32,7 +32,9 @@ export function cornerShortLabel(f: Finding): string {
 
 interface Seg { f: Finding; d: string; style: ReturnType<typeof lossStyle> }
 
-export function TrackMap({ comparison, corners }: { comparison: ComparisonResponse; corners: CornersResponse | undefined }) {
+export function TrackMap({ comparison, corners, maxHeight = 340 }: {
+  comparison: ComparisonResponse; corners: CornersResponse | undefined; maxHeight?: number;
+}) {
   const palette = useThemePalette();
   const [mode, setMode] = useState<Mode>("delta");
   const ref = comparison.channels.reference;
@@ -59,14 +61,14 @@ export function TrackMap({ comparison, corners }: { comparison: ComparisonRespon
         ))}
       </div>
       {mode === "delta"
-        ? <DeltaMap track={track} segments={segments} palette={palette} />
-        : <ReplayMap track={track} segments={segments} palette={palette} comparison={comparison} />}
+        ? <DeltaMap track={track} segments={segments} palette={palette} maxHeight={maxHeight} />
+        : <ReplayMap track={track} segments={segments} palette={palette} comparison={comparison} maxHeight={maxHeight} />}
     </div>
   );
 }
 
 // ---------------------------------------------------------------- time gained / lost
-function DeltaMap({ track, segments, palette }: { track: TrackGeometry; segments: Seg[]; palette: ThemePalette }) {
+function DeltaMap({ track, segments, palette, maxHeight }: { track: TrackGeometry; segments: Seg[]; palette: ThemePalette; maxHeight: number }) {
   const selected = useUiStore((s) => s.selectedCornerId);
   const selectCorner = useUiStore((s) => s.selectCorner);
   const setHover = useUiStore((s) => s.setHover);
@@ -78,7 +80,7 @@ function DeltaMap({ track, segments, palette }: { track: TrackGeometry; segments
 
   return (
     <div>
-      <svg viewBox={`0 0 ${SIZE.width} ${SIZE.height}`} className="w-full" style={{ maxHeight: 340 }}
+      <svg viewBox={`0 0 ${SIZE.width} ${SIZE.height}`} className="w-full" style={{ maxHeight }}
         role="img" aria-labelledby="track-title track-desc" onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
         <title id="track-title">Track map coloured by where the target gained or lost time</title>
         <desc id="track-desc">Each corner segment is green when the target gained time, red when it lost time, and grey within ±{NOISE_FLOOR_S} s.</desc>
@@ -86,7 +88,7 @@ function DeltaMap({ track, segments, palette }: { track: TrackGeometry; segments
         {segments.map(({ f, d, style }) => (
           <path key={f.id} d={d} fill="none" stroke={style.color}
             strokeWidth={f.id === selected ? 9 : 6} strokeLinecap="round" strokeLinejoin="round"
-            opacity={selected && f.id !== selected ? 0.55 : 1} onClick={() => selectCorner(f.id)} className="cursor-pointer">
+            opacity={selected && f.id !== selected ? 0.55 : 1} onClick={() => selectCorner(f.id)} className="track-seg cursor-pointer">
             <title>{`${f.label}: ${style.glyph} ${style.label}`}</title>
           </path>
         ))}
@@ -105,8 +107,8 @@ function DeltaMap({ track, segments, palette }: { track: TrackGeometry; segments
 }
 
 // ---------------------------------------------------------------- lap replay
-function ReplayMap({ track, segments, palette, comparison }: {
-  track: TrackGeometry; segments: Seg[]; palette: ThemePalette; comparison: ComparisonResponse;
+function ReplayMap({ track, segments, palette, comparison, maxHeight }: {
+  track: TrackGeometry; segments: Seg[]; palette: ThemePalette; comparison: ComparisonResponse; maxHeight: number;
 }) {
   const selectCorner = useUiStore((s) => s.selectCorner);
   const replay = useMemo(() => buildReplay(comparison.distance_m, comparison.channels.reference.time_s,
@@ -184,7 +186,7 @@ function ReplayMap({ track, segments, palette, comparison }: {
 
   return (
     <div data-testid="replay">
-      <svg viewBox={`0 0 ${SIZE.width} ${SIZE.height}`} className="w-full" style={{ maxHeight: 340 }}
+      <svg viewBox={`0 0 ${SIZE.width} ${SIZE.height}`} className="w-full" style={{ maxHeight }}
         role="img" aria-labelledby="replay-title replay-desc">
         <title id="replay-title">Lap replay: {code.reference} and {code.target} on track at their real pace</title>
         <desc id="replay-desc">Each dot is a driver in their team colour; the coloured stretch between them is the gap.</desc>
@@ -284,8 +286,9 @@ function svgPoint(e: React.MouseEvent<SVGSVGElement>): DOMPoint | null {
 }
 
 function BaseLine({ track, palette }: { track: TrackGeometry; palette: ThemePalette }) {
-  return <path d={segmentPath(track, 0, track.distance[track.distance.length - 1]!)} fill="none"
-    stroke={palette.line} strokeWidth={13} strokeLinecap="round" strokeLinejoin="round" />;
+  // pathLength="1" lets the CSS draw the circuit like a lap being traced (globals.css .track-draw)
+  return <path d={segmentPath(track, 0, track.distance[track.distance.length - 1]!)} fill="none" pathLength={1}
+    stroke={palette.line} strokeWidth={13} strokeLinecap="round" strokeLinejoin="round" className="track-draw" />;
 }
 
 function CornerLabels({ track, segments, palette, onPick }: {

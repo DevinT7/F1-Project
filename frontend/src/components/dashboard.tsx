@@ -1,31 +1,45 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, type ReactNode } from "react";
 
-import { DEMO_REFERENCE, DEMO_SESSION, DEMO_TARGET } from "@/lib/api/endpoints";
+import { DEMO_REFERENCE, DEMO_SESSION, DEMO_TARGET, type ComparisonResponse, type CornersResponse } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/client";
 import { features } from "@/lib/flags";
 import {
   comparisonRequest, useComparison, useCorners, useDrivers, useFastestLaps, useLaps, useSessionStatus,
 } from "@/lib/queries";
 import { useUiStore } from "@/lib/store";
+import { TabNavContext } from "@/lib/tab-nav";
+import { DEFAULT_TAB, tabLabel, type TabId } from "@/lib/tabs";
 import { isComparable, parseSessionKey, serializeUrlState, type UrlState } from "@/lib/url-state";
 import { useUrlState } from "@/lib/use-url-state";
 
 import { AccountMenu, SignInDialog } from "./account";
+import { CornerTable, RaceBrief, StraightsTable } from "./briefing";
 import { ComparisonHeader } from "./comparison-header";
 import { EngineerSection } from "./engineer";
+import { EngineerDock } from "./engineer-dock";
 import { ErrorBoundary } from "./error-boundary";
 import { CornerPanel, FindingsList, SectorCard } from "./findings";
 import { LapPicker } from "./lap-picker";
 import { SessionSelector } from "./session-selector";
-import { PlaceholderCard, Sidebar, Toaster, Topbar } from "./shell";
+import { PlaceholderCard, Toaster, TopNav } from "./shell";
+import { TabStage } from "./tab-stage";
 import { TelemetryStack } from "./telemetry-stack";
 import { TireSection } from "./tire-section";
 import { TrackMap } from "./track-map";
 
+const TAB_INTRO: Record<TabId, string> = {
+  pitwall: "The whole comparison at a glance: lap times, the brief, the map and the corners that decided it.",
+  laps: "Speed, throttle, brake, gear and the running time delta, metre by metre, with the speed traps.",
+  track: "Where on the circuit the time went, corner by corner, with a real-pace replay of both laps.",
+  tires: "Stints, degradation and the pit window for race sessions; observed laps for the others.",
+  engineer: "The AI race engineer's full report, written only from verified numbers, and the facts behind it.",
+};
+
 export function Dashboard() {
   const [state, update] = useUrlState();
+  const tab = state.tab ?? DEFAULT_TAB;
   const status = useSessionStatus(state.session);
   const ready = status.data?.status === "ready";
   const drivers = useDrivers(state.session, ready);
@@ -33,6 +47,7 @@ export function Dashboard() {
   const fastest = useFastestLaps(state.session, ready);
   const corners = useCorners(state.session, ready);
   const selectCorner = useUiStore((s) => s.selectCorner);
+  const goTo = useCallback((t: TabId) => update({ tab: t }), [update]);
 
   // A fresh session with no laps chosen: preselect the two fastest drivers' fastest laps.
   useEffect(() => {
@@ -53,106 +68,172 @@ export function Dashboard() {
   useEffect(() => selectCorner(null), [comparison.data, selectCorner]);
 
   const parts = parseSessionKey(state.session);
-  const demoState: UrlState = { session: DEMO_SESSION, ref: { ...DEMO_REFERENCE }, tgt: { ...DEMO_TARGET }, resolution: 2, demo: true };
-  const sessionLabel = status.data?.info ? `${status.data.info.year} · ${status.data.info.event_name} · ${status.data.info.session_code}` : state.session;
+  const demoState: UrlState = { session: DEMO_SESSION, ref: { ...DEMO_REFERENCE }, tgt: { ...DEMO_TARGET }, resolution: 2, demo: true, tab };
+  const info = status.data?.info;
+  const sessionLabel = info ? `${info.year} · ${info.event_name} · ${info.session_code}` : state.session;
+  const sessionCode = info?.session_code ?? null;
+
+  function comparisonGate(render: (cmp: ComparisonResponse) => ReactNode): ReactNode {
+    if (!state.session) {
+      return <EmptyState>Pick a season, Grand Prix and session to start, or try <b>Demo data</b> to preview with real telemetry and no backend.</EmptyState>;
+    }
+    if (ready && !isComparable(state)) return <EmptyState>Choose a reference and a target lap.</EmptyState>;
+    if (request && comparison.isPending) return <ComparisonSkeleton />;
+    if (request && comparison.isError) return <ComparisonError error={comparison.error} onRetry={() => comparison.refetch()} />;
+    if (comparison.data && request) return render(comparison.data);
+    return null;
+  }
+
+  function panel(): ReactNode {
+    switch (tab) {
+      case "pitwall":
+        return comparisonGate((cmp) => <PitWall comparison={cmp} corners={corners.data} />);
+      case "laps":
+        return comparisonGate((cmp) => <LapComparison comparison={cmp} corners={corners.data} />);
+      case "track":
+        return comparisonGate((cmp) => <TrackTab comparison={cmp} corners={corners.data} />);
+      case "tires":
+        if (!state.session) return <EmptyState>Pick a race session to see stints, degradation and the pit window.</EmptyState>;
+        if (!(ready && features.tires && info)) return null;
+        return (
+          <ErrorBoundary label="Tire analysis">
+            <TireSection session={state.session} sessionCode={info.session_code}
+              raceLaps={info.n_laps_scheduled ?? null} drivers={drivers.data?.drivers ?? []}
+              laps={laps.data?.laps ?? []} tyre={state.tyre ?? null} asof={state.asof ?? null}
+              onChange={update} />
+          </ErrorBoundary>
+        );
+      case "engineer":
+        return comparisonGate(() => (features.engineer && state.session && state.ref && state.tgt ? (
+          <ErrorBoundary label="AI engineer">
+            <EngineerSection session={state.session} reference={state.ref} target={state.tgt} sessionCode={sessionCode} />
+          </ErrorBoundary>
+        ) : <PlaceholderCard id="engineer" kick="✦ AI engineer" title="Race engineer report" enabled={false} />));
+    }
+  }
 
   return (
-    <div className="lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
-      <Sidebar sessionLabel={sessionLabel} />
-      <main className="mx-auto w-full max-w-[1500px] px-4 pt-6 pb-16 sm:px-8">
-        <Topbar demo={state.demo} season={parts?.year ?? null} account={<AccountMenu demo={state.demo} current={state} />}
+    <TabNavContext.Provider value={goTo}>
+      <div className="min-h-screen">
+        <TopNav tab={tab} onTab={goTo} demo={state.demo} account={<AccountMenu demo={state.demo} current={state} />}
           demoHref={`?${serializeUrlState(demoState)}`}
           liveHref={`?${serializeUrlState({ ...state, demo: false })}`} />
-        {state.demo && (
-          <p className="mb-3 rounded-xl border border-line bg-purple-soft px-4 py-2 text-sm text-purple" role="status">
-            ▶ Demo data: real API output for 2024 China qualifying (VER vs ALO), served without a backend.
-          </p>
-        )}
-
-        <div className="flex flex-col gap-3">
-          <SessionSelector value={state.session} demo={state.demo}
-            onChange={(session) => update({ session, ref: null, tgt: null, tyre: null, asof: null })} />
-          {ready && (
-            <div className="strip" role="group" aria-label="Laps to compare">
-              <LapPicker role="reference" value={state.ref} drivers={drivers.data?.drivers ?? []}
-                laps={laps.data?.laps ?? []} loading={drivers.isPending || laps.isPending}
-                onChange={(ref) => update({ ref })} />
-              <LapPicker role="target" value={state.tgt} drivers={drivers.data?.drivers ?? []}
-                laps={laps.data?.laps ?? []} loading={drivers.isPending || laps.isPending}
-                onChange={(tgt) => update({ tgt })} />
-            </div>
-          )}
-        </div>
-
-        <div className="mt-5">
-          {!state.session && (
-            <EmptyState>
-              Pick a season, Grand Prix and session to start, or try <b>Demo data</b> to preview with real telemetry and no backend.
-            </EmptyState>
-          )}
-          {state.session && ready && !isComparable(state) && <EmptyState>Choose a reference and a target lap.</EmptyState>}
-          {request && comparison.isPending && <ComparisonSkeleton />}
-          {request && comparison.isError && <ComparisonError error={comparison.error} onRetry={() => comparison.refetch()} />}
-          {comparison.data && request && (
-            <div className="flex flex-col gap-5">
-              <ErrorBoundary label="Comparison summary"><ComparisonHeader comparison={comparison.data} /></ErrorBoundary>
-              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-                <ErrorBoundary label="Telemetry"><TelemetryStack comparison={comparison.data} /></ErrorBoundary>
-                <section id="track" className="card min-w-0" aria-labelledby="track-heading">
-                  <div className="kick">Interactive track map</div>
-                  <h2 id="track-heading" className="mb-2 text-[15px] font-bold">{status.data?.info?.circuit ?? "Circuit"} · time gained / lost by corner</h2>
-                  <div className="flex flex-col gap-4 2xl:flex-row">
-                    <div className="min-w-0 flex-1">
-                      <ErrorBoundary label="Track map"><TrackMap comparison={comparison.data} corners={corners.data} /></ErrorBoundary>
-                    </div>
-                    <div className="2xl:w-[300px]"><CornerPanel comparison={comparison.data} /></div>
-                  </div>
-                </section>
+        <div className="mx-auto max-w-[1920px] xl:grid xl:grid-cols-[minmax(0,1fr)_var(--dock-w)]">
+          <main className="min-w-0 px-4 pt-6 pb-16 sm:px-8">
+            <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <div className="min-w-0">
+                <div className="eyebrow">◣ {sessionLabel ?? "Race analysis"}{parts ? ` · ${parts.year} season` : ""}</div>
+                <h1 key={tab} className="display tab-enter mt-1 text-[40px] sm:text-[48px]">{tabLabel(tab)}</h1>
+                <p className="mt-1 max-w-3xl text-[15px] text-muted">{TAB_INTRO[tab]}</p>
               </div>
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-                <div className="md:col-span-2"><FindingsList comparison={comparison.data} /></div>
-                <SectorCard comparison={comparison.data} />
-                {!features.engineer && (
-                  <div className="flex flex-col gap-5">
-                    <PlaceholderCard id="engineer" kick="✦ AI engineer" title="Race engineer report" enabled={false} />
-                  </div>
-                )}
-              </div>
-              {features.engineer && state.session && state.ref && state.tgt && (
-                <ErrorBoundary label="AI engineer">
-                  <EngineerSection session={state.session} reference={state.ref} target={state.tgt}
-                    sessionCode={status.data?.info?.session_code ?? null} />
-                </ErrorBoundary>
+            </header>
+            {state.demo && (
+              <p className="mb-3 rounded-lg border border-line bg-purple-soft px-4 py-2 text-sm text-purple" role="status">
+                ▶ Demo data: real API output for 2024 China qualifying (VER vs ALO), served without a backend.
+              </p>
+            )}
+
+            <div className="flex flex-col gap-3">
+              <SessionSelector value={state.session} demo={state.demo}
+                onChange={(session) => update({ session, ref: null, tgt: null, tyre: null, asof: null })} />
+              {ready && tab !== "tires" && (
+                <div className="strip" role="group" aria-label="Laps to compare">
+                  <LapPicker role="reference" value={state.ref} drivers={drivers.data?.drivers ?? []}
+                    laps={laps.data?.laps ?? []} loading={drivers.isPending || laps.isPending}
+                    onChange={(ref) => update({ ref })} />
+                  <LapPicker role="target" value={state.tgt} drivers={drivers.data?.drivers ?? []}
+                    laps={laps.data?.laps ?? []} loading={drivers.isPending || laps.isPending}
+                    onChange={(tgt) => update({ tgt })} />
+                </div>
               )}
             </div>
+
+            <div className="mt-5">
+              <TabStage tab={tab}>{panel()}</TabStage>
+            </div>
+
+            <footer className="mt-10 text-center text-[11px] leading-relaxed text-muted" data-testid="site-notice">
+              <p>Data: FastF1 · every figure is computed by the Senna analysis engine</p>
+              <p>
+                Senna is an unofficial, non-commercial project, not associated in any way with the Formula 1 companies.
+                F1, FORMULA ONE, FORMULA 1 and GRAND PRIX are trade marks of Formula One Licensing B.V.
+                Timing data via the open-source FastF1 library.
+              </p>
+            </footer>
+          </main>
+          {features.engineer && (
+            <EngineerDock tab={tab} session={request ? state.session : null} reference={state.ref} target={state.tgt}
+              sessionCode={sessionCode} />
           )}
         </div>
-        {ready && features.tires && status.data?.info && state.session && (
-          <div className="mt-5">
-            <ErrorBoundary label="Tire analysis">
-              <TireSection session={state.session} sessionCode={status.data.info.session_code}
-                raceLaps={status.data.info.n_laps_scheduled ?? null} drivers={drivers.data?.drivers ?? []}
-                laps={laps.data?.laps ?? []} tyre={state.tyre ?? null} asof={state.asof ?? null}
-                onChange={update} />
-            </ErrorBoundary>
-          </div>
-        )}
-        <footer className="mt-8 text-center text-[11px] leading-relaxed text-muted" data-testid="site-notice">
-          <p>Data: FastF1 · every figure is computed by the RaceIQ backend</p>
-          <p>
-            RaceIQ is an unofficial, non-commercial project, not associated in any way with the Formula 1 companies.
-            F1, FORMULA ONE, FORMULA 1 and GRAND PRIX are trade marks of Formula One Licensing B.V.
-            Timing data via the open-source FastF1 library.
-          </p>
-        </footer>
-      </main>
-      <Toaster />
-      <SignInDialog />
+        <Toaster />
+        <SignInDialog />
+      </div>
+    </TabNavContext.Provider>
+  );
+}
+
+// ---------------------------------------------------------------- the tabs
+function MapCard({ comparison, corners, maxHeight, title }: {
+  comparison: ComparisonResponse; corners: CornersResponse | undefined; maxHeight: number; title?: string;
+}) {
+  return (
+    <section id="track" className="card min-w-0" aria-labelledby="track-heading">
+      <div className="kick">Interactive track map</div>
+      <h2 id="track-heading" className="mb-2 text-[16px] font-bold">{title ?? `${comparison.findings.session_context?.event_name ?? "Circuit"} · time gained / lost by corner`}</h2>
+      <ErrorBoundary label="Track map"><TrackMap comparison={comparison} corners={corners} maxHeight={maxHeight} /></ErrorBoundary>
+    </section>
+  );
+}
+
+function PitWall({ comparison, corners }: { comparison: ComparisonResponse; corners: CornersResponse | undefined }) {
+  return (
+    <div className="rise flex flex-col gap-5">
+      <ErrorBoundary label="Comparison summary"><ComparisonHeader comparison={comparison} /></ErrorBoundary>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <MapCard comparison={comparison} corners={corners} maxHeight={520} />
+        <CornerPanel comparison={comparison} />
+      </div>
+      <RaceBrief comparison={comparison} />
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <FindingsList comparison={comparison} />
+        <SectorCard comparison={comparison} />
+      </div>
     </div>
   );
 }
 
-function EmptyState({ children }: { children: React.ReactNode }) {
+function LapComparison({ comparison, corners }: { comparison: ComparisonResponse; corners: CornersResponse | undefined }) {
+  return (
+    <div className="rise flex flex-col gap-5">
+      <ErrorBoundary label="Comparison summary"><ComparisonHeader comparison={comparison} /></ErrorBoundary>
+      <ErrorBoundary label="Telemetry"><TelemetryStack comparison={comparison} height={920} /></ErrorBoundary>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <StraightsTable comparison={comparison} />
+        <MapCard comparison={comparison} corners={corners} maxHeight={320} title="Where on track (follows the chart cursor)" />
+      </div>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <FindingsList comparison={comparison} />
+        <SectorCard comparison={comparison} />
+      </div>
+    </div>
+  );
+}
+
+function TrackTab({ comparison, corners }: { comparison: ComparisonResponse; corners: CornersResponse | undefined }) {
+  return (
+    <div className="rise flex flex-col gap-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <MapCard comparison={comparison} corners={corners} maxHeight={680} />
+        <CornerPanel comparison={comparison} />
+      </div>
+      <CornerTable comparison={comparison} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- states
+function EmptyState({ children }: { children: ReactNode }) {
   return <div className="card text-sm text-muted" role="status">{children}</div>;
 }
 

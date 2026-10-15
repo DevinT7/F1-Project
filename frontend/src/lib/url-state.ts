@@ -1,7 +1,9 @@
 /**
- * Shareable URL state: ?s=2024-05-Q&ref=NOR:fastest&tgt=VER:15[&res=4][&tyre=NOR&asof=31][&demo=1]
+ * Shareable URL state: ?s=2024-05-Q&ref=NOR:fastest&tgt=VER:15[&res=4][&tyre=NOR&asof=31][&tab=track][&demo=1]
  * The page renders from the URL alone; every selection writes back to it.
  */
+
+import { DEFAULT_TAB, parseTab, type TabId } from "./tabs";
 
 export type LapChoice = number | "fastest";
 export interface LapRef {
@@ -16,6 +18,7 @@ export interface UrlState {
   demo: boolean;
   tyre?: string | null;      // tyre panel driver
   asof?: number | null;      // tyre panel "as of" lap (the forecast uses laps ≤ asof only)
+  tab?: TabId;               // the top-level tab (default: Pit Wall)
 }
 export interface SessionParts {
   year: number;
@@ -29,7 +32,7 @@ const SESSION_CODES = ["FP1", "FP2", "FP3", "SQ", "SS", "S", "Q", "R"] as const;
 const DRIVER_RE = /^[A-Za-z0-9]{1,4}$/;
 
 export const emptyState: UrlState = {
-  session: null, ref: null, tgt: null, resolution: DEFAULT_RESOLUTION, demo: false, tyre: null, asof: null,
+  session: null, ref: null, tgt: null, resolution: DEFAULT_RESOLUTION, demo: false, tyre: null, asof: null, tab: DEFAULT_TAB,
 };
 
 export function normalizeSessionKey(raw: string | null | undefined): string | null {
@@ -78,6 +81,7 @@ export function parseUrlState(search: string | URLSearchParams): UrlState {
     demo: params.get("demo") === "1",
     tyre: DRIVER_RE.test(tyre) ? tyre : null,
     asof,
+    tab: parseTab(params.get("tab")),
   };
 }
 
@@ -90,6 +94,7 @@ export function serializeUrlState(state: UrlState): string {
   if (state.resolution !== DEFAULT_RESOLUTION) params.set("res", String(state.resolution));
   if (state.tyre) params.set("tyre", state.tyre);
   if (state.tyre && state.asof) params.set("asof", String(state.asof));
+  if (state.tab && state.tab !== DEFAULT_TAB) params.set("tab", state.tab);
   if (state.demo) params.set("demo", "1");
   return params.toString().replace(/%3A/gi, ":");
 }

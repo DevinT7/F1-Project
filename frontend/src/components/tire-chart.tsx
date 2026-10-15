@@ -100,7 +100,7 @@ export function buildTireFigure(p: TirePrediction, palette: ThemePalette, showEx
     yRange,
     offScaleExcluded,
     layout: {
-      autosize: true, height: 340, margin: { l: 56, r: 12, t: 8, b: 40 },
+      autosize: true, height: 460, margin: { l: 56, r: 12, t: 8, b: 40 },
       paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
       font: { color: palette.ink, size: 11 },
       xaxis: { title: { text: "Lap" }, range: [firstLap - 0.5, lastLap + 0.5], gridcolor: palette.line, zeroline: false },
@@ -119,10 +119,10 @@ export function TireChart({ prediction, showExcluded, describedBy }: {
   const palette = useThemePalette();
   const fig = useMemo(() => buildTireFigure(prediction, palette, showExcluded), [prediction, palette, showExcluded]);
   return (
-    <div data-testid="tire-chart" role="img" aria-label={`Tyre forecast chart as of lap ${prediction.lap}`}
+    <div data-testid="tire-chart" className="chart-reveal" role="img" aria-label={`Tyre forecast chart as of lap ${prediction.lap}`}
       aria-describedby={describedBy}>
       <Plot data={fig.data} layout={fig.layout} config={{ displayModeBar: false, responsive: true }}
-        style={{ width: "100%", height: 340 }} useResizeHandler />
+        style={{ width: "100%", height: 460 }} useResizeHandler />
       {fig.offScaleExcluded > 0 && showExcluded && (
         <p className="mt-1 text-[11px] text-muted">{fig.offScaleExcluded} excluded lap{fig.offScaleExcluded === 1 ? "" : "s"} (in/out laps) off the scale.</p>
       )}

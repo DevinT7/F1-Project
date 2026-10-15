@@ -54,13 +54,13 @@ export function QualifyingTireChart({ laps, driver }: { laps: LapRecord[]; drive
             hovertemplate: "%{text}<br>tyre age %{x}: %{y:.3f} s<extra>%{fullData.name}</extra>",
           }))}
           layout={{
-            autosize: true, height: 280, margin: { l: 56, r: 12, t: 8, b: 40 },
+            autosize: true, height: 380, margin: { l: 56, r: 12, t: 8, b: 40 },
             paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", font: { color: palette.ink, size: 11 },
             xaxis: { title: { text: "Tyre age (laps)" }, gridcolor: palette.line, dtick: 1 },
             yaxis: { title: { text: "Lap time (s)" }, gridcolor: palette.line },
             legend: { orientation: "h", y: -0.25 },
           }}
-          config={{ displayModeBar: false, responsive: true }} style={{ width: "100%", height: 280 }} useResizeHandler />
+          config={{ displayModeBar: false, responsive: true }} style={{ width: "100%", height: 380 }} useResizeHandler />
       </div>
       <p id={`${id}-summary`} className="sr-only">{summary}</p>
     </section>

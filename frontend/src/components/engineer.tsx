@@ -1,7 +1,8 @@
 "use client";
 /**
- * Phase 7F AI race engineer: the report card and the chat. Everything shown here was validated
- * server-side before it was sent (non-streaming), and every bullet exposes the facts it cites.
+ * The AI race engineer: the full report (AI Engineer tab), the report card the dock reuses per tab,
+ * and the chat (in the dock). Everything shown was validated server-side before it was sent
+ * (non-streaming), and every bullet exposes the facts it cites.
  */
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 
@@ -10,43 +11,79 @@ import type { EngineerAnswer, EngineerAskRequest, EngineerBullet, EngineerReport
   FactView } from "@/lib/api/endpoints";
 import {
   FOOTER_NOTE, MAX_QUESTION, REGENERATE_COOLDOWN_S, SECTIONS, badgeFor, defaultSuggestions, factValue, factsFor,
-  fallbackExplanation, isNeutral, reportText, segmentFor,
+  fallbackExplanation, isNeutral, reportText, segmentFor, type SectionKey,
 } from "@/lib/engineer";
 import { useAuth } from "@/lib/auth";
 import { useApi, useAskEngineer, useEngineerReport, useRegenerateReport } from "@/lib/queries";
 import { useUiStore } from "@/lib/store";
+import { useGoToTab } from "@/lib/tab-nav";
+import type { TabId } from "@/lib/tabs";
 
 import { SignInPrompt } from "./account";
 
 type LapSel = EngineerReportRequest["reference"];
 
+export function engineerRequest(session: string, reference: LapSel, target: LapSel, sessionCode: string | null): EngineerReportRequest {
+  return { session_key: session, reference, target, ...(sessionCode === "R" ? { tire_context: {} } : {}) };
+}
+
+/** Signed in (or demo mode, which serves the exported report without an account). */
+export function useEngineerAccess(): { signedIn: boolean; unknown: boolean } {
+  const { demo } = useApi();
+  const status = useAuth((s) => s.status);
+  return { signedIn: demo || status === "signed_in", unknown: !demo && status === "unknown" };
+}
+
+/** AI Engineer tab: the complete validated report, and every fact it rests on. */
 export function EngineerSection({ session, reference, target, sessionCode }: {
   session: string; reference: LapSel; target: LapSel; sessionCode: string | null;
 }) {
-  const request = useMemo<EngineerReportRequest>(() => ({
-    session_key: session, reference, target, ...(sessionCode === "R" ? { tire_context: {} } : {}),
-  }), [session, reference, target, sessionCode]);
-  const { demo } = useApi();
-  const status = useAuth((s) => s.status);
-  const signedIn = demo || status === "signed_in";      // demo mode serves the exported report, no account
+  const request = useMemo(() => engineerRequest(session, reference, target, sessionCode),
+    [session, reference, target, sessionCode]);
+  const { signedIn, unknown } = useEngineerAccess();
   return (
     <section id="engineer" className="card" aria-labelledby="engineer-title">
       <div className="kick">✦ AI engineer</div>
-      <h2 id="engineer-title" className="mt-1 text-[15px] font-bold">Race engineer report</h2>
+      <h2 id="engineer-title" className="display mt-1 text-[22px]">Race engineer report</h2>
       {!signedIn ? (
         <div className="mt-3">
-          {status === "unknown" ? <div className="skeleton h-24" aria-label="Checking your session" />
+          {unknown ? <div className="skeleton h-24" aria-label="Checking your session" />
             : <SignInPrompt what="Sign in to get the AI race engineer's report and ask it questions (accounts keep LLM costs in check)." />}
         </div>
       ) : (
-      <div className="mt-3 grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-        <ReportCard request={request} />
-        {/* keyed by the comparison: a different comparison starts a new conversation */}
-        <EngineerChat key={JSON.stringify(request)} request={request} target={target.driver} sessionCode={sessionCode} />
-      </div>
+        <div className="mt-4 grid gap-6 2xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+          <ReportCard request={request} jumpTo="track" />
+          <FactsTable request={request} />
+        </div>
       )}
       <p className="mt-4 border-t border-line pt-3 text-xs text-muted" data-testid="engineer-footer">{FOOTER_NOTE}</p>
     </section>
+  );
+}
+
+/** Every fact the report cites, with its value and meaning: the audit trail behind the text. */
+function FactsTable({ request }: { request: EngineerReportRequest }) {
+  const report = useEngineerReport(request);
+  if (!report.data) return null;
+  const facts = Object.values(report.data.facts);
+  return (
+    <div className="min-w-0 rounded-lg border border-line bg-card-2 p-4" data-testid="engineer-facts">
+      <div className="kick">Facts behind the report</div>
+      <p className="mt-1 text-xs text-muted">{facts.length} verified numbers from the analysis engine; every figure in the text is one of these.</p>
+      <div className="mt-2 max-h-[560px] overflow-y-auto">
+        <table className="data-table">
+          <thead><tr><th scope="col">Fact</th><th scope="col">Value</th></tr></thead>
+          <tbody>
+            {facts.map((f) => (
+              <tr key={f.id}>
+                <td><span className="font-mono text-[11px] text-ink">{f.id}</span><span className="block text-[11px] text-muted">{f.meaning}</span></td>
+                <td className="font-semibold whitespace-nowrap">{factValue(f)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -81,16 +118,19 @@ function FactPopover({ bullet, facts }: { bullet: EngineerBullet; facts: Record<
   );
 }
 
-function BulletLine({ bullet, data }: { bullet: EngineerBullet; data: Pick<EngineerReport, "facts" | "segments"> }) {
+export function BulletLine({ bullet, data, jumpTo }: {
+  bullet: EngineerBullet; data: Pick<EngineerReport, "facts" | "segments">; jumpTo?: TabId;
+}) {
   const selectCorner = useUiStore((s) => s.selectCorner);
   const selected = useUiStore((s) => s.selectedCornerId);
+  const goTo = useGoToTab();
   const segment = segmentFor(bullet, data.segments);
   return (
     <li className="leading-relaxed" data-testid="engineer-bullet">
       {segment ? (
-        <button type="button" className={`text-left hover:underline ${selected === segment ? "text-accent" : ""}`}
-          onClick={() => selectCorner(segment)} aria-pressed={selected === segment}
-          title="Highlight on the track map and charts">
+        <button type="button" className={`inline text-left hover:underline ${selected === segment ? "text-accent" : ""}`}
+          onClick={() => { selectCorner(segment); if (jumpTo) goTo(jumpTo); }} aria-pressed={selected === segment}
+          title={jumpTo ? "Show this corner on the track map" : "Highlight on the track map and charts"}>
           {bullet.text}
         </button>
       ) : <span>{bullet.text}</span>}
@@ -113,7 +153,10 @@ function Badge({ generatedBy, outcome, reason }: { generatedBy: string; outcome:
 }
 
 // ---------------------------------------------------------------- report card
-function ReportCard({ request }: { request: EngineerReportRequest }) {
+export function ReportCard({ request, sections, cornersOnly = false, jumpTo, testId = "engineer-report", limitations = true }: {
+  request: EngineerReportRequest; sections?: readonly SectionKey[]; cornersOnly?: boolean; jumpTo?: TabId;
+  testId?: string; limitations?: boolean;
+}) {
   const report = useEngineerReport(request);
   const regenerate = useRegenerateReport(request);
   const [cooldown, setCooldown] = useState(0);
@@ -136,6 +179,10 @@ function ReportCard({ request }: { request: EngineerReportRequest }) {
   if (report.isError) return <ErrorBox error={report.error} title="Couldn't write the engineer report" onRetry={() => report.refetch()} />;
   const r = report.data;
   const why = fallbackExplanation(r.outcome, r.fallback_reason);
+  const keys: readonly SectionKey[] = sections ?? SECTIONS.map(([k]) => k);
+  const shown = SECTIONS.filter(([k]) => keys.includes(k))
+    .map(([k, title]) => [k, title, r.report[k].filter((b) => !cornersOnly || segmentFor(b, r.segments) !== null)] as const)
+    .filter(([, , bullets]) => bullets.length > 0);
 
   async function copy() {
     try {
@@ -146,37 +193,38 @@ function ReportCard({ request }: { request: EngineerReportRequest }) {
   }
 
   return (
-    <article aria-labelledby="engineer-headline" data-testid="engineer-report">
+    <article aria-labelledby={`${testId}-headline`} data-testid={testId}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Badge generatedBy={r.generated_by} outcome={r.outcome} reason={r.fallback_reason} />
         <span className="ml-auto flex gap-2">
-          <button type="button" className="btn btn-ghost text-xs" onClick={copy}>{copied ? "Copied ✓" : "Copy"}</button>
-          <button type="button" className="btn btn-ghost text-xs" disabled={cooldown > 0 || regenerate.isPending}
+          <button type="button" className="btn btn-ghost px-2.5 py-1.5 text-[11px]" onClick={copy}>{copied ? "Copied ✓" : "Copy"}</button>
+          <button type="button" className="btn btn-ghost px-2.5 py-1.5 text-[11px]" disabled={cooldown > 0 || regenerate.isPending}
             onClick={() => { setCooldown(REGENERATE_COOLDOWN_S); regenerate.mutate(); }} data-testid="engineer-regenerate">
             {regenerate.isPending ? "Regenerating…" : cooldown > 0 ? `Regenerate (${cooldown}s)` : "Regenerate"}
           </button>
         </span>
       </div>
       {why && <p className="mb-2 text-xs text-muted" data-testid="engineer-fallback-note">{why}</p>}
-      <div id="engineer-headline" className="text-[15px] font-semibold" role="heading" aria-level={3}>
-        <ul><BulletLine bullet={r.report.headline} data={r} /></ul>
+      <div id={`${testId}-headline`} className="text-[16px] font-semibold" role="heading" aria-level={3}>
+        <ul><BulletLine bullet={r.report.headline} data={r} jumpTo={jumpTo} /></ul>
       </div>
-      {SECTIONS.map(([key, title]) => r.report[key].length > 0 && (
-        <div key={key} className="mt-3">
+      {shown.map(([key, title, bullets]) => (
+        <div key={key} className="mt-4">
           <div className="kick">{title}</div>
-          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-            {r.report[key].map((b, i) => <BulletLine key={i} bullet={b} data={r} />)}
+          <ul className="mt-1.5 list-disc space-y-1.5 pl-5 text-[14px] marker:text-accent">
+            {bullets.map((b, i) => <BulletLine key={i} bullet={b} data={r} jumpTo={jumpTo} />)}
           </ul>
         </div>
       ))}
-      <div className="mt-4 rounded-xl border border-line bg-card-2 p-3" data-testid="engineer-limitations">
+      {shown.length === 0 && <p className="mt-3 text-sm text-muted" data-testid={`${testId}-empty`}>The report has nothing specific to this view.</p>}
+      {limitations && <div className="mt-4 rounded-lg border border-line bg-card-2 p-3" data-testid="engineer-limitations">
         <div className="kick">Data limitations</div>
         {r.report.data_limitations.length ? (
           <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
             {r.report.data_limitations.map((b, i) => <BulletLine key={i} bullet={b} data={r} />)}
           </ul>
         ) : <p className="mt-1 text-sm text-muted">No additional limitations were reported for this comparison.</p>}
-      </div>
+      </div>}
     </article>
   );
 }
@@ -201,7 +249,9 @@ function ErrorBox({ error, title, onRetry }: { error: Error; title: string; onRe
 // ---------------------------------------------------------------- chat
 interface Turn { question: string; answer?: EngineerAnswer; error?: Error }
 
-function EngineerChat({ request, target, sessionCode }: { request: EngineerReportRequest; target: string; sessionCode: string | null }) {
+export function EngineerChat({ request, target, sessionCode, suggestions, logClassName = "max-h-[420px]" }: {
+  request: EngineerReportRequest; target: string; sessionCode: string | null; suggestions?: string[]; logClassName?: string;
+}) {
   const ask = useAskEngineer();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [text, setText] = useState("");
@@ -212,7 +262,7 @@ function EngineerChat({ request, target, sessionCode }: { request: EngineerRepor
   const last = [...turns].reverse().find((t) => t.answer)?.answer;
   const chips = last?.follow_up_suggestions.length
     ? last.follow_up_suggestions.map((f) => f.question)
-    : defaultSuggestions(target, sessionCode);
+    : suggestions ?? defaultSuggestions(target, sessionCode);
 
   function send(question: string) {
     const q = question.trim();
@@ -237,9 +287,9 @@ function EngineerChat({ request, target, sessionCode }: { request: EngineerRepor
   }
 
   return (
-    <div className="flex min-w-0 flex-col rounded-xl border border-line bg-card-2 p-3" data-testid="engineer-chat">
+    <div className="flex min-w-0 flex-col" data-testid="engineer-chat">
       <div className="kick">Ask the engineer</div>
-      <div className="mt-2 flex max-h-[420px] flex-col gap-2 overflow-y-auto" aria-live="polite" aria-relevant="additions"
+      <div className={`mt-2 flex ${logClassName} flex-col gap-2 overflow-y-auto`} aria-live="polite" aria-relevant="additions"
         role="log" aria-label="Engineer answers" data-testid="engineer-log">
         {turns.length === 0 && <p className="text-sm text-muted">Ask about this comparison, or pick a suggestion.</p>}
         {turns.map((t, i) => (
@@ -259,12 +309,12 @@ function EngineerChat({ request, target, sessionCode }: { request: EngineerRepor
             data-testid="engineer-chip">{c}</button>
         ))}
       </div>
-      <form className="mt-2 flex gap-2" onSubmit={submit}>
+      <form className="mt-2 flex flex-wrap gap-2" onSubmit={submit}>
         <label htmlFor={inputId} className="sr-only">Question for the engineer</label>
         <input id={inputId} className="min-w-0 flex-1 rounded-lg border border-line bg-card px-3 py-2 text-sm"
           value={text} maxLength={MAX_QUESTION} onChange={(e) => setText(e.target.value)}
           placeholder="e.g. What happened in Turn 6?" aria-describedby={`${inputId}-count`} data-testid="engineer-input" />
-        <button type="submit" className="btn" disabled={!text.trim() || ask.isPending}>Ask</button>
+        <button type="submit" className="btn px-3" disabled={!text.trim() || ask.isPending}>Ask</button>
       </form>
       <div id={`${inputId}-count`} className="mt-1 text-right text-[11px] text-muted">{text.length}/{MAX_QUESTION}</div>
     </div>

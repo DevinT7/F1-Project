@@ -38,7 +38,7 @@ describe("lap refs", () => {
 describe("URL state", () => {
   const full: UrlState = {
     session: "2024-05-Q", ref: { driver: "NOR", lap: "fastest" }, tgt: { driver: "VER", lap: 15 },
-    resolution: 2, demo: false, tyre: null, asof: null,
+    resolution: 2, demo: false, tyre: null, asof: null, tab: "pitwall",
   };
 
   it("carries the tyre panel's driver and as-of lap, and drops as-of without a driver", () => {
@@ -53,8 +53,15 @@ describe("URL state", () => {
     expect(serializeUrlState(full)).toBe("s=2024-05-Q&ref=NOR:fastest&tgt=VER:15");
   });
 
+  it("carries the tab, omitting the default and dropping unknown ones", () => {
+    expect(serializeUrlState({ ...full, tab: "track" })).toBe("s=2024-05-Q&ref=NOR:fastest&tgt=VER:15&tab=track");
+    expect(serializeUrlState({ ...full, tab: "pitwall" })).not.toContain("tab=");
+    expect(parseUrlState("?tab=tires").tab).toBe("tires");
+    expect(parseUrlState("?tab=garage").tab).toBe("pitwall");
+  });
+
   it("round-trips", () => {
-    for (const state of [full, { ...full, resolution: 4, demo: true }, emptyState, { ...emptyState, session: "2024-05-R" }]) {
+    for (const state of [full, { ...full, resolution: 4, demo: true }, { ...full, tab: "engineer" as const }, emptyState, { ...emptyState, session: "2024-05-R" }]) {
       expect(parseUrlState(serializeUrlState(state))).toEqual(state);
     }
   });

@@ -27,13 +27,16 @@ async function signIn(page: Page) {
 async function assertClean(page: Page) {
   const text = await page.locator("body").innerText();
   for (const bad of INJECTED) expect(text, `"${bad}" reached the DOM`).not.toContain(bad);
-  const engineer = await page.locator("#engineer").innerText();
-  expect(engineer).not.toMatch(/\b0\.35\b/);
+  // the report (AI Engineer tab) and the dock (chat) are held to the stricter "no 0.35 at all"
+  for (const id of ["#engineer", "#engineer-dock"]) {
+    if (await page.locator(id).count()) expect(await page.locator(id).innerText()).not.toMatch(/\b0\.35\b/);
+  }
 }
 
 test("injected numbers and causes never reach the DOM (report, popovers and chat)", async ({ page }) => {
   await page.goto(URL);
   await signIn(page);
+  await page.getByRole("tab", { name: "AI Engineer" }).click();
   const report = page.getByTestId("engineer-report");
   await expect(report).toBeVisible({ timeout: 60_000 });
 
@@ -68,13 +71,25 @@ test("injected numbers and causes never reach the DOM (report, popovers and chat
   await assertClean(page);
 });
 
-test("clicking a report bullet highlights its corner on the map panel", async ({ page }) => {
+test("clicking a report bullet opens its corner on the Track Map tab", async ({ page }) => {
   await page.goto(URL);
   await signIn(page);
+  await page.getByRole("tab", { name: "AI Engineer" }).click();
   const report = page.getByTestId("engineer-report");
   await expect(report).toBeVisible({ timeout: 60_000 });
-  await report.getByRole("button", { name: /^Turn 16:/ }).click();
-  await expect(page.getByTestId("corner-panel").getByRole("heading", { level: 3 })).toHaveText("Turn 16");
   await expect(page.getByTestId("engineer-footer")).toHaveText(
     "Numbers are computed by the analysis engine; the AI only explains them.");
+  await report.getByRole("button", { name: /^Turn 16:/ }).click();
+  await expect(page).toHaveURL(/tab=track/);
+  await expect(page.getByTestId("corner-panel").getByRole("heading", { level: 3 })).toHaveText("Turn 16");
+});
+
+test("the dock generates a report for the selected tab", async ({ page }) => {
+  await page.goto(`${URL}&tab=track`);
+  await signIn(page);
+  const dock = page.getByTestId("engineer-dock");
+  await expect(dock.getByTestId("dock-context")).toHaveText("Track Map");
+  await dock.getByTestId("dock-generate").click();
+  await expect(dock.getByTestId("dock-report")).toBeVisible({ timeout: 60_000 });
+  await assertClean(page);
 });

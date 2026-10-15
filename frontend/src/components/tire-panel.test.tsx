@@ -36,7 +36,7 @@ async function panel() {
 
 describe("TirePanel states", () => {
   it("ok: degradation with CI, pit window as text, confidence reasons, assumptions, model footer", async () => {
-    await renderDashboard(`${RACE}&tyre=AAA&asof=40`);
+    await renderDashboard(`${RACE}&tab=tires&tyre=AAA&asof=40`);
     const ok = await screen.findByTestId("tire-state-ok");
     expect(within(ok).getByTestId("degradation-value")).toHaveTextContent(/^0\.034 s\/lap, 95% CI 0\.029–0\.039$/);
     expect(within(ok).getByTestId("pit-window-central")).toHaveTextContent("Lap 48");
@@ -52,7 +52,7 @@ describe("TirePanel states", () => {
   });
 
   it("insufficient_data explains the requirement and shows progress", async () => {
-    await renderDashboard(`${RACE}&tyre=BBB&asof=49`);
+    await renderDashboard(`${RACE}&tab=tires&tyre=BBB&asof=49`);
     const state = await screen.findByTestId("tire-state-insufficient");
     expect(within(state).getByTestId("clean-lap-progress")).toHaveTextContent("2/5 clean laps");
     expect(state).toHaveTextContent("A forecast needs at least 5 clean laps in the current stint");
@@ -60,7 +60,7 @@ describe("TirePanel states", () => {
   });
 
   it("wet tyres get the wet-conditions notice and no forecast", async () => {
-    await renderDashboard(`${RACE}&tyre=CCC&asof=8`);
+    await renderDashboard(`${RACE}&tab=tires&tyre=CCC&asof=8`);
     const state = await screen.findByTestId("tire-state-wet");
     expect(within(state).getByTestId("tire-wet-notice")).toHaveTextContent("Intermediate tyres are not modelled");
     expect(screen.queryByTestId("tire-chart")).toBeNull();
@@ -69,7 +69,7 @@ describe("TirePanel states", () => {
   it("model unavailable (503) is a panel state with the request id, not a toast", async () => {
     server.use(http.get("*/api/v1/tires/predict", () =>
       HttpResponse.json(noModel, { status: 503, headers: { "X-Request-ID": noModel.error.request_id } })));
-    await renderDashboard(`${RACE}&tyre=AAA&asof=40`);
+    await renderDashboard(`${RACE}&tab=tires&tyre=AAA&asof=40`);
     const state = await screen.findByTestId("tire-state-model-unavailable");
     expect(state).toHaveTextContent("Tyre model unavailable");
     expect(state).toHaveTextContent("request_id: fixture-tires_error_model_unavailable");
@@ -80,7 +80,7 @@ describe("TirePanel states", () => {
   it("non-race session: notice, raw stint data and the qualifying chart; no forecast is requested", async () => {
     const predict = vi.fn();
     server.use(http.get("*/api/v1/tires/predict", () => { predict(); return HttpResponse.json({}); }));
-    await renderDashboard("s=2024-05-Q&ref=VER:fastest&tgt=ALO:fastest&tyre=VER");
+    await renderDashboard("s=2024-05-Q&ref=VER:fastest&tgt=ALO:fastest&tyre=VER&tab=tires");
     const section = await panel();
     expect(await within(section).findByTestId("tire-state-non-race")).toHaveTextContent(
       "Tire forecasting requires a race; showing raw stint data.");
@@ -92,7 +92,7 @@ describe("TirePanel states", () => {
 
   it("other errors: panel error with code and request id, plus the global toast", async () => {
     server.use(http.get("*/api/v1/tires/predict", () => apiError(500, "internal_error", "boom", "req-tire-500")));
-    await renderDashboard(`${RACE}&tyre=AAA&asof=40`);
+    await renderDashboard(`${RACE}&tab=tires&tyre=AAA&asof=40`);
     const state = await screen.findByTestId("tire-state-error");
     expect(state).toHaveTextContent("request_id: req-tire-500");
     await waitFor(() => expect(useUiStore.getState().toasts.some((t) => t.requestId === "req-tire-500")).toBe(true));
@@ -100,7 +100,7 @@ describe("TirePanel states", () => {
 
   it("loading skeleton while the forecast is computed", async () => {
     server.use(http.get("*/api/v1/tires/predict", async () => { await delay("infinite"); return HttpResponse.json({}); }));
-    await renderDashboard(`${RACE}&tyre=AAA&asof=40`);
+    await renderDashboard(`${RACE}&tab=tires&tyre=AAA&asof=40`);
     expect(await screen.findByTestId("tire-state-loading")).toHaveAttribute("role", "status");
   });
 });
@@ -108,7 +108,7 @@ describe("TirePanel states", () => {
 describe("stints and the as-of slider", () => {
   it("clicking a stint selects it and its last lap", async () => {
     const user = userEvent.setup();
-    await renderDashboard(`${RACE}&tyre=AAA&asof=40`);
+    await renderDashboard(`${RACE}&tab=tires&tyre=AAA&asof=40`);
     await screen.findByTestId("tire-state-ok");
     expect(screen.getByTestId("stint-2")).toHaveAttribute("aria-pressed", "true");
     await user.click(screen.getByTestId("stint-1"));
@@ -118,7 +118,7 @@ describe("stints and the as-of slider", () => {
   });
 
   it("sliding as-of changes the forecast and never shows a later lap", async () => {
-    await renderDashboard(`${RACE}&tyre=AAA&asof=40`);
+    await renderDashboard(`${RACE}&tab=tires&tyre=AAA&asof=40`);
     await screen.findByTestId("tire-state-ok");
     const slider = screen.getByTestId("as-of-slider");
     expect(slider).toHaveAttribute("min", "28");

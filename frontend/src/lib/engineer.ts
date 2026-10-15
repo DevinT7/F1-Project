@@ -1,5 +1,6 @@
 /** Phase 7F engineer helpers: section titles, badges, fallback explanations, segment lookup, copy text. */
 import type { EngineerAnswer, EngineerBullet, EngineerReport, FactView } from "./api/endpoints";
+import type { TabId } from "./tabs";
 
 export const SECTIONS = [
   ["biggest_time_loss", "Biggest time loss"],
@@ -73,6 +74,35 @@ export function reportText(r: EngineerReport): string {
 
 export function isNeutral(a: EngineerAnswer): boolean {
   return a.outcome === "refused" || a.outcome === "clarification";
+}
+
+export type SectionKey = (typeof SECTIONS)[number][0];
+
+/** What the engineer dock's "report for this tab" shows: the validated report's sections that tab is about. */
+export const TAB_FOCUS: Record<TabId, { title: string; sections: readonly SectionKey[]; cornersOnly?: boolean }> = {
+  pitwall: { title: "Pit wall summary", sections: ["biggest_time_loss", "strongest_areas"] },
+  laps: { title: "Lap comparison report", sections: ["biggest_time_loss", "strongest_areas", "driving_suggestions"] },
+  track: { title: "Corner report", sections: ["biggest_time_loss", "strongest_areas", "driving_suggestions"], cornersOnly: true },
+  tires: { title: "Tyre report", sections: ["tire_notes", "strategy_options"] },
+  engineer: { title: "Full report", sections: SECTIONS.map(([k]) => k) },
+};
+
+/** Suggested questions for the tab the user is looking at. */
+export function suggestionsFor(tab: TabId, target: string, sessionCode: string | null): string[] {
+  switch (tab) {
+    case "laps":
+      return [`Where did ${target} lose the most time?`, `Is ${target} slower on the straights or in the corners?`,
+        `How does ${target}'s braking compare?`];
+    case "track":
+      return [`Which corners should ${target} focus on?`, `What happened in the slowest corner?`,
+        `Where did ${target} gain time?`];
+    case "tires":
+      return sessionCode === "R"
+        ? [`When should ${target} pit?`, `How fast are ${target}'s tyres degrading?`, "Was the time loss caused by the driver, the tyres or traffic?"]
+        : ["Was the time loss caused by the driver, the tyres or traffic?", `Which corners should ${target} focus on?`];
+    default:
+      return defaultSuggestions(target, sessionCode);
+  }
 }
 
 export function defaultSuggestions(target: string, sessionCode: string | null): string[] {

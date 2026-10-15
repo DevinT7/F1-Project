@@ -36,7 +36,7 @@ const ROWS = {
   delta: [0.0, 0.17],
 } as const;
 
-export function buildFigure(cmp: ComparisonResponse, styles: DriverStyles, palette: ThemePalette) {
+export function buildFigure(cmp: ComparisonResponse, styles: DriverStyles, palette: ThemePalette, height = 640) {
   const x = cmp.distance_m;
   const line = (s: DriverStyles["reference"], width = 1.6) => ({ color: s.color, width, dash: s.dash });
   const both = (channel: keyof typeof cmp.channels.reference, yaxis: string, extra: Record<string, unknown> = {}, scale?: (v: unknown) => unknown) =>
@@ -85,7 +85,7 @@ export function buildFigure(cmp: ComparisonResponse, styles: DriverStyles, palet
     rows.push(crowded ? 1 - rows[i - 1]! : 0);
   });
   const layout = {
-    autosize: true, height: 640, margin: { l: 56, r: 14, t: 46, b: 36 },
+    autosize: true, height, margin: { l: 56, r: 14, t: 46, b: 36 },
     paper_bgcolor: palette.card, plot_bgcolor: palette.card, font: { color: palette.ink, size: 11 },
     hovermode: "x unified", hoversubplots: "axis", hoverlabel: { bgcolor: palette.card, bordercolor: palette.line, font: { color: palette.ink } },
     // the card heading names both drivers in their line colours, so no Plotly legend
@@ -108,10 +108,10 @@ export function buildFigure(cmp: ComparisonResponse, styles: DriverStyles, palet
   return { data, layout, cornerIds: corners.map((f) => f.id) };
 }
 
-export function TelemetryStack({ comparison }: { comparison: ComparisonResponse }) {
+export function TelemetryStack({ comparison, height = 640 }: { comparison: ComparisonResponse; height?: number }) {
   const palette = useThemePalette();
   const styles = useMemo(() => driverStyles(comparison, palette), [comparison, palette]);
-  const figure = useMemo(() => buildFigure(comparison, styles, palette), [comparison, styles, palette]);
+  const figure = useMemo(() => buildFigure(comparison, styles, palette, height), [comparison, styles, palette, height]);
   const graphDiv = useRef<HTMLElement | null>(null);
   const cursorEl = useRef<HTMLDivElement | null>(null);
   const bandEl = useRef<HTMLDivElement | null>(null);
@@ -168,7 +168,7 @@ export function TelemetryStack({ comparison }: { comparison: ComparisonResponse 
         <p className="text-xs text-muted">Drag to zoom any row (all rows follow) · double-click to reset · click a T-number to inspect it</p>
       </div>
       <HoverReadout comparison={comparison} styles={styles} />
-      <div data-testid="telemetry-plot" role="img" className="relative"
+      <div data-testid="telemetry-plot" role="img" className="chart-reveal relative"
         aria-label={`Speed, throttle, brake, gear and time-delta traces for ${styles.target.label} versus ${styles.reference.label} by distance.`}>
         <Plot
           data={figure.data}

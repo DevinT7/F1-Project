@@ -381,3 +381,26 @@ Full contract: `docs/tire_api.md`.
 - **Model drift.** The production model scores each newly ingested race with the offline protocol (`simulate_race`, h5) and races in its training data are excluded. The alert compares the step-weighted rolling MAE over the last 10 races with the registry's recorded walk-forward MAE (+25%, ≥ 3 races).
 - **Sentry without PII.** Backend: `send_default_pii=False`, plus a `before_send` that drops cookies, bodies and the user. Frontend (`@sentry/nextjs` 11): `dataCollection` off for user info, cookies, bodies and query strings. Ingest failures and LLM fallbacks are sent as grouped messages (fixed fingerprints), so Sentry alert rules can count them.
 - **Backups.** Render's managed backups first, and `ops/db/backup.sh` (pg_dump custom format, optionally AES-256) as the portable copy. `ops/db/restore_drill.sh` proves restorability, including TimescaleDB's pre/post-restore steps, and CI runs it on every build against the seeded database.
+
+## Frontend redesign: Senna (P1, 2026-10-15)
+
+- **Name.** The web app is called **Senna**: wordmark, page title, footer notice and user-visible errors. The backend, the API contract (`X-RaceIQ-CSRF`, the `raceiq_refresh` cookie), the repository and the docs keep RaceIQ, so nothing server-side changed.
+- **Layout.**
+  - **Tabs.** Five tabs across the top (Pit Wall, Lap Comparison, Track Map, Tire Analysis, AI Engineer), shown as words. A red underline slides to the selected one. They form an ARIA tablist (arrow keys, Home/End).
+  - **URL.** The tab is part of the shareable URL (`?tab=laps`; Pit Wall is the default and omitted).
+  - **Removed.** The left sidebar, its session box and the light theme.
+- **Engineer dock.** The right column (232 px, the old sidebar's width) holds the AI engineer on every tab.
+  - "Generate report" shows the sections of the validated engineer report that the open tab is about (`TAB_FOCUS` in `lib/engineer.ts`; the Track Map report keeps only bullets tied to a corner, straight or sector). No new backend endpoint: it is the same cached, fact-checked report.
+  - The chat lives in the dock; its suggested questions follow the tab, and one conversation per comparison survives tab switches.
+  - The AI Engineer tab shows the full report plus a table of every fact it cites. Clicking a bullet there opens that corner on the Track Map tab.
+- **Theme.** One dark theme, red (`#e10600` fills, `#ff3b2f` text and lines) on carbon black, typeset in Titillium Web, self-hosted through `@fontsource` (no build-time font download).
+- **Motion, all CSS and all off under `prefers-reduced-motion`:**
+  - **Tab switch:** a broadcast-style replay wipe (a translucent red band with speed streaks and a chequered edge) while the new tab launches in.
+  - **KPI strip:** five start lights come on one by one, then go out as the lap times appear.
+  - **Charts:** they reveal left to right behind a red timing beam.
+  - **Track map:** the circuit outline draws itself like a lap being traced.
+- **Bigger graphs and more detail per tab.**
+  - **Lap Comparison:** telemetry 920 px tall, plus a speed-trap table per straight and a mini map that follows the chart cursor.
+  - **Track Map:** a 680 px map and a table of every corner (Δ time, entry / apex / exit speed, braking, causes).
+  - **Pit Wall:** a brief written from the verified findings, plus tyre, temperature and alignment context.
+  - **Tire Analysis:** charts 460 / 380 px.

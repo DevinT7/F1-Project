@@ -1,87 +1,81 @@
 "use client";
-/** App shell pieces carried over from the original pit-wall dashboard: sidebar, topbar, theme. */
+/** App shell: the top bar (Senna wordmark, the five tabs, account + data source), placeholder card, toasts. */
 import Link from "next/link";
-import { useEffect, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
-import { useUiStore, type Theme } from "@/lib/store";
+import { useUiStore } from "@/lib/store";
+import { TABS, type TabId } from "@/lib/tabs";
 
-const NAV = [
-  { href: "#comparison", icon: "▦", label: "Pit Wall" },
-  { href: "#telemetry", icon: "⇆", label: "Lap Comparison" },
-  { href: "#track", icon: "◎", label: "Track Map" },
-  { href: "#tires", icon: "◍", label: "Tire Analysis" },
-  { href: "#engineer", icon: "✦", label: "AI Engineer" },
-] as const;
-
-export function Sidebar({ sessionLabel }: { sessionLabel: string | null }) {
+export function Wordmark() {
   return (
-    <aside className="sticky top-0 hidden h-screen flex-col gap-1.5 border-r border-line px-4 py-5 lg:flex" aria-label="Sidebar">
-      <div className="flex items-center gap-3 px-1.5 pb-4">
-        <div aria-hidden className="flex h-[38px] w-[38px] items-center justify-center rounded-[11px] bg-gradient-to-br from-[#1c1b1a] to-[#454140] text-xs font-extrabold text-white ring-1 ring-line">
-          RIQ
-        </div>
-        <div>
-          <div className="text-[15px] font-bold">RACE<span className="text-accent">IQ</span></div>
-          <div className="text-[11px] text-muted">AI Race Engineer</div>
-        </div>
-      </div>
-      <div className="kick px-2 pt-3 pb-1.5">Telemetry</div>
-      <nav aria-label="Sections" className="flex flex-col gap-0.5">
-        {NAV.map((item, i) => (
-          <a key={item.href} href={item.href}
-            className={`flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium ${
-              i === 0 ? "bg-[var(--nav-active)] text-[var(--nav-active-ink)]" : "text-ink-2 hover:bg-card-2"}`}>
-            <span aria-hidden className="w-4 text-center opacity-80">{item.icon}</span>{item.label}
-          </a>
-        ))}
-      </nav>
-      <div className="mt-auto rounded-xl border border-line p-3">
-        <div className="kick">Session</div>
-        <div className="mt-0.5 text-[13px] font-semibold">{sessionLabel ?? "None selected"}</div>
-      </div>
-    </aside>
+    <div className="flex items-center gap-2.5" aria-label="Senna">
+      <span aria-hidden className="flex h-8 w-11 -skew-x-[18deg] items-center justify-center rounded-[3px] bg-accent-strong shadow-[0_0_18px_rgba(225,6,0,0.55)]">
+        <span className="skew-x-[18deg] text-[15px] font-black italic text-white">S</span>
+      </span>
+      <span className="display text-[24px] tracking-[0.08em]" aria-hidden>
+        SENN<span className="text-accent">A</span>
+      </span>
+    </div>
   );
 }
 
-export function ThemeToggle() {
-  const theme = useUiStore((s) => s.theme);
-  const setTheme = useUiStore((s) => s.setTheme);
+/** Tabs as words; the selected one is underlined by a bar that slides between them. */
+export function TabBar({ tab, onTab }: { tab: TabId; onTab: (tab: TabId) => void }) {
+  const refs = useRef<Partial<Record<TabId, HTMLButtonElement | null>>>({});
+  const [bar, setBar] = useState<{ left: number; width: number } | null>(null);
 
-  useEffect(() => {
-    const saved = document.documentElement.dataset.theme;
-    if (saved === "light" || saved === "dark") setTheme(saved);
-  }, [setTheme]);
+  const place = useCallback(() => {
+    const el = refs.current[tab];
+    if (el) setBar({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [tab]);
 
-  function toggle() {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem("raceiq-theme", next); } catch { /* private mode */ }
-    setTheme(next);
+  useLayoutEffect(() => {
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [place]);
+
+  function onKey(e: KeyboardEvent<HTMLDivElement>) {
+    const i = TABS.findIndex((t) => t.id === tab);
+    const next = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1
+      : e.key === "Home" ? 0 : e.key === "End" ? TABS.length - 1 : null;
+    if (next === null) return;
+    e.preventDefault();
+    const t = TABS[(next + TABS.length) % TABS.length]!;
+    onTab(t.id);
+    refs.current[t.id]?.focus();
   }
 
   return (
-    <button type="button" className="btn btn-ghost" onClick={toggle} aria-pressed={theme === "light"}
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
-      <span aria-hidden>{theme === "dark" ? "☀" : "☾"}</span> Theme
-    </button>
+    <div role="tablist" aria-label="Sections" className="relative flex gap-7 overflow-x-auto" onKeyDown={onKey}>
+      {TABS.map((t) => (
+        <button key={t.id} ref={(el) => { refs.current[t.id] = el; }} type="button" role="tab"
+          id={`tab-${t.id}`} aria-selected={t.id === tab} aria-controls="tab-panel" tabIndex={t.id === tab ? 0 : -1}
+          className="tab-btn" data-testid={`tab-${t.id}`} onClick={() => onTab(t.id)}>
+          {t.label}
+        </button>
+      ))}
+      {bar && <span aria-hidden className="tab-underline" style={{ left: bar.left, width: bar.width }} data-testid="tab-underline" />}
+    </div>
   );
 }
 
-export function Topbar({ demo, demoHref, liveHref, season, account }: {
-  demo: boolean; demoHref: string; liveHref: string; season: number | null; account?: ReactNode;
+export function TopNav({ tab, onTab, demo, demoHref, liveHref, account }: {
+  tab: TabId; onTab: (tab: TabId) => void; demo: boolean; demoHref: string; liveHref: string; account?: ReactNode;
 }) {
   return (
-    <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <div className="eyebrow">◣ Race analysis{season ? ` · ${season} season` : ""}</div>
-        <h1 className="mt-1 font-serif text-[34px] italic leading-tight">Pit Wall</h1>
-      </div>
-      <div className="flex flex-wrap gap-2.5">
-        {account}
-        <ThemeToggle />
-        {demo
-          ? <Link className="btn btn-ghost" href={liveHref}>⏻ Live data</Link>
-          : <Link className="btn btn-ghost" href={demoHref}>▶ Demo data</Link>}
+    <header className="topnav">
+      <div className="mx-auto flex max-w-[1920px] flex-wrap items-center gap-x-8 gap-y-1 px-4 sm:px-8">
+        <Wordmark />
+        <div className="order-3 w-full min-w-0 lg:order-none lg:w-auto lg:flex-1">
+          <TabBar tab={tab} onTab={onTab} />
+        </div>
+        <div className="ml-auto flex flex-wrap items-center gap-2.5 py-2">
+          {account}
+          {demo
+            ? <Link className="btn btn-ghost" href={liveHref}>⏻ Live data</Link>
+            : <Link className="btn btn-ghost" href={demoHref}>▶ Demo data</Link>}
+        </div>
       </div>
     </header>
   );
@@ -96,7 +90,7 @@ export function PlaceholderCard({ id, kick, title, enabled, children }: {
       <div className="kick">{kick}</div>
       <h2 id={`${id}-title`} className="mt-1 text-[15px] font-bold">{title}</h2>
       {enabled && children ? children : (
-        <div className="mt-3 rounded-xl border border-dashed border-line bg-card-2 p-4 text-sm text-muted">
+        <div className="mt-3 rounded-lg border border-dashed border-line bg-card-2 p-4 text-sm text-muted">
           <span className="chip mb-2">Coming in a later phase</span>
           <p>This panel is wired to a feature flag and will light up when its phase ships.</p>
         </div>

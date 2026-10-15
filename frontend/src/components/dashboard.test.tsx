@@ -4,6 +4,7 @@ import { http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useUiStore } from "@/lib/store";
+import { signInAs, signOutForTest } from "@/test/auth";
 import { apiError, server } from "@/test/msw";
 import { navigation } from "@/test/render";
 
@@ -63,7 +64,7 @@ describe("loading a shared URL", () => {
     expect(await screen.findByTestId("lap-gap")).toHaveTextContent("+0.488 s");
     expect(screen.getByLabelText("Reference lap")).toHaveValue("fastest");
     expect(screen.getByText("Where ALO lost and gained time")).toBeInTheDocument();
-    expect(screen.getByTestId("telemetry-plot")).toBeInTheDocument();
+    expect(screen.getByTestId("race-brief")).toHaveTextContent("ALO was 0.488 s slower than VER");
     expect(screen.getByTestId("site-notice")).toHaveTextContent(/unofficial.*not associated in any way with the Formula 1 companies/);
     expect(screen.getByTestId("site-notice")).toHaveTextContent("FastF1");
   });
@@ -142,10 +143,91 @@ describe("demo mode", () => {
 
   it("shows the tyre section's qualifying view without errors (no backend, no toast)", async () => {
     server.use(http.all("*", () => { throw new Error("demo mode must not call the API"); }));
-    await renderDashboard(`${SHARED}&demo=1`);
+    await renderDashboard(`${SHARED}&tab=tires&demo=1`);
     expect(await screen.findByTestId("tire-state-non-race")).toBeInTheDocument();
     expect(await screen.findByTestId("stint-timeline")).toBeInTheDocument();
     expect(screen.getByTestId("qualifying-tire-chart")).toHaveTextContent("Observed laps — not a prediction");
     expect(useUiStore.getState().toasts).toEqual([]);
+  });
+});
+
+describe("tabs", () => {
+  it("shows only the five tabs, as words, with the selected one marked; no theme switch", async () => {
+    await renderDashboard(SHARED);
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual(["Pit Wall", "Lap Comparison", "Track Map", "Tire Analysis", "AI Engineer"]);
+    expect(screen.getByRole("tab", { name: "Pit Wall" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("button", { name: /theme/i })).toBeNull();
+    expect(screen.queryByText("None selected")).toBeNull();          // the old sidebar's session box is gone
+    expect(screen.getByLabelText("Senna")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/RaceIQ|RACEIQ/);
+  });
+
+  it("switching tabs swaps the panel and writes the tab to the URL", async () => {
+    const user = userEvent.setup();
+    await renderDashboard(SHARED);
+    await screen.findByTestId("race-brief");
+    await user.click(screen.getByRole("tab", { name: "Lap Comparison" }));
+    expect(navigation.search).toBe(`${SHARED}&tab=laps`);
+    expect(await screen.findByTestId("telemetry-plot")).toBeInTheDocument();
+    expect(screen.getByTestId("straights-table")).toHaveTextContent("Straight 1");
+    expect(screen.queryByTestId("race-brief")).toBeNull();
+    expect(screen.getByRole("tab", { name: "Lap Comparison" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Lap Comparison");
+
+    await user.click(screen.getByRole("tab", { name: "Track Map" }));
+    expect(await screen.findByTestId("corner-table")).toHaveTextContent("All 16 corners");
+    await user.click(screen.getByTestId("corner-row-6"));
+    expect(within(screen.getByTestId("corner-panel")).getByRole("heading", { level: 3 })).toHaveTextContent("Turn 6");
+  });
+
+  it("arrow keys move between tabs", async () => {
+    const user = userEvent.setup();
+    await renderDashboard(`${SHARED}&tab=track`);
+    await screen.findByTestId("corner-table");
+    screen.getByRole("tab", { name: "Track Map" }).focus();
+    await user.keyboard("{ArrowRight}");
+    expect(navigation.search).toContain("tab=tires");
+    expect(screen.getByRole("tab", { name: "Tire Analysis" })).toHaveFocus();
+    await user.keyboard("{ArrowLeft}{ArrowLeft}");
+    expect(navigation.search).toContain("tab=laps");
+  });
+});
+
+describe("engineer dock", () => {
+  it("asks for a sign-in when signed out", async () => {
+    signOutForTest();
+    await renderDashboard(SHARED);
+    expect(await screen.findByTestId("dock-signin")).toHaveTextContent("Sign in to ask the race engineer");
+  });
+
+  it("generates the report for the selected tab and suggests questions about it", async () => {
+    const user = userEvent.setup();
+    signInAs("user");
+    await renderDashboard(`${SHARED}&tab=track`);
+    const dock = await screen.findByTestId("engineer-dock");
+    expect(within(dock).getByTestId("dock-context")).toHaveTextContent("Track Map");
+    expect((await within(dock).findAllByTestId("engineer-chip"))[0]).toHaveTextContent("Which corners should ALO focus on?");
+    await user.click(within(dock).getByTestId("dock-generate"));
+    const report = await within(dock).findByTestId("dock-report");
+    // the corner report keeps only bullets that point at a corner, straight or sector
+    for (const b of within(report).getAllByTestId("engineer-bullet").slice(1)) {
+      expect(within(b).getByTitle(/track map/)).toBeInTheDocument();
+    }
+    await user.click(screen.getByRole("tab", { name: "Lap Comparison" }));
+    expect(within(dock).getByTestId("dock-context")).toHaveTextContent("Lap Comparison");
+    expect(within(dock).getByTestId("dock-generate")).toBeInTheDocument();   // a report per tab, on request
+    expect(within(dock).getAllByTestId("engineer-chip")[1]).toHaveTextContent("Is ALO slower on the straights or in the corners?");
+  });
+
+  it("a report bullet on the AI Engineer tab opens its corner on the Track Map tab", async () => {
+    const user = userEvent.setup();
+    signInAs("user");
+    await renderDashboard(`${SHARED}&tab=engineer`);
+    const report = await screen.findByTestId("engineer-report");
+    expect(screen.getByTestId("engineer-facts")).toHaveTextContent("LAP.time_loss_s");
+    await user.click(within(report).getByRole("button", { name: /^Turn 16: ALO lost 0\.176 s/ }));
+    expect(navigation.search).toContain("tab=track");
+    expect(within(await screen.findByTestId("corner-panel")).getByRole("heading", { level: 3 })).toHaveTextContent("Turn 16");
   });
 });

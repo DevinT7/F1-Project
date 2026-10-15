@@ -92,7 +92,7 @@ async function rawSend(url: string, init: RequestInit): Promise<Response> {
   try {
     return await fetch(url, init);
   } catch (cause) {
-    throw new ApiError(0, "network_error", "Cannot reach the RaceIQ API. Is the backend running on :8000?", null, cause);
+    throw new ApiError(0, "network_error", "Cannot reach the Senna API. Is the backend running on :8000?", null, cause);
   }
 }
 

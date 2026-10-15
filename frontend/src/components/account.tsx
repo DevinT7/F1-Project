@@ -157,10 +157,10 @@ export function AccountMenu({ demo, current }: { demo: boolean; current: UrlStat
 }
 
 /** Where an account is needed (the AI engineer). */
-export function SignInPrompt({ what }: { what: string }) {
+export function SignInPrompt({ what, testId = "signin-prompt" }: { what: string; testId?: string }) {
   const dialog = useSignInDialog();
   return (
-    <div className="rounded-xl border border-dashed border-line bg-card-2 p-4 text-sm" data-testid="signin-prompt">
+    <div className="rounded-lg border border-dashed border-line bg-card-2 p-4 text-sm" data-testid={testId}>
       <p className="text-ink-2">{what}</p>
       <button type="button" className="btn mt-3" onClick={() => dialog.show(what)}>Sign in</button>
     </div>

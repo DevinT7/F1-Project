@@ -21,7 +21,7 @@ test("race → driver/stint → degradation and window → as-of slider changes 
   page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
   page.on("pageerror", (e) => consoleErrors.push(e.message));
 
-  await page.goto("/?s=2024-99-R");
+  await page.goto("/?s=2024-99-R&tab=tires");
   const section = page.getByTestId("tire-section");
   await expect(section).toBeVisible({ timeout: 30_000 });
   await section.getByLabel("Driver").selectOption("AAA");
@@ -54,7 +54,7 @@ test("race → driver/stint → degradation and window → as-of slider changes 
 });
 
 test("a stint without enough clean laps shows the progress message", async ({ page }) => {
-  await page.goto("/?s=2024-99-R&tyre=BBB");
+  await page.goto("/?s=2024-99-R&tyre=BBB&tab=tires");
   const section = page.getByTestId("tire-section");
   await section.getByTestId("stint-3").click();
   await expect(section.getByTestId("clean-lap-progress")).toHaveText("2/5 clean laps");

@@ -4,7 +4,6 @@ import { useMemo } from "react";
 
 import type { ComparisonResponse } from "./api/endpoints";
 import { ensureContrast, sameTeamColor } from "./colors";
-import { useUiStore } from "./store";
 
 export interface ThemePalette {
   card: string;
@@ -18,8 +17,8 @@ export interface ThemePalette {
 }
 
 const FALLBACK: ThemePalette = {
-  card: "#1b1a19", ink: "#f1eeeb", muted: "#aaa49f", line: "#2f2c2a",
-  green: "#4cb582", red: "#e36a55", accent: "#e2775a", neutral: "#8f8a86",
+  card: "#111115", ink: "#f5f5f6", muted: "#a3a3ad", line: "#2a2a31",
+  green: "#2fd67b", red: "#ff4d3d", accent: "#ff3b2f", neutral: "#8e8e98",
 };
 
 function read(): ThemePalette {
@@ -33,11 +32,9 @@ function read(): ThemePalette {
   };
 }
 
-/** CSS-variable palette for SVG/Plotly, re-read whenever the theme toggles. */
+/** CSS-variable palette for SVG/Plotly (one dark theme, read once per component). */
 export function useThemePalette(): ThemePalette {
-  const theme = useUiStore((s) => s.theme);
-  // re-read the CSS variables whenever the theme flips (the DOM attribute is already updated)
-  return useMemo(() => (theme ? read() : FALLBACK), [theme]);
+  return useMemo(() => read(), []);
 }
 
 export interface DriverStyles {
