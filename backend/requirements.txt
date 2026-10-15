@@ -28,7 +28,7 @@ statsmodels==0.15.0
 # Phase 6C experiment tracking (python -m scripts.run_eval)
 mlflow==3.17.0
 # Phase 6D tree models (app/tires/models/tree_models.py) and SHAP explanations
-xgboost==3.2.0
+xgboost==3.4.1
 lightgbm==4.7.0
 shap==0.51.0
 
