@@ -1,6 +1,7 @@
 """RaceIQ FastAPI entrypoint."""
 from __future__ import annotations
 
+import hmac
 import os
 from datetime import datetime, timezone
 from typing import Any
@@ -10,11 +11,12 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import __version__
 from . import cache
+from . import observability
 from .api import errors as api_errors
 from .api.routes import TAGS_METADATA as V1_TAGS
 from .api.routes import router as v1_router
@@ -40,6 +42,9 @@ from .routers import (
 )
 
 API_PREFIX = "/api"
+
+observability.configure_logging()
+observability.init_sentry("api")
 
 
 def _app_version() -> str:
@@ -89,6 +94,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],   # a cross-origin frontend can read the id (Phase 9 log correlation)
 )
 
 
@@ -145,6 +151,21 @@ async def health() -> dict[str, Any]:
 @app.get("/health", include_in_schema=False)
 async def legacy_health() -> dict[str, Any]:
     return await health()
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics(request: Request) -> Response:
+    """Prometheus exposition (docs/monitoring.md). Bearer RACEIQ_METRICS_TOKEN when set; without one it is
+    open in development and disabled in production."""
+    token = settings.metrics_token
+    if token:
+        sent = request.headers.get("authorization", "")
+        if not hmac.compare_digest(sent.encode(), f"Bearer {token}".encode()):
+            return _error_response(request, code="unauthorized", message="metrics token required", status_code=401)
+    elif os.environ.get("APP_ENV", "development") == "production":
+        return _error_response(request, code="not_found", message="Not Found", status_code=404)
+    body, content_type = observability.render_metrics()
+    return Response(body, media_type=content_type)
 
 
 @app.get(f"{API_PREFIX}/data-status", tags=["meta"])

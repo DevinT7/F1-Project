@@ -5,20 +5,21 @@
 #               mutation sanity checks · golden findings (part of the tests) · pip-audit
 #   frontend    typecheck · lint · unit/component tests · npm audit
 #   containers  build the api / worker / frontend images · Trivy scan (fixable HIGH/CRITICAL fail) ·
-#               docker compose stack with seeded data · Playwright against it
+#               docker compose stack with seeded data · restore drill · alert-rule tests · /metrics ·
+#               Playwright against it
 #   e2e         Playwright against the in-process backend (fixture store, fake-LLM safety test)
 name: ci
 
+# Pull requests run it directly; pushes to main and v* tags run it as the first job of deploy.yml (so a
+# push runs CI once, and only a green CI builds images and deploys).
 on:
-  push:
-    branches: [main]
-    tags: ["v*"]
   pull_request:
   workflow_call:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}   # never cancel a run a deploy waits on
 
 permissions:
   contents: read
@@ -120,6 +121,18 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d
           timeout 300 bash -c 'until [ "$(docker inspect -f {{.State.Health.Status}} $(docker compose ps -q frontend))" = healthy ]; do sleep 3; done'
           docker compose ps
+      - name: Restore drill (back up the seeded database, restore into a scratch database, verify every table)
+        run: docker compose exec -T -e SOURCE_URL=postgresql://raceiq:raceiq-dev@localhost:5432/raceiq db bash -s < ops/db/restore_drill.sh
+      - name: Alert rules (promtool check + unit tests)
+        run: |
+          docker run --rm -v "$PWD/monitoring/prometheus:/p" -w /p --entrypoint promtool prom/prometheus:v3.5.0 check rules alerts.yml
+          docker run --rm -v "$PWD/monitoring/prometheus:/p" -w /p --entrypoint promtool prom/prometheus:v3.5.0 test rules alerts_test.yml
+      - name: Metrics endpoint serves the documented series
+        run: |
+          curl -fsS http://localhost:8000/metrics > metrics.txt
+          for name in raceiq_http_requests_total raceiq_jobs_total raceiq_job_queue_depth raceiq_tyre_model_baseline_mae_seconds                       raceiq_engineer_requests_total; do
+            grep -q "^$name" metrics.txt || { echo "missing $name"; exit 1; }
+          done
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

@@ -11,6 +11,7 @@ import sys
 
 import structlog
 
+from .. import observability
 from ..config import settings
 from .queues import QUEUE_NAME
 
@@ -21,6 +22,8 @@ def main() -> int:
     if not settings.redis_url:
         print("RACEIQ_REDIS_URL is required for the worker", file=sys.stderr)
         return 2
+    observability.configure_logging()
+    observability.init_sentry("worker")          # failed jobs: runner.py sends one grouped event per kind
     import redis
     from rq import Worker
     connection = redis.Redis.from_url(settings.redis_url)

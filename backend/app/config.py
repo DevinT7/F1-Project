@@ -76,6 +76,9 @@ class Settings(BaseSettings):
     engineer_fake_llm: str | None = None
     # Admin token for GET /api/v1/engineer/metrics (unset → the endpoint is disabled).
     admin_token: str | None = None
+    # Phase 9: bearer token for GET /metrics (Prometheus / Grafana Agent). Unset: open in development,
+    # disabled (404) when APP_ENV=production.
+    metrics_token: str | None = None
 
     # --- Server ---
     cors_origins: str = "http://localhost:5173,http://localhost:3000"

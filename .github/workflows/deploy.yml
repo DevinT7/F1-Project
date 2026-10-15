@@ -1,0 +1,189 @@
+# RaceIQ delivery (Phase 9). docs/runbook.md → Deploy / Rollback.
+#
+#   push to main     CI → build + push images (ghcr.io/<owner>/raceiq-backend|raceiq-worker:sha-<sha>) → staging
+#   push a v* tag    CI → build + push images (:<tag>) → staging → production (needs approval: the
+#                    `production` GitHub environment has required reviewers)
+#   manual run       redeploy images that already exist (a rollback): pick the tag / sha-<sha> and the
+#                    environment; nothing is rebuilt, and production still needs approval
+#
+# Each environment deploy (deploy-env.yml): Render api via its deploy hook with the exact image digest →
+# Render runs the migrations (preDeployCommand) before switching traffic → wait until /api/v1/health
+# reports the new version → Render worker → Vercel frontend built with that environment's API URL →
+# smoke test through the frontend's /api proxy.
+#
+# Credentials live in the GitHub environments `staging` and `production` (docs/api_keys.md). Until they
+# are set, main pushes build and push the images and skip the deploy with a warning; tag pushes fail.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Image tag to (re)deploy: a release tag (v1.2.0) or sha-<12 chars> from a main build"
+        required: true
+      environment:
+        description: "Where to deploy it"
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false             # never interrupt a deploy half-way
+
+jobs:
+  ci:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/ci.yml
+
+  images:
+    if: github.event_name == 'push'
+    needs: ci
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      backend: ${{ steps.meta.outputs.prefix }}/raceiq-backend@${{ steps.api.outputs.digest }}
+      worker: ${{ steps.meta.outputs.prefix }}/raceiq-worker@${{ steps.worker.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        name: Version and image names
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then version="${GITHUB_REF_NAME}"; else version="sha-${GITHUB_SHA::12}"; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "prefix=ghcr.io/${OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "moving=$([[ "$GITHUB_REF" == refs/heads/main ]] && echo main || echo latest-release)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: api
+        name: Build + push the API image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          target: api
+          build-contexts: models=models
+          build-args: APP_VERSION=${{ steps.meta.outputs.version }}
+          push: true
+          provenance: false
+          tags: |
+            ${{ steps.meta.outputs.prefix }}/raceiq-backend:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.prefix }}/raceiq-backend:${{ steps.meta.outputs.moving }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+      - id: worker
+        name: Build + push the worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          target: worker
+          build-contexts: models=models
+          build-args: APP_VERSION=${{ steps.meta.outputs.version }}
+          push: true
+          provenance: false
+          tags: |
+            ${{ steps.meta.outputs.prefix }}/raceiq-worker:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.prefix }}/raceiq-worker:${{ steps.meta.outputs.moving }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: |
+            type=gha,scope=api
+            type=gha,scope=worker
+          cache-to: type=gha,scope=worker,mode=max
+      - name: Scan the pushed images (Trivy; fixable HIGH / CRITICAL fail)
+        env:
+          API: ${{ steps.meta.outputs.prefix }}/raceiq-backend@${{ steps.api.outputs.digest }}
+          WORKER: ${{ steps.meta.outputs.prefix }}/raceiq-worker@${{ steps.worker.outputs.digest }}
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for image in "$API" "$WORKER"; do
+            docker run --rm -e TRIVY_USERNAME -e TRIVY_PASSWORD -v trivy-cache:/root/.cache aquasec/trivy:0.67.2 \
+              image --quiet --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL "$image"
+          done
+
+  staging:
+    if: github.event_name == 'push'
+    needs: images
+    uses: ./.github/workflows/deploy-env.yml
+    with:
+      environment: staging
+      version: ${{ needs.images.outputs.version }}
+      backend_image: ${{ needs.images.outputs.backend }}
+      worker_image: ${{ needs.images.outputs.worker }}
+      ref: ${{ github.sha }}
+      require_configured: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    secrets: inherit
+
+  production:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [images, staging]
+    uses: ./.github/workflows/deploy-env.yml
+    with:
+      environment: production
+      version: ${{ needs.images.outputs.version }}
+      backend_image: ${{ needs.images.outputs.backend }}
+      worker_image: ${{ needs.images.outputs.worker }}
+      ref: ${{ github.sha }}
+      require_configured: true
+    secrets: inherit
+
+  # ------------------------------------------------------------------ manual redeploy / rollback
+  resolve:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      backend: ${{ steps.find.outputs.backend }}
+      worker: ${{ steps.find.outputs.worker }}
+      ref: ${{ steps.find.outputs.ref }}
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: find
+        name: The images for that version must already exist (rollbacks never rebuild)
+        env:
+          OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$VERSION" =~ ^(v[0-9][0-9A-Za-z.+-]*|sha-[0-9a-f]{12})$ ]] || { echo "::error::'$VERSION' is not a release tag or sha-<12 hex>"; exit 1; }
+          prefix="ghcr.io/${OWNER,,}"
+          for name in backend worker; do
+            ref="$prefix/raceiq-$name:$VERSION"
+            digest=$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest.Digest}}' | tr -d '"') \
+              || { echo "::error::$ref does not exist in GHCR"; exit 1; }
+            echo "$name=$prefix/raceiq-$name@$digest" >> "$GITHUB_OUTPUT"
+          done
+          if [[ "$VERSION" == sha-* ]]; then echo "ref=${VERSION#sha-}" >> "$GITHUB_OUTPUT"; else echo "ref=$VERSION" >> "$GITHUB_OUTPUT"; fi
+
+  redeploy:
+    if: github.event_name == 'workflow_dispatch'
+    needs: resolve
+    uses: ./.github/workflows/deploy-env.yml
+    with:
+      environment: ${{ inputs.environment }}
+      version: ${{ inputs.version }}
+      backend_image: ${{ needs.resolve.outputs.backend }}
+      worker_image: ${{ needs.resolve.outputs.worker }}
+      ref: ${{ needs.resolve.outputs.ref }}
+      require_configured: true
+    secrets: inherit

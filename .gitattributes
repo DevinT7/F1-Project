@@ -5,3 +5,6 @@
 models/tires/** -text
 *.npz binary
 *.parquet binary
+# Shell scripts run inside Linux containers (`bash -s < ops/db/restore_drill.sh`, CI): always LF, or bash
+# fails on the carriage returns of a Windows checkout.
+*.sh text eol=lf

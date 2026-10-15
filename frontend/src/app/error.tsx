@@ -1,6 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
+
+import { reportError } from "@/lib/telemetry";
+
 export default function RouteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => reportError(error, { digest: error.digest }), [error]);
   return (
     <main className="mx-auto max-w-xl p-10">
       <div className="card" role="alert">

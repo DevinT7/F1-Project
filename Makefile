@@ -1,6 +1,6 @@
 # RaceIQ developer tasks. Windows without make: run the commands under each target directly.
 
-.PHONY: check test typecheck openapi openapi-check gen-types check-frontend e2e up down migrate logs seed
+.PHONY: check test typecheck openapi openapi-check gen-types check-frontend e2e up down migrate logs seed \n        monitoring alert-tests restore-drill
 
 # Everything CI runs (except e2e): backend tests + mypy, OpenAPI drift, frontend typecheck/lint/tests.
 check: test typecheck openapi-check check-frontend
@@ -48,3 +48,16 @@ seed:
 
 logs:
 	docker compose logs -f backend worker
+
+# ---------------------------------------------------------------- Phase 9 operations (docs/runbook.md, docs/monitoring.md)
+# Prometheus (http://localhost:9090) + Grafana (http://localhost:3001) next to the stack.
+monitoring:
+	docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+
+# Alert rules: promtool check + unit tests.
+alert-tests:
+	docker run --rm -v "$(CURDIR)/monitoring/prometheus:/p" -w /p --entrypoint promtool prom/prometheus:v3.5.0 test rules alerts_test.yml
+
+# Back up the stack's database, restore it into a scratch database, verify every table.
+restore-drill:
+	docker compose exec -T -e SOURCE_URL=postgresql://raceiq:$${POSTGRES_PASSWORD:-raceiq-dev}@localhost:5432/raceiq db bash -s < ops/db/restore_drill.sh

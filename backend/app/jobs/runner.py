@@ -23,6 +23,7 @@ from typing import Any, Protocol
 
 import structlog
 
+from ..observability import job_metrics, sentry_message
 from .store import Job, JobKind, JobStore
 
 log = structlog.get_logger("raceiq.jobs")
@@ -89,12 +90,25 @@ class JobSystem:
             log.warning("job.attempt_failed", job_id=job_id, attempt=attempt, error=type(exc).__name__,
                         trace=traceback.format_exc(limit=5))
             if isinstance(exc, self.permanent) or attempt >= job.max_attempts:
-                log.error("job.failed", job_id=job_id, attempts=attempt)
+                log.error("job.failed", job_id=job_id, kind=job.kind, attempts=attempt, error=type(exc).__name__)
+                _observe(job.kind, "failed", time.monotonic() - started)
+                sentry_message(f"{job.kind} job failed", level="error", fingerprint=["job-failed", job.kind],
+                               tags={"job_kind": job.kind, "target": job.target, "error": type(exc).__name__})
                 return self.store.update(job_id, status="failed", error=error, message="failed")
             delay = BACKOFF_S[min(attempt - 1, len(BACKOFF_S) - 1)]
             job = self.store.update(job_id, status="retrying", error=error, message=f"retrying in {delay:.0f} s",
                                     run_after=datetime.now(timezone.utc) + timedelta(seconds=delay))
             self.queue.enqueue(job_id, delay_s=delay)
+            _observe(job.kind, "retrying", time.monotonic() - started)
             return job
+        _observe(job.kind, "succeeded", time.monotonic() - started)
         log.info("job.succeeded", job_id=job_id, elapsed_s=round(time.monotonic() - started, 1))
         return self.store.update(job_id, status="succeeded", progress=1.0, message="done", result=result)
+
+
+def _observe(kind: str, outcome: str, seconds: float) -> None:
+    """Job duration / outcome metrics (shared through Redis; app/observability.py). Never fails a job."""
+    try:
+        job_metrics().record_job(kind, outcome, seconds)
+    except Exception as exc:                                    # noqa: BLE001
+        log.warning("job.metrics_unavailable", error=type(exc).__name__)

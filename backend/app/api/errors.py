@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 import uuid
 from collections.abc import Callable
 from typing import Any
 
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.datastructures import Headers, MutableHeaders
@@ -26,12 +28,14 @@ from ..ingestion.errors import (
     SessionNotFoundError,
     TelemetryUnavailableError,
 )
+from ..observability import bind_request, http_route, observe_http
 from ..processing.errors import InsufficientDataError
 from ..ratelimit import Decision, RateLimited
 from ..tires.registry import ChecksumMismatchError, ModelNotAvailableError
 from ..tires.service import NotARaceSessionError
 
 logger = logging.getLogger("raceiq.api")
+_access = structlog.get_logger("raceiq.access")
 
 REQUEST_ID_HEADER = "X-Request-ID"
 MAX_BODY_BYTES = 64 * 1024
@@ -115,12 +119,25 @@ class RequestContextMiddleware:
             await response(scope, receive, send)
             return
 
+        bind_request(rid)
+        started = time.perf_counter()
+        status = [500]
+
         async def send_with_id(message: Message) -> None:
             if message["type"] == "http.response.start":
                 MutableHeaders(scope=message)[REQUEST_ID_HEADER] = rid
+                status[0] = int(message["status"])
             await send(message)
 
-        await self.app(scope, receive, send_with_id)
+        try:
+            await self.app(scope, receive, send_with_id)
+        finally:
+            elapsed = time.perf_counter() - started
+            route = http_route(scope)
+            if route != "/metrics":
+                observe_http(scope["method"], route, status[0], elapsed)
+                _access.info("http.request", method=scope["method"], route=route, status=status[0],
+                             duration_ms=round(elapsed * 1000, 1))
 
 
 RateLimiter = Callable[[Request], "Decision | bool"]

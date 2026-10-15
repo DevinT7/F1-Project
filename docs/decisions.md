@@ -351,3 +351,33 @@ Full contract: `docs/tire_api.md`.
   CSRF is handled by a custom header plus an Origin check on the two cookie endpoints. A refresh with no cookie returns 204 (signed out is not an error).
 - **Rate limits** are Redis token buckets per IP (API, auth) and per user (engineer, admin) → 429 + `Retry-After`. They fail open. The e2e backend disables the per-IP limit (one page legitimately makes dozens of requests); unit tests cover it.
 - **Details:** `docs/security.md`.
+
+## Phase 9 — Delivery, deployment and observability (P1, 2026-10-15)
+
+- **Render for the backend, Vercel for the frontend, Sentry for errors** (chosen 2026-10-15; the comparison is in `docs/deployment.md`).
+  - **Why Render:** it covers a web service, a long-running worker, managed Postgres and Key Value, image-backed deploys by digest, and a pre-deploy migration hook in one Blueprint (`render.yaml`, schema-validated). Fly.io and AWS need much more assembly for the same thing.
+  - **Trade-off:** no TimescaleDB, so `telemetry_samples` is a plain table there. The migration already handled that.
+- **Build once, promote the digest.**
+  - GitHub Actions builds `raceiq-backend` / `raceiq-worker` once per commit or tag, scans the pushed digest with Trivy, and every environment deploys that exact digest through Render's deploy hook (`imgURL`).
+  - A rollback redeploys an existing digest and never rebuilds.
+  - `ci.yml` became a reusable workflow, called first by `deploy.yml` on pushes, so CI runs once per push and only a green CI deploys.
+- **Production approval** is GitHub's environment protection (required reviewers on `production`), not custom logic in the workflow.
+- **Missing credentials don't break `main`.** The deploy preflight lists missing secrets ("API KEY NEEDED"). On `main` it warns and skips, because the hosting accounts are not set up yet; on a tag it fails.
+- **Models baked into the image** through a named build context (`models=./models`, with an empty `FROM scratch AS models` fallback).
+  - Render has no disk shared between the API and the worker, so production serves the file registry from the image, and a new model ships as a reviewed commit plus a deploy (with the ML regression gate).
+  - The S3-backed registry stays available for in-app training once a bucket exists.
+- **Same-origin frontend.** The browser calls `/api/*` on the Vercel origin, and Next.js rewrites to the environment's API (`BACKEND_URL`, also exposed as `NEXT_PUBLIC_API_URL`). That keeps the `SameSite=Strict` refresh cookie first-party; calling Render directly from the browser would make it a third-party cookie and break silent refresh.
+- **Expand-only migrations,** so that a rollback is an image switch. `alembic downgrade` is reserved for local development.
+- **Logs.**
+  - structlog for everything, with the standard library routed through the same renderer; JSON in containers.
+  - The request id is bound per request through contextvars.
+  - Uvicorn's access log was replaced by an `http.request` line without client IPs.
+  - Secret- and PII-named keys are redacted at render time.
+- **Metrics.**
+  - `prometheus_client` in multiprocess mode (`PROMETHEUS_MULTIPROC_DIR`), because the API runs several uvicorn workers.
+  - The RQ worker runs jobs in forked work-horses and is never scraped, so job metrics and the drift window go to Redis, and the API's `/metrics` reads them at scrape time.
+  - Route labels are templates, rebuilt from the request path because FastAPI 0.143 keeps nested routers' routes without the parent prefix.
+  - Known series are pre-created at 0: the end-to-end check showed that a counter born at 1 never trips `increase()`.
+- **Model drift.** The production model scores each newly ingested race with the offline protocol (`simulate_race`, h5) and races in its training data are excluded. The alert compares the step-weighted rolling MAE over the last 10 races with the registry's recorded walk-forward MAE (+25%, ≥ 3 races).
+- **Sentry without PII.** Backend: `send_default_pii=False`, plus a `before_send` that drops cookies, bodies and the user. Frontend (`@sentry/nextjs` 11): `dataCollection` off for user info, cookies, bodies and query strings. Ingest failures and LLM fallbacks are sent as grouped messages (fixed fingerprints), so Sentry alert rules can count them.
+- **Backups.** Render's managed backups first, and `ops/db/backup.sh` (pg_dump custom format, optionally AES-256) as the portable copy. `ops/db/restore_drill.sh` proves restorability, including TimescaleDB's pre/post-restore steps, and CI runs it on every build against the seeded database.

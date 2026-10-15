@@ -42,7 +42,7 @@ describe("ingest as a background job", () => {
     expect(await screen.findByTestId("ingest-progress")).toHaveTextContent("40% · telemetry 200/500 laps");
     expect(screen.getByRole("progressbar", { name: "Ingest progress" })).toHaveAttribute("aria-valuenow", "40");
     await waitFor(() => expect(screen.getByText(/laps stored/)).toBeInTheDocument(), { timeout: 8000 });
-  });
+  }, 15_000);   // three real-time polls: the test's budget must exceed the waitFor's own 8 s
 
   it("a failed job shows its error and offers a retry", async () => {
     const user = userEvent.setup();

@@ -1,129 +1,89 @@
-# RaceIQ — AI-Powered Formula 1 Performance Analyzer
+# RaceIQ: F1 lap analysis with an AI race engineer
 
-Full-stack F1 analytics: telemetry lap comparison, tire-degradation prediction, and an
-AI race engineer that explains the results. Data comes from **OpenF1** (live + recent
-historical) and **FastF1** (distance-aligned telemetry + older seasons).
+RaceIQ compares any two laps of a Formula 1 session distance-aligned. It shows where the time goes (telemetry traces, a time-delta curve, a track map coloured by gain and loss, corner-by-corner findings), forecasts tyre degradation and the pit window for race stints, and lets an AI race engineer explain the comparison. The engineer is held to the computed facts by a validator, with a template fallback.
 
-> This repo replaces the earlier single-file mockup. The mockup now lives in
-> `design/raceiq-dashboard.html` as the visual reference for the frontend.
+> **Unofficial project.** RaceIQ is an unofficial, non-commercial portfolio project and is not associated in any way with the Formula 1 companies. F1, FORMULA ONE, FORMULA 1, FIA FORMULA ONE WORLD CHAMPIONSHIP, GRAND PRIX and related marks are trade marks of Formula One Licensing B.V. Timing data comes from the open-source [FastF1](https://github.com/theOehrly/Fast-F1) library; what that data cannot tell you is in [docs/limitations.md](docs/limitations.md).
 
-## Repo layout
-```
-backend/    FastAPI + OpenF1/FastF1 clients + analysis/tire/AI services   (P1/P2/P3)
-frontend/   Vite + React + TS dashboard                                    (P4)
-ml/         Tire-degradation training pipeline                             (P3)
-design/     raceiq-dashboard.html — visual reference
-docs         TEAM_SPLIT.md · DATA_SOURCES.md
+## Quickstart (Docker, about 10 minutes the first time)
+
+You need Git and Docker with Compose v2 (Docker Desktop, or Docker Engine 24+). Nothing else: no Python, Node or API key.
+
+```bash
+git clone https://github.com/DevinT7/F1-Project.git raceiq
+cd raceiq
+docker compose up -d --build
 ```
 
-## Who does what
-See **[TEAM_SPLIT.md](TEAM_SPLIT.md)** — 4 parallel owners, one shared contract
-(`backend/app/models/schemas.py` ↔ `frontend/src/types.ts`). Where the data comes from:
-**[DATA_SOURCES.md](DATA_SOURCES.md)**.
+Open **http://localhost:3000** when `docker compose ps` shows `frontend` as healthy. The first build downloads base images and dependencies, which takes several minutes.
 
-## Run it
+What you get:
+- **The full stack:** PostgreSQL (TimescaleDB), Redis, S3-compatible storage, the API, a background worker and the web app.
+- **Sample data:** 2024 Chinese GP qualifying (VER, PER, ALO) and a synthetic race. The page shows a session picker: choose **2024 → Chinese Grand Prix → Qualifying**, and the two fastest laps (VER vs ALO) are compared. Or open http://localhost:3000/?s=2024-05-Q&ref=VER:fastest&tgt=ALO:fastest.
+- **An admin account:** register `admin@raceiq.local` (a password of 10+ characters) in the app. It can ingest more sessions; ingest currently fails upstream, see [Known issues](#known-issues).
+- **The API docs:** http://localhost:8000/docs.
 
-### Backend
+Ports in use? `FRONTEND_PORT=3300 BACKEND_PORT=8300 docker compose up -d --build`. Stop with `docker compose down` (data is kept); `docker compose down -v` wipes it.
+
+**No Docker at all:** the web app's **Demo data** button (`?demo=1`) serves real API output with no backend.
+
+## Develop
+
+**Backend** (Python 3.11) on the bundled sample store, no services needed:
+
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env            # optional; historical data needs no keys
-uvicorn app.main:app --reload   # http://localhost:8000/docs
+RACEIQ_DATA_DIR=tests/fixtures/ingestion/store uvicorn app.main:app --reload --port 8000
 ```
 
-OpenF1 setup: no key is required for historical public data; set
-`RACEIQ_OPENF1_API_KEY` only for a live/sponsor tier.
+**Frontend** (Node 22):
 
-FastF1 setup: set `FASTF1_CACHE_DIR` or `RACEIQ_FASTF1_CACHE_DIR` to a persistent
-folder and keep `FASTF1_ENABLED=true` for telemetry endpoints. The first request
-for a session can be slow while FastF1 warms its local cache.
-
-Redis setup: local development can use the in-memory cache. For Docker or
-production, run Redis and set `REDIS_URL=redis://redis:6379/0`.
-
-Try (real data — 2023 Singapore GP race, session_key 9159):
-```bash
-curl "http://localhost:8000/api/sessions?year=2024"
-curl "http://localhost:8000/api/sessions?year=2024&country=Italy"
-curl "http://localhost:8000/api/telemetry?session_key=9159&driver_number=1"
-curl "http://localhost:8000/api/telemetry/lap?year=2024&grand_prix=Monaco&session=Race&driver=VER&lap=23"
-curl "http://localhost:8000/api/telemetry/compare?year=2024&grand_prix=Monaco&session=Race&driver_a=VER&lap_a=23&driver_b=NOR&lap_b=22"
-curl "http://localhost:8000/api/analysis/compare?session_key=9159&driver_number=1&reference_driver_number=4"
-curl "http://localhost:8000/api/tires/degradation?session_key=9159&driver_number=1"
-```
-
-### Frontend (Next.js 16 · Tailwind · Plotly · TanStack Query)
 ```bash
 cd frontend
-npm install
-BACKEND_URL=http://localhost:8000 npm run dev   # http://localhost:3000 (proxies /api to the backend)
-npm run check                                   # typecheck + lint + Vitest (or `make check-frontend`)
-npx playwright test                             # e2e smoke (starts the backend on the fixture repo)
+npm ci
+BACKEND_URL=http://localhost:8000 npm run dev               # http://localhost:3000, proxies /api to the backend
 ```
-Share a comparison by URL: `/?s=2024-05-Q&ref=VER:fastest&tgt=ALO:fastest`.
-No backend? Click **Demo data** (`?demo=1`): real API output for 2024 China qualifying.
-Screenshots and the visual checklist: [docs/screenshots/](docs/screenshots/).
 
-### Ingestion (FastF1 → local Parquet store)
+**Checks** (what CI runs; see `.github/workflows/ci.yml`):
+
 ```bash
-cd backend
-python -m app.ingestion ingest --year 2024 --round 5 --session Q   # ~2.5 min cold, ~1 s re-run
-python -m app.ingestion season --year 2024 --sessions Q,R          # every completed round
-python -m app.ingestion events --year 2024                         # cached schedule
-```
-Normalized sessions land in `data/` (gitignored; `RACEIQ_DATA_DIR` overrides). Only
-`app/ingestion/fastf1_client.py` imports FastF1; everything else uses the domain models
-in `app/ingestion/models.py`. Schemas, the DRS decoding, validity rules and plan
-deviations are recorded in [docs/decisions.md](docs/decisions.md).
-
-### Tests (run offline — no network)
-```bash
-cd backend && pytest -q
-pytest -m network                # opt-in live FastF1 integration (~3 min)
-mypy                             # strict on app/ingestion + app/storage
+cd backend && ruff check app scripts tests && python -m mypy && python -m pytest -q -m "not network and not perf"
+cd frontend && npm run check                                # typecheck + lint + Vitest
+cd frontend && npx playwright test                          # end-to-end (starts its own backend + frontend)
 ```
 
-## API endpoints
+**Other entry points:**
+- **More data:** `python -m app.ingestion ingest --year 2024 --round 5 --session Q` writes to `data/` (Parquet). `SEED_FULL_DATA=1 docker compose run --rm seed` loads `data/` into the stack.
+- **API types:** `make gen-types` regenerates `frontend/src/api/types.ts` from the reviewed `backend/openapi.json`. CI fails when the API changes without it.
 
-### v1 (`/api/v1`, typed, versioned: see `/docs` and `backend/openapi.json`)
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/api/v1/health`, `/api/v1/ready` | liveness / readiness |
-| GET | `/api/v1/seasons`, `/api/v1/seasons/{year}/events` | seasons, Grands Prix schedule |
-| GET | `/api/v1/sessions/{key}` | session info + availability (`2024-05-Q`) |
-| POST | `/api/v1/sessions/{key}/ingest` | ingest via FastF1 (sync) |
-| GET | `/api/v1/sessions/{key}/drivers` · `/laps?driver=` · `/fastest-laps` · `/corners` | stored session data |
-| POST | `/api/v1/comparisons` | aligned two-lap comparison + delta + findings |
+## How it is built
 
-Frontend types: `make gen-types` (or `python -m scripts.export_openapi` in `backend/`, then
-`npm run gen-types` in `frontend/`) writes `frontend/src/api/types.ts`.
+| Part | Stack |
+|---|---|
+| API | FastAPI, SQLAlchemy Core + Alembic, PostgreSQL / TimescaleDB, Redis (cache, RQ jobs, rate limits) |
+| Analysis | distance alignment, time delta, corners and findings (`backend/app/processing/`) |
+| Tyre model | pooled fixed-effects degradation with conformal intervals, a checksummed registry, drift monitoring |
+| AI engineer | FactSheet → LLM (optional) → validator → retry → template fallback |
+| Web app | Next.js 16, TanStack Query, Plotly, Tailwind |
+| Delivery | multi-stage non-root images, GitHub Actions (tests, coverage and mutation gates, Trivy, compose e2e), Render + Vercel, Prometheus / Grafana / Sentry |
 
-### Legacy (`/api`)
-| Method | Path | Purpose | Owner |
-|--------|------|---------|-------|
-| GET | `/api/sessions` | list sessions (year/country/type) | P1 |
-| GET | `/api/sessions/{key}/drivers` | drivers in a session | P1 |
-| GET | `/api/telemetry` | distance-aligned lap trace | P1/P2 |
-| GET | `/api/telemetry/lap` | FastF1 chart-ready lap telemetry | P1 |
-| GET | `/api/telemetry/compare` | FastF1 aligned lap telemetry + delta | P1 |
-| GET | `/api/analysis/compare` | two-lap delta + sectors + corners | P2 |
-| GET | `/api/tires/degradation` | degradation + pit window | P3 |
-| POST | `/api/ai/report` | grounded natural-language report | P3/P4 |
-| GET | `/api/health` | status | P1 |
-| GET | `/api/data-status` | provider/cache status | P1 |
+## Docs
 
-## Deployment notes
-Redis is required in production so cache state survives process restarts and repeated
-telemetry calls do not hammer providers. Mount a persistent FastF1 cache volume
-(`FASTF1_CACHE_DIR`) because cold session loads are expensive. Respect provider
-limits, and set `FRONTEND_ORIGIN` / `RACEIQ_CORS_ORIGINS` for the deployed frontend.
+| | |
+|---|---|
+| [architecture.md](docs/architecture.md) | components, request and data paths, code map (diagram) |
+| [api.md](docs/api.md) | every endpoint: access, parameters, responses |
+| [deployment.md](docs/deployment.md) | Render + Vercel, environments, the delivery pipeline, first deploy |
+| [runbook.md](docs/runbook.md) | deploy, rollback, backups, re-ingest, retrain, key rotation, alert responses |
+| [monitoring.md](docs/monitoring.md) | logs, metrics, dashboard, alerts, Sentry |
+| [limitations.md](docs/limitations.md) | what the data cannot tell you; data policies; the unofficial notice |
+| [security.md](docs/security.md) | auth, cookies, rate limits |
+| [api_keys.md](docs/api_keys.md) | which features need which key (none to run) |
+| [decisions.md](docs/decisions.md), [progress.md](docs/progress.md) | design decisions and phase results |
+| [TEAM_SPLIT.md](TEAM_SPLIT.md), [DATA_SOURCES.md](DATA_SOURCES.md) | who owns what; where the data comes from |
 
-## Build phases (from the project doc)
-1. Telemetry comparison → 2. Corner analysis → 3. Tire model → 4. AI engineer →
-5. Production (auth, Redis cache, Docker, CI). Current scaffold covers 1–4 end-to-end
-with a baseline tire model; phase 5 and the trained ML model are the next steps.
+## Known issues
 
-## Notes
-OpenF1/FastF1/Jolpica are unofficial and non-commercial — fine for a portfolio project.
-Respect OpenF1 rate limits (3 req/s free); the backend caches aggressively.
+- **New ingests fail upstream (since 2026-10-15).** F1's live-timing server now rejects anonymous requests (HTTP 401), so FastF1 3.5.3 cannot load new sessions. Stored and sample sessions work normally. The fix to try is upgrading FastF1 (3.8.3 is out); see the [runbook](docs/runbook.md#re-ingest-a-session).
+- **The live LLM evaluation is pending an API key.** Without a key the engineer serves validated template reports ([api_keys.md](docs/api_keys.md)).

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { apiError, server } from "@/test/msw";
 
 import { ApiError, apiGet, apiPost, buildUrl } from "./client";
+import { isReportable } from "../telemetry";
 import { createApi } from "./endpoints";
 
 describe("buildUrl", () => {
@@ -36,6 +37,27 @@ describe("typed client", () => {
     server.use(http.get("*/api/v1/seasons", () =>
       new HttpResponse("upstream exploded", { status: 502, headers: { "X-Request-ID": "hdr-1" } })));
     await expect(apiGet("/api/v1/seasons")).rejects.toMatchObject({ status: 502, code: "http_502", requestId: "hdr-1" });
+  });
+
+  it("sends a fresh X-Request-ID the backend accepts on every call", async () => {
+    const seen: (string | null)[] = [];
+    server.use(http.get("*/api/v1/seasons", ({ request }) => {
+      seen.push(request.headers.get("x-request-id"));
+      return HttpResponse.json({ seasons: [] });
+    }));
+    await apiGet("/api/v1/seasons");
+    await apiGet("/api/v1/seasons");
+    expect(seen).toHaveLength(2);
+    for (const id of seen) expect(id).toMatch(/^[A-Za-z0-9._-]{1,64}$/);
+    expect(seen[0]).not.toBe(seen[1]);
+  });
+
+  it("only network failures, 5xx and crashes are reportable to Sentry", () => {
+    expect(isReportable(new ApiError(0, "network_error", "x"))).toBe(true);
+    expect(isReportable(new ApiError(503, "provider_error", "x"))).toBe(true);
+    expect(isReportable(new ApiError(422, "lap_invalid", "x"))).toBe(false);
+    expect(isReportable(new ApiError(401, "unauthorized", "x"))).toBe(false);
+    expect(isReportable(new TypeError("render crash"))).toBe(true);
   });
 
   it("reports network failures with a friendly code", async () => {

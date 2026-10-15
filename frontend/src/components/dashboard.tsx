@@ -137,7 +137,14 @@ export function Dashboard() {
             </ErrorBoundary>
           </div>
         )}
-        <p className="mt-8 text-center text-[11px] text-muted">Data: FastF1 · every figure is computed by the RaceIQ backend</p>
+        <footer className="mt-8 text-center text-[11px] leading-relaxed text-muted" data-testid="site-notice">
+          <p>Data: FastF1 · every figure is computed by the RaceIQ backend</p>
+          <p>
+            RaceIQ is an unofficial, non-commercial project, not associated in any way with the Formula 1 companies.
+            F1, FORMULA ONE, FORMULA 1 and GRAND PRIX are trade marks of Formula One Licensing B.V.
+            Timing data via the open-source FastF1 library.
+          </p>
+        </footer>
       </main>
       <Toaster />
       <SignInDialog />

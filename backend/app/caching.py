@@ -193,6 +193,9 @@ class FlightStats:
     def bump(self, table: dict[str, int], kind: str) -> None:
         with self.lock:
             table[kind] = table.get(kind, 0) + 1
+        if table is self.hits or table is self.misses:     # → raceiq_cache_lookups_total (hit ratio)
+            from .observability import CACHE_LOOKUPS
+            CACHE_LOOKUPS.labels(kind, "hit" if table is self.hits else "miss").inc()
 
 
 STATS = FlightStats()

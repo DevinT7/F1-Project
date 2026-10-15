@@ -8,13 +8,16 @@ import { createApi } from "@/lib/api/endpoints";
 import { refreshSession, useAuth } from "@/lib/auth";
 import { ApiContext } from "@/lib/queries";
 import { useUiStore } from "@/lib/store";
+import { reportError } from "@/lib/telemetry";
 
 /** Every failed API call surfaces as a toast with its error code and request id, except codes a
- * query declares it handles itself (meta.handledCodes: e.g. the tyre panel's 503 state). */
+ * query declares it handles itself (meta.handledCodes: e.g. the tyre panel's 503 state). Network
+ * failures and 5xx also go to Sentry (when configured), tagged with the request id. */
 function toastFor(error: unknown, meta?: Record<string, unknown>) {
   const err = error instanceof ApiError ? error : null;
   const handled = meta?.handledCodes;
   if (err && Array.isArray(handled) && handled.includes(err.code)) return;
+  reportError(error);
   useUiStore.getState().pushToast({
     title: err?.status === 0 ? "Backend unreachable" : "Request failed",
     message: err?.message ?? (error instanceof Error ? error.message : String(error)),

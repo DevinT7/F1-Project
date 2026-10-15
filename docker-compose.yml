@@ -61,7 +61,8 @@ services:
     volumes: [s3data:/data]
 
   seed:
-    build: {context: ./backend, target: api}
+    build: {context: ./backend, target: api, additional_contexts: {models: ./models},
+            args: {APP_VERSION: "${RACEIQ_TAG:-local}"}}
     image: raceiq-backend:${RACEIQ_TAG:-local}
     command: ["python", "-m", "scripts.seed"]
     environment:
@@ -78,7 +79,8 @@ services:
     restart: "no"
 
   backend:
-    build: {context: ./backend, target: api}
+    build: {context: ./backend, target: api, additional_contexts: {models: ./models},
+            args: {APP_VERSION: "${RACEIQ_TAG:-local}"}}
     image: raceiq-backend:${RACEIQ_TAG:-local}
     environment: *backend-env
     ports: ["${BACKEND_PORT:-8000}:8000"]
@@ -92,7 +94,8 @@ services:
       retries: 30
 
   worker:
-    build: {context: ./backend, target: worker}
+    build: {context: ./backend, target: worker, additional_contexts: {models: ./models},
+            args: {APP_VERSION: "${RACEIQ_TAG:-local}"}}
     image: raceiq-worker:${RACEIQ_TAG:-local}
     environment: *backend-env
     volumes:

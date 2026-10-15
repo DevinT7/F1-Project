@@ -417,3 +417,58 @@ API key: **not needed** (all services run locally).
 2. **18 known vulnerabilities** in starlette 0.41.3, python-dotenv 1.0.1 and pytest 8.3.4. Upgraded to FastAPI 0.143.1 / Starlette 1.8.0, python-dotenv 1.2.4 and pytest 9.1.1; `pip-audit` is clean.
 3. **The 6E tyre model checksums failed on every non-Windows checkout.** Hashes were computed over CRLF working copies while git stored LF, so on Linux the tyre endpoint returned 503. `.gitattributes` now keeps `models/tires/**` byte-exact.
 4. **Test isolation.** A job-wide `RACEIQ_DATABASE_URL` made the app under test share the CI database; it is now scoped to the migration step, and `conftest.py` pins tests to in-memory infrastructure.
+
+## Phase 9 — Quality hardening, CI/CD, deployment, monitoring (P1, 2026-10-15)
+
+API key: **not needed** for anything that runs locally or in CI. **Hosting credentials needed** for the live staging/production environments (Render deploy hooks, Vercel token, optional Sentry DSN, a metrics scraper): placeholders and the list are in `docs/api_keys.md` → Deployment credentials.
+
+| Acceptance criterion | Status | Evidence |
+|---|---|---|
+| A tag push deploys staging automatically; production requires approval | ✅ built · ⏳ live run needs credentials | `deploy.yml`: CI → build + push + Trivy-scan the images → `deploy-env.yml` for staging → production (`v*` tags only, `environment: production` with required reviewers). Statically checked: actionlint clean; `render.yaml` validates against Render's Blueprint schema, which rejects unknown keys and plans. The image build (named `models` context, `APP_VERSION`) and the compose e2e run locally and in CI. Not yet exercised against real Render/Vercel accounts: the preflight prints "API KEY NEEDED" and skips on `main`. |
+| Rollback tested once and documented | ✅ | `ops/rollback_drill.sh` on the compose stack: `v0.9.1` → `v0.9.0` → `v0.9.1` in 26 / 20 / 18 s. Version verified each time; an account and its saved comparison survived. Procedure: `docs/runbook.md` → Rollback (workflow re-run of an existing digest; Render / Vercel one-click). |
+| Dashboards and alerts for the listed metrics | ✅ | 25-panel Grafana dashboard + 11 Prometheus rules (`monitoring/`), covering latency and error rate, cache hit ratio, ingest duration and failures, queue depth, LLM latency / tokens / cost, violation and fallback rates, and drift (rolling MAE). `promtool test rules` passes (firing and quiet cases). End to end: all 27 panel queries valid against the live stack, and a real ingest failure fired `RaceIQIngestFailed`. Sentry alert rules: `docs/monitoring.md`. |
+| Load test recorded and meeting targets (p95 < 500 ms cached, < 1% errors) | ✅ | `loadtests/README.md`. At 50 users: 26,649 requests, **0 errors**, 226 req/s, cached comparison p50 23 ms / **p95 89 ms**. At 200 users (stress): 0 errors, 318 req/s, p95 650 ms (CPU-bound on one machine). |
+| Fresh clone → running by following only the README | PENDING-FRESH-CLONE | |
+
+**Quality gates (CI, `ci.yml`)**
+
+| Gate | Result |
+|---|---|
+| Coverage of the numerical modules (`scripts/coverage_gate.py`, 24 modules, each ≥ 90%) | pass. Processing 96–98%, AI numbers / validator / FactSheet 96–99%, tyre models 91–98%, drift 92% (added this phase) |
+| Golden findings (`tests/test_golden_findings.py`, 5 driver pairs, including the swap-sign check) | pass |
+| Mutation sanity (`scripts/mutation_sanity.py`, 9 planted bugs: delta sign, sector sign, entry-loss sign, pit-window crossing, conformal rank, display magnitude, cache key on re-ingest, token revocation, single-flight lock) | 9 / 9 killed |
+| ML regression (weekly + on demand, `ml-regression.yml`): retrain on the SHA-pinned dataset, fail at > +10% MAE | baseline h5 MAE 0.4379 s (persistence 0.4328 s), 10,285 forecasts |
+| Latency budgets (`-m perf`, without coverage instrumentation) | pass |
+| Images (Trivy 0.67.2, fixable HIGH / CRITICAL) | 0 on api, worker and frontend: pip / setuptools / wheel and npm / corepack removed from the runtimes |
+| Lint, types, OpenAPI drift, `docs/api.md` drift, pip-audit, npm audit | pass |
+| Restore drill and alert-rule tests in the compose job | pass (locally; added this phase) |
+
+**Built**
+
+- **Images.** Multi-stage, digest-pinned bases, non-root (uid 10001 / `node`), healthchecks, models baked in through a named build context, `APP_VERSION` reported by `/api/v1/health`. Dependabot keeps the pins current.
+- **Delivery.** `ci.yml` (reusable), `deploy.yml` (build once, promote the digest, approval for production, manual redeploy for rollbacks), `deploy-env.yml` (Render hooks with `imgURL`, a version wait, Vercel prebuilt deploy with `BACKEND_URL` / `NEXT_PUBLIC_API_URL` per environment, a smoke test through the proxy), and `render.yaml` (staging + production: api, worker, Postgres 16, Key Value; migrations as `preDeployCommand`).
+- **Observability** (`app/observability.py`, `frontend/src/lib/telemetry.ts`):
+  - JSON logs with the request id propagated browser → Next.js proxy → API, checked through the proxy.
+  - Redaction of secret- and PII-named keys.
+  - Prometheus metrics in multiprocess mode: 40 of 40 requests counted across 4 workers.
+  - Job metrics and model drift shared through Redis.
+  - Sentry on the backend, the worker and Next.js, without PII. Off without a DSN.
+- **Model drift** (`app/tires/drift.py`). Each newly ingested race is scored by the served model with the offline protocol. On real data: 0.46 s (2024 R13), 0.37 s (2024 R14), against a 0.399 s walk-forward baseline.
+- **Backups.** `ops/db/backup.sh` (pg_dump custom format, optional AES-256) and `ops/db/restore_drill.sh`. Drill on the real dev database: 19,849,621 rows in 15 tables restored and verified in 247 s (828 MB dump; TimescaleDB pre/post restore). It also runs on the seeded compose database in CI.
+- **Docs.**
+  - New: `docs/architecture.md` (diagram), `docs/deployment.md` (why Render), `docs/monitoring.md`, `loadtests/README.md`.
+  - Updated: `docs/runbook.md` (deploy, rollback, backups, re-ingest, retrain, key rotation, one section per alert), `docs/limitations.md` (no brake pressure, no true traffic gaps, heuristic pit windows, the unofficial / trademark notice), the README (rewritten around a Docker quickstart), and `docs/api.md` (generated, drift-checked).
+  - The unofficial notice also sits in the app's footer.
+
+**Found and fixed on the way**
+
+1. **Route labels.** FastAPI 0.143 keeps nested routers' routes without the parent prefix, so labels read `/sessions/{session_key}`. The label is now rebuilt from the request path (prefixes are static).
+2. **First failures never alerted.** Counters born at 1 show no `increase()`. Found by failing a real ingest and watching no alert fire; the job and engineer series are now exported at 0 from the first scrape (test added).
+3. **A latent frontend timeout.** The ingest-job test's `waitFor` allowed 8 s inside the default 5 s test timeout; it failed under load.
+4. **Sentry 11 API changes:** `withSentryConfig` moved to `@sentry/nextjs/config`, and `sendDefaultPii` is now `dataCollection`.
+
+**Known issue found this phase (upstream, not fixed here).** F1's live-timing server now returns **401** to anonymous requests (host and containers alike), so FastF1 3.5.3 cannot load new sessions and new ingests fail permanently. Stored sessions are unaffected. Next step: try FastF1 3.8.3 and re-verify the ingestion fixtures. Documented in the README, runbook and limitations.
+
+### Phase 9: hosted environments (placeholder: credentials needed)
+
+To be filled after the first real deploy: the staging URL, the production URL, the first tag deployed, approval timing, and a production rollback drill against Render.

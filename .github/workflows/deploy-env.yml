@@ -1,0 +1,155 @@
+# Deploy one version to one environment (called by deploy.yml for staging, production and rollbacks).
+#
+# Needs, in the GitHub environment (Settings → Environments → staging | production; docs/api_keys.md):
+#   secrets  RENDER_DEPLOY_HOOK_API, RENDER_DEPLOY_HOOK_WORKER    Render → service → Settings → Deploy Hook
+#            VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID        Vercel → account tokens / project settings
+#            VERCEL_AUTOMATION_BYPASS_SECRET (optional)            when Vercel deployment protection is on
+#            SENTRY_AUTH_TOKEN (optional)                          frontend source-map upload
+#   vars     API_URL     the Render api URL (https://raceiq-api-staging.onrender.com)
+#            APP_DOMAIN  (optional) the frontend domain to alias a staging deployment to
+#            SENTRY_DSN_FRONTEND, SENTRY_ORG, SENTRY_PROJECT (optional)
+name: deploy-env
+
+on:
+  workflow_call:
+    inputs:
+      environment: {type: string, required: true}
+      version: {type: string, required: true}
+      backend_image: {type: string, required: true}
+      worker_image: {type: string, required: true}
+      ref: {type: string, required: true}
+      require_configured: {type: boolean, default: true}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ steps.frontend.outputs.url }}
+    env:
+      VERSION: ${{ inputs.version }}
+      API_URL: ${{ vars.API_URL }}
+    steps:
+      - name: Preflight (credentials present?)
+        id: preflight
+        env:
+          RENDER_DEPLOY_HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+          RENDER_DEPLOY_HOOK_WORKER: ${{ secrets.RENDER_DEPLOY_HOOK_WORKER }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          REQUIRE: ${{ inputs.require_configured }}
+          ENV_NAME: ${{ inputs.environment }}
+        run: |
+          missing=()
+          for name in RENDER_DEPLOY_HOOK_API RENDER_DEPLOY_HOOK_WORKER VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID API_URL; do
+            [ -n "${!name}" ] || missing+=("$name")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            msg="API KEY NEEDED: the '$ENV_NAME' GitHub environment is missing ${missing[*]} (docs/api_keys.md → Deployment)"
+            if [ "$REQUIRE" = "true" ]; then echo "::error::$msg"; exit 1; fi
+            echo "::warning::$msg — images were pushed; the deploy is skipped"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "deploying $VERSION to $ENV_NAME"
+
+      - uses: actions/checkout@v4
+        if: steps.preflight.outputs.skip == 'false'
+        with:
+          fetch-depth: 0
+      - name: Check out the deployed version
+        if: steps.preflight.outputs.skip == 'false'
+        env:
+          REF: ${{ inputs.ref }}
+        run: git checkout --quiet "$REF"
+
+      # ---------------------------------------------------------------- backend (Render)
+      - name: Deploy the API image (Render runs the migrations before switching traffic)
+        if: steps.preflight.outputs.skip == 'false'
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+          IMAGE: ${{ inputs.backend_image }}
+        run: |
+          encoded=$(jq -rn --arg v "$IMAGE" '$v|@uri')
+          curl -fsS -X POST "${HOOK}&imgURL=${encoded}" -o /dev/null
+          echo "requested $IMAGE"
+      - name: Wait until the API reports the new version
+        if: steps.preflight.outputs.skip == 'false'
+        run: |
+          for i in $(seq 1 90); do
+            live=$(curl -fsS --max-time 10 "$API_URL/api/v1/health" | jq -r .version || true)
+            if [ "$live" = "$VERSION" ]; then echo "API is live on $VERSION"; exit 0; fi
+            echo "live: ${live:-unreachable}; waiting for $VERSION ($i/90)"; sleep 10
+          done
+          echo "::error::the API did not report $VERSION within 15 minutes (a failed migration keeps the old version: Render → raceiq-api → Events)"
+          exit 1
+      - name: Deploy the worker image
+        if: steps.preflight.outputs.skip == 'false'
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_WORKER }}
+          IMAGE: ${{ inputs.worker_image }}
+        run: |
+          encoded=$(jq -rn --arg v "$IMAGE" '$v|@uri')
+          curl -fsS -X POST "${HOOK}&imgURL=${encoded}" -o /dev/null
+          echo "requested $IMAGE"
+
+      # ---------------------------------------------------------------- frontend (Vercel)
+      - uses: actions/setup-node@v4
+        if: steps.preflight.outputs.skip == 'false'
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build + deploy the frontend (its /api proxy points at this environment's API)
+        id: frontend
+        if: steps.preflight.outputs.skip == 'false'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # build-time: next.config.ts rewrites /api/* → BACKEND_URL (same-origin for the browser, so the
+          # SameSite=Strict refresh cookie stays first-party); NEXT_PUBLIC_API_URL names the same API
+          BACKEND_URL: ${{ vars.API_URL }}
+          NEXT_PUBLIC_API_URL: ${{ vars.API_URL }}
+          NEXT_PUBLIC_APP_ENV: ${{ inputs.environment }}
+          NEXT_PUBLIC_RELEASE: ${{ inputs.version }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ vars.SENTRY_DSN_FRONTEND }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+          PROD: ${{ inputs.environment == 'production' }}
+          APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+        run: |
+          npm ci --prefix frontend
+          target=preview; flag=""
+          if [ "$PROD" = "true" ]; then target=production; flag="--prod"; fi
+          npx --yes vercel@64 pull --yes --environment="$target" --token="$VERCEL_TOKEN"
+          npx --yes vercel@64 build $flag --token="$VERCEL_TOKEN"
+          url=$(npx --yes vercel@64 deploy --prebuilt $flag --token="$VERCEL_TOKEN")
+          if [ "$PROD" != "true" ] && [ -n "$APP_DOMAIN" ]; then
+            npx --yes vercel@64 alias set "$url" "$APP_DOMAIN" --token="$VERCEL_TOKEN"
+            url="https://$APP_DOMAIN"
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "frontend: $url"
+
+      # ---------------------------------------------------------------- smoke test
+      - name: Smoke test through the frontend
+        if: steps.preflight.outputs.skip == 'false'
+        env:
+          URL: ${{ steps.frontend.outputs.url }}
+          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          headers=(-H "X-Request-ID: deploy-smoke-${GITHUB_RUN_ID}")
+          [ -n "$BYPASS" ] && headers+=(-H "x-vercel-protection-bypass: $BYPASS")
+          curl -fsS --retry 5 --retry-delay 5 "${headers[@]}" "$URL/" -o /dev/null
+          health=$(curl -fsS --retry 5 --retry-delay 5 "${headers[@]}" "$URL/api/v1/health")
+          echo "$health"
+          [ "$(echo "$health" | jq -r .version)" = "$VERSION" ] || { echo "::error::the frontend proxies to an API that is not on $VERSION"; exit 1; }
+          curl -fsS "${headers[@]}" "$URL/api/v1/seasons" | jq -e '.seasons | type == "array"' > /dev/null
+          echo "smoke test passed: $URL on $VERSION"

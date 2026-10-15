@@ -15,8 +15,9 @@
   intents_total{intent}                   Q&A routing distribution
 Derived in the snapshot: cache hit ratio, out-of-scope rate, first-try / after-retry / fallback rates.
 
-Per process and reset on restart; Phase 8 exports the same names to Prometheus. Read them via
-GET /api/v1/engineer/metrics (admin token) — docs/runbook.md.
+Per process and reset on restart. Read them via GET /api/v1/engineer/metrics (admin token) —
+docs/runbook.md. Phase 9 mirrors them to Prometheus (raceiq_engineer_requests_total, raceiq_llm_*;
+app/observability.py), which sums over workers and survives restarts in the time series.
 """
 from __future__ import annotations
 
@@ -28,6 +29,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
+from .. import observability as obs
 from .guarded import Attempt
 from .validator import Violation
 
@@ -94,13 +96,28 @@ class Metrics:
         for a in attempts:
             if a.model is not None:
                 self.llm_latency.observe(a.latency_ms)
+                obs.LLM_LATENCY.observe(a.latency_ms / 1000)
             self.tokens["in"] += a.tokens_in
             self.tokens["out"] += a.tokens_out
+            obs.LLM_TOKENS.labels("in").inc(a.tokens_in)
+            obs.LLM_TOKENS.labels("out").inc(a.tokens_out)
             if pin is not None and pout is not None:
-                self.cost_usd += (a.tokens_in * pin + a.tokens_out * pout) / 1e6
+                cost = (a.tokens_in * pin + a.tokens_out * pout) / 1e6
+                self.cost_usd += cost
+                obs.LLM_COST.inc(cost)
 
     def _record(self, kind: str, outcome: str, *, cached: bool, latency_ms: float, attempts: Iterable[Attempt],
                 first: Iterable[Violation], fallback_reason: str | None) -> None:
+        obs.ENGINEER_REQUESTS.labels(kind, outcome).inc()
+        if not cached:
+            for v in (first := list(first)):
+                obs.LLM_VIOLATIONS.labels(v.rule).inc()
+            if outcome == "template_validation" and fallback_reason:
+                for r in (r for r in fallback_reason.split(",") if r):
+                    obs.LLM_FALLBACK_RULES.labels(r).inc()
+            if outcome in ("template_validation", "template_provider_error"):
+                obs.sentry_message(f"engineer {kind} fell back to the template", fingerprint=["llm-fallback", kind],
+                                   tags={"engineer_kind": kind, "outcome": outcome})
         with self._lock:
             self.requests[(kind, outcome)] += 1
             self.cache[(kind, "hit" if cached else "miss")] += 1

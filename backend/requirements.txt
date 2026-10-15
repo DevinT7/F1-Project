@@ -58,3 +58,6 @@ types-boto3[s3]==1.43.113  # mypy stubs (CI)
 # Phase 8 auth: argon2id password hashing, JWT access/refresh tokens
 argon2-cffi==25.1.0
 PyJWT==2.15.1
+# Phase 9 observability: Prometheus metrics, Sentry error reporting (app/observability.py)
+prometheus-client==0.26.0
+sentry-sdk==2.72.0

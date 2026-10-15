@@ -1,0 +1,118 @@
+# RaceIQ alert rules (Phase 9). Metric names: docs/monitoring.md. Unit tests: alerts_test.yml
+#   docker run --rm -v "$PWD/monitoring/prometheus:/p" --entrypoint promtool prom/prometheus:v3.5.0 test rules /p/alerts_test.yml
+#
+# severity=page wakes someone up (the product is broken for users); severity=ticket is for working hours.
+# Every alert links its runbook section.
+groups:
+  - name: raceiq-api
+    rules:
+      - alert: RaceIQApiDown
+        expr: up{job="raceiq-api"} == 0
+        for: 5m
+        labels: {severity: page}
+        annotations:
+          summary: "RaceIQ API scrape failing for 5 minutes"
+          runbook: "docs/runbook.md#api-down"
+
+      - alert: RaceIQHighErrorRate
+        # 5xx share of all requests (scrapes excluded at the source), with a traffic floor so one 500 at
+        # 3 a.m. does not page
+        expr: |
+          (sum(rate(raceiq_http_requests_total{status=~"5.."}[5m])) / sum(rate(raceiq_http_requests_total[5m])) > 0.01)
+          and sum(rate(raceiq_http_requests_total[5m])) > 0.1
+        for: 10m
+        labels: {severity: page}
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of API requests fail with 5xx (budget 1%)"
+          runbook: "docs/runbook.md#high-error-rate"
+
+      - alert: RaceIQSlowComparisons
+        # the load-test target: cached comparisons p95 < 500 ms (loadtests/README.md)
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(raceiq_http_request_duration_seconds_bucket{route="/api/v1/comparisons"}[10m]))) > 0.5
+          and sum(rate(raceiq_http_request_duration_seconds_count{route="/api/v1/comparisons"}[10m])) > 0.05
+        for: 15m
+        labels: {severity: ticket}
+        annotations:
+          summary: "comparison p95 is {{ $value | humanizeDuration }} (target 500 ms)"
+          runbook: "docs/runbook.md#slow-responses"
+
+      - alert: RaceIQCacheHitRatioLow
+        expr: |
+          (sum(rate(raceiq_cache_lookups_total{result="hit"}[30m])) / sum(rate(raceiq_cache_lookups_total[30m])) < 0.5)
+          and sum(rate(raceiq_cache_lookups_total[30m])) > 0.05
+        for: 30m
+        labels: {severity: ticket}
+        annotations:
+          summary: "response-cache hit ratio {{ $value | humanizePercentage }} (Redis evicting, or keys churning?)"
+          runbook: "docs/runbook.md#slow-responses"
+
+  - name: raceiq-jobs
+    rules:
+      - alert: RaceIQIngestFailed
+        expr: increase(raceiq_jobs_total{kind="ingest", outcome="failed"}[1h]) > 0
+        labels: {severity: ticket}
+        annotations:
+          summary: "{{ $value | humanize }} ingest job(s) failed in the last hour (after retries)"
+          runbook: "docs/runbook.md#re-ingest-a-session"
+
+      - alert: RaceIQIngestSlow
+        expr: |
+          histogram_quantile(0.9, sum by (le) (rate(raceiq_job_duration_seconds_bucket{kind="ingest"}[6h]))) > 1800
+        for: 30m
+        labels: {severity: ticket}
+        annotations:
+          summary: "p90 ingest takes {{ $value | humanizeDuration }} (FastF1 slow or rate-limited?)"
+          runbook: "docs/runbook.md#re-ingest-a-session"
+
+      - alert: RaceIQJobBacklog
+        expr: raceiq_job_queue_depth{state="queued"} > 10
+        for: 15m
+        labels: {severity: ticket}
+        annotations:
+          summary: "{{ $value }} jobs waiting: is the worker running?"
+          runbook: "docs/runbook.md#worker-not-processing-jobs"
+
+  - name: raceiq-engineer
+    rules:
+      - alert: RaceIQLlmFallbackSpike
+        # share of engineer requests that attempted the LLM but were served the template
+        expr: |
+          (
+            sum(rate(raceiq_engineer_requests_total{outcome=~"template_validation|template_provider_error"}[15m]))
+            / sum(rate(raceiq_engineer_requests_total{outcome=~"llm_first_try|llm_after_retry|template_validation|template_provider_error"}[15m]))
+          ) > 0.2
+          and sum(rate(raceiq_engineer_requests_total{outcome=~"llm_first_try|llm_after_retry|template_validation|template_provider_error"}[15m])) > 0.01
+        for: 15m
+        labels: {severity: ticket}
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of LLM-backed engineer requests fell back to the template"
+          runbook: "docs/runbook.md#llm-fallback-spike"
+
+      - alert: RaceIQLlmSlow
+        expr: histogram_quantile(0.95, sum by (le) (rate(raceiq_llm_latency_seconds_bucket[15m]))) > 15
+        for: 15m
+        labels: {severity: ticket}
+        annotations:
+          summary: "LLM p95 latency {{ $value | humanizeDuration }}"
+          runbook: "docs/runbook.md#llm-fallback-spike"
+
+      - alert: RaceIQLlmCostBudget
+        expr: increase(raceiq_llm_cost_usd_total[1d]) > 5
+        labels: {severity: ticket}
+        annotations:
+          summary: "LLM spend ${{ $value | printf \"%.2f\" }} in 24 h (budget $5; kill switch ENGINEER_LLM_ENABLED=false)"
+          runbook: "docs/runbook.md#llm-fallback-spike"
+
+  - name: raceiq-model
+    rules:
+      - alert: RaceIQTyreModelDrift
+        # rolling h5 MAE on newly ingested races vs the MAE recorded when the model was trained
+        expr: |
+          raceiq_tyre_model_rolling_mae_seconds > 1.25 * raceiq_tyre_model_baseline_mae_seconds
+          and raceiq_tyre_model_drift_sessions >= 3
+        for: 1h
+        labels: {severity: ticket}
+        annotations:
+          summary: "tyre model MAE {{ $value | printf \"%.3f\" }} s on recent races, >25% above its baseline: retrain"
+          runbook: "docs/runbook.md#retrain-the-tyre-model"

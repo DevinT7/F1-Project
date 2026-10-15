@@ -10,6 +10,8 @@ from collections.abc import Callable
 from functools import lru_cache
 from typing import Any
 
+import structlog
+
 from ..caching import get_cache, invalidate_session
 from ..config import settings
 from ..ingestion.errors import SessionNotFoundError
@@ -19,6 +21,8 @@ from .queues import RQQueue, ThreadQueue
 from .runner import Handler, JobSystem, PermanentJobError, Progress
 from .store import Job, JobStore, MemoryJobStore, PostgresJobStore
 
+log = structlog.get_logger("raceiq.jobs")
+
 
 def make_ingest_handler(repo_factory: Callable[[], SessionRepository],
                         source_factory: Callable[[], SessionSource]) -> Handler:
@@ -26,16 +30,30 @@ def make_ingest_handler(repo_factory: Callable[[], SessionRepository],
     def ingest_handler(job: Job, progress: Progress) -> dict[str, Any]:
         from ..ingestion.service import IngestionService
         year, rnd, code = job.target.split("_")
-        service = IngestionService(repo_factory(), source_factory())
+        repo = repo_factory()
+        service = IngestionService(repo, source_factory())
         try:
             result = service.ingest(int(year), int(rnd), code, force=bool(job.params.get("force")), progress=progress)
         except (SessionNotFoundError, ValueError) as exc:
             raise PermanentJobError(str(exc)) from exc
+        out: dict[str, Any] = {"session_key": result.key.replace("_", "-"), "skipped": result.skipped,
+                               "laps": result.laps, "telemetry_laps": result.telemetry_laps,
+                               "valid_laps": result.valid_laps, "elapsed_s": round(result.elapsed_s, 1)}
         if not result.skipped:
             invalidate_session(get_cache(), result.key)
-        return {"session_key": result.key.replace("_", "-"), "skipped": result.skipped, "laps": result.laps,
-                "telemetry_laps": result.telemetry_laps, "valid_laps": result.valid_laps,
-                "elapsed_s": round(result.elapsed_s, 1)}
+            out.update(_score_drift(repo, result.key))
+        return out
+
+    def _score_drift(repo: SessionRepository, key: str) -> dict[str, Any]:
+        # model drift on the newly ingested race (app/tires/drift.py); monitoring must never fail an ingest
+        try:
+            from ..api.deps import get_model_registry
+            from ..observability import job_metrics
+            from ..tires.drift import record_session
+            return record_session(repo, key, get_model_registry(), job_metrics())
+        except Exception as exc:                                   # noqa: BLE001
+            log.warning("drift.unavailable", session=key, error=type(exc).__name__)
+            return {"drift": "unavailable"}
     return ingest_handler
 
 

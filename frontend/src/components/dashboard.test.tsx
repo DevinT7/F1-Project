@@ -64,6 +64,8 @@ describe("loading a shared URL", () => {
     expect(screen.getByLabelText("Reference lap")).toHaveValue("fastest");
     expect(screen.getByText("Where ALO lost and gained time")).toBeInTheDocument();
     expect(screen.getByTestId("telemetry-plot")).toBeInTheDocument();
+    expect(screen.getByTestId("site-notice")).toHaveTextContent(/unofficial.*not associated in any way with the Formula 1 companies/);
+    expect(screen.getByTestId("site-notice")).toHaveTextContent("FastF1");
   });
 
   it("flags an invalid lap in the picker", async () => {

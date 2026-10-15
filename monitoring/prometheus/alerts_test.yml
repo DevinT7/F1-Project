@@ -1,0 +1,143 @@
+# promtool unit tests for alerts.yml (CI: the backend job; docs/monitoring.md).
+rule_files: [alerts.yml]
+evaluation_interval: 1m
+
+tests:
+  # 3% of requests fail for 20 minutes at 10 req/s → page; 0.5% does not
+  - interval: 1m
+    input_series:
+      - series: 'raceiq_http_requests_total{job="raceiq-api",method="GET",route="/api/v1/seasons",status="200"}'
+        values: '0+582x30'
+      - series: 'raceiq_http_requests_total{job="raceiq-api",method="POST",route="/api/v1/comparisons",status="500"}'
+        values: '0+18x30'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: RaceIQHighErrorRate
+        exp_alerts:
+          - exp_labels: {severity: page}
+            exp_annotations:
+              summary: "3% of API requests fail with 5xx (budget 1%)"
+              runbook: "docs/runbook.md#high-error-rate"
+
+  - interval: 1m
+    input_series:
+      - series: 'raceiq_http_requests_total{job="raceiq-api",route="/api/v1/seasons",status="200"}'
+        values: '0+597x30'
+      - series: 'raceiq_http_requests_total{job="raceiq-api",route="/api/v1/comparisons",status="500"}'
+        values: '0+3x30'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: RaceIQHighErrorRate
+        exp_alerts: []
+
+  # one 500 on a quiet night: below the traffic floor → no page
+  - interval: 1m
+    input_series:
+      - series: 'raceiq_http_requests_total{job="raceiq-api",route="/api/v1/seasons",status="500"}'
+        values: '0+1x30'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: RaceIQHighErrorRate
+        exp_alerts: []
+
+  # API unreachable
+  - interval: 1m
+    input_series:
+      - series: 'up{job="raceiq-api",instance="api:8000"}'
+        values: '1 1 0 0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: RaceIQApiDown
+        exp_alerts:
+          - exp_labels: {severity: page, job: raceiq-api, instance: "api:8000"}
+            exp_annotations:
+              summary: "RaceIQ API scrape failing for 5 minutes"
+              runbook: "docs/runbook.md#api-down"
+
+  # LLM fallbacks: 40% of LLM-backed requests fall back → ticket; template_no_llm (no key) never counts
+  - interval: 1m
+    input_series:
+      - series: 'raceiq_engineer_requests_total{kind="report",outcome="llm_first_try"}'
+        values: '0+3x40'
+      - series: 'raceiq_engineer_requests_total{kind="report",outcome="template_validation"}'
+        values: '0+2x40'
+      - series: 'raceiq_engineer_requests_total{kind="report",outcome="template_no_llm"}'
+        values: '0+50x40'
+    alert_rule_test:
+      - eval_time: 35m
+        alertname: RaceIQLlmFallbackSpike
+        exp_alerts:
+          - exp_labels: {severity: ticket}
+            exp_annotations:
+              summary: "40% of LLM-backed engineer requests fell back to the template"
+              runbook: "docs/runbook.md#llm-fallback-spike"
+
+  - interval: 1m
+    input_series:
+      - series: 'raceiq_engineer_requests_total{kind="report",outcome="template_no_llm"}'
+        values: '0+50x40'
+    alert_rule_test:
+      - eval_time: 35m
+        alertname: RaceIQLlmFallbackSpike
+        exp_alerts: []
+
+  # an ingest failure after retries
+  - interval: 1m
+    input_series:
+      - series: 'raceiq_jobs_total{job="raceiq-api",kind="ingest",outcome="failed"}'
+        values: '0 0 0 1 1 1'
+      - series: 'raceiq_jobs_total{job="raceiq-api",kind="ingest",outcome="succeeded"}'
+        values: '0 1 2 3 4 5'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: RaceIQIngestFailed
+        exp_alerts:
+          - exp_labels: {severity: ticket, job: raceiq-api, kind: ingest, outcome: failed}
+            exp_annotations:
+              summary: "1 ingest job(s) failed in the last hour (after retries)"
+              runbook: "docs/runbook.md#re-ingest-a-session"
+
+  # drift: rolling MAE 0.55 s vs baseline 0.3991 s (+38%) over 4 races → ticket; with 2 races → nothing
+  - interval: 5m
+    input_series:
+      - series: 'raceiq_tyre_model_rolling_mae_seconds{job="raceiq-api"}'
+        values: '0.55x20'
+      - series: 'raceiq_tyre_model_baseline_mae_seconds{job="raceiq-api"}'
+        values: '0.3991x20'
+      - series: 'raceiq_tyre_model_drift_sessions{job="raceiq-api"}'
+        values: '4x20'
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: RaceIQTyreModelDrift
+        exp_alerts:
+          - exp_labels: {severity: ticket, job: raceiq-api}
+            exp_annotations:
+              summary: "tyre model MAE 0.550 s on recent races, >25% above its baseline: retrain"
+              runbook: "docs/runbook.md#retrain-the-tyre-model"
+
+  - interval: 5m
+    input_series:
+      - series: 'raceiq_tyre_model_rolling_mae_seconds{job="raceiq-api"}'
+        values: '0.55x20'
+      - series: 'raceiq_tyre_model_baseline_mae_seconds{job="raceiq-api"}'
+        values: '0.3991x20'
+      - series: 'raceiq_tyre_model_drift_sessions{job="raceiq-api"}'
+        values: '2x20'
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: RaceIQTyreModelDrift
+        exp_alerts: []
+
+  # queue backlog
+  - interval: 1m
+    input_series:
+      - series: 'raceiq_job_queue_depth{job="raceiq-api",state="queued"}'
+        values: '25x30'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: RaceIQJobBacklog
+        exp_alerts:
+          - exp_labels: {severity: ticket, job: raceiq-api, state: queued}
+            exp_annotations:
+              summary: "25 jobs waiting: is the worker running?"
+              runbook: "docs/runbook.md#worker-not-processing-jobs"

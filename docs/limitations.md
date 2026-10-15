@@ -1,4 +1,29 @@
-# Known limitations and data policies (AI race engineer)
+# Known limitations and data policies
+
+## Data: what RaceIQ cannot know
+
+RaceIQ analyses what FastF1 publishes from F1's timing feed: car telemetry, lap and sector times, tyre stints, weather and race control. The following are not in that data, so no feature, finding or AI sentence may claim them:
+
+- **No brake pressure.** `Brake` is an on/off flag (docs/decisions.md, Phase 1).
+  - **What RaceIQ can say:** where braking starts and how long it lasts, read from the flag and the speed trace.
+  - **What it cannot say:** how hard a driver brakes, brake balance, or trail-braking technique.
+- **No true traffic gaps.** There is no reliable gap-to-car-ahead data for every lap.
+  - Every tyre dataset row carries `traffic_known = False`, and no traffic feature exists.
+  - A lap lost to traffic looks like a slow lap.
+  - The engineer says traffic cannot be assessed, rather than guessing.
+- **Pit windows are heuristic.**
+  - **How it works:** the window is where the forecast pace loss crosses a threshold (`interval_crossing_v2`, docs/decisions.md 6E).
+  - **What it ignores:** undercut / overcut, traffic, track position, safety-car probability, tyre allocation and team strategy.
+  - **How to read it:** an indication of when the current tyres stop paying, not a strategy call. It is also unavailable for about 39% of real stints, where the interval is too wide.
+- **Telemetry is sampled and interpolated.** About 700–1000 samples per lap, the first one interpolated. Corner minimum speeds and braking points are accurate to a few metres, not to the centimetre. Both laps are resampled onto a common distance grid before comparing.
+- **Sessions RaceIQ has stored only.** Historical sessions, ingested on demand; no live timing. Since 2026-10-15, F1's live-timing server rejects anonymous requests (HTTP 401), so new ingests fail until FastF1 is upgraded (3.8.3 is out) and re-verified. Stored sessions are unaffected (docs/runbook.md → Re-ingest a session).
+- **Unofficial data.** FastF1, OpenF1 and Jolpica are community projects, not F1 products. Timing can be corrected after the fact, and occasional laps or channels are missing; the ingest validates and marks those laps rather than filling them in.
+
+## Not affiliated with Formula 1
+
+RaceIQ is an unofficial, non-commercial portfolio project. It is not associated in any way with the Formula 1 companies. F1, FORMULA ONE, FORMULA 1, FIA FORMULA ONE WORLD CHAMPIONSHIP, GRAND PRIX and related marks are trade marks of Formula One Licensing B.V. Team and driver names are used only to identify the data. Timing data is retrieved through the open-source [FastF1](https://github.com/theOehrly/Fast-F1) library, subject to its terms and to the rights of the data's owners.
+
+# AI race engineer: data policies and limits
 
 ## User questions: retention policy (Phase 7F)
 
@@ -27,6 +52,6 @@
 
 ## Operational
 
-- **Shared state.** With Redis configured, the report cache, the FactSheet store (`GET /engineer/facts/{hash}`, 24 h), conversations, rate limits and jobs are shared by every worker. Without Redis they are per process. The engineer metrics (`app/ai/metrics.py`) are always per process.
+- **Shared state.** With Redis configured, the report cache, the FactSheet store (`GET /engineer/facts/{hash}`, 24 h), conversations, rate limits and jobs are shared by every worker. Without Redis they are per process. The engineer metrics endpoint (`app/ai/metrics.py`) is per process; the Prometheus metrics (docs/monitoring.md) are summed over all workers.
 - **Rate limits** are enforced since Phase 8 (`app/ratelimit.py`, docs/security.md).
 - **The live LLM evaluation** (7D, 7E, 7F) is pending an API key (`docs/api_keys.md`).

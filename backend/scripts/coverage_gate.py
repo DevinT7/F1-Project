@@ -19,7 +19,7 @@ NUMERICAL = (
     "app/processing/insights.py", "app/processing/segments.py", "app/processing/models.py",
     "app/ai/numbers.py", "app/ai/validator.py", "app/ai/factsheet.py", "app/ingestion/normalize.py",
     "app/tires/features.py", "app/tires/degradation.py", "app/tires/evaluation.py", "app/tires/exclusions.py",
-    "app/tires/pit_window.py", "app/tires/serving.py", "app/tires/bar.py",
+    "app/tires/pit_window.py", "app/tires/serving.py", "app/tires/bar.py", "app/tires/drift.py",
     "app/tires/models/baseline_fixed.py", "app/tires/models/baseline_stint.py", "app/tires/models/forecasting.py",
     "app/tires/models/intervals.py", "app/tires/models/persistence.py", "app/tires/models/tree_models.py",
 )
