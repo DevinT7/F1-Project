@@ -30,7 +30,7 @@ mlflow==3.17.0
 # Phase 6D tree models (app/tires/models/tree_models.py) and SHAP explanations
 xgboost==3.2.0
 lightgbm==4.7.0
-shap==0.51.0
+shap==0.53.0
 
 # AI layer (Person 3). Only used when RACEIQ_OPENAI_API_KEY is set — with no key the
 # endpoint serves the deterministic template, so CI and teammates never need one.
