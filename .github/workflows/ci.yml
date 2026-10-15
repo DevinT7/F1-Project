@@ -89,7 +89,7 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -133,7 +133,7 @@ jobs:
           for name in raceiq_http_requests_total raceiq_jobs_total raceiq_job_queue_depth raceiq_tyre_model_baseline_mae_seconds                       raceiq_engineer_requests_total; do
             grep -q "^$name" metrics.txt || { echo "missing $name"; exit 1; }
           done
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -161,7 +161,7 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: backend/requirements.txt
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
