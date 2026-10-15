@@ -30,7 +30,8 @@ test("shared URL → charts → hover sync → corner panel", async ({ page }) =
   });
   expect(deltaEnd).toBeCloseTo(0.488, 3);
 
-  // hovering the chart moves the map marker
+  // hovering the chart moves the map marker (after the reveal animation: its clip-path also clips hit-testing)
+  await plot.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)));
   const box = (await plot.locator(".nsewdrag").first().boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.5, box.y + 40);
   await expect(page.getByTestId("map-marker")).toBeVisible();
