@@ -8,10 +8,7 @@ import { TABS, type TabId } from "@/lib/tabs";
 
 export function Wordmark() {
   return (
-    <div className="flex items-center gap-2.5" aria-label="Senna">
-      <span aria-hidden className="flex h-8 w-11 -skew-x-[18deg] items-center justify-center rounded-[3px] bg-accent-strong shadow-[0_0_18px_rgba(225,6,0,0.55)]">
-        <span className="skew-x-[18deg] text-[15px] font-black italic text-white">S</span>
-      </span>
+    <div className="flex items-center" aria-label="Senna">
       <span className="display text-[24px] tracking-[0.08em]" aria-hidden>
         SENN<span className="text-accent">A</span>
       </span>
