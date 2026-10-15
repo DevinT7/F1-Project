@@ -21,8 +21,12 @@ test("lap replay: play, then click a corner number", async ({ page }) => {
 
   await page.getByTestId("map-label-T6").click();
   await expect(page.getByTestId("replay-status")).toContainText(/^Turn 6: (VER|ALO) gets there first; (VER|ALO) is \d+ m back/);
-  const ref = await dist("reference"), tgt = await dist("target");
-  expect(Math.abs(ref - tgt)).toBeGreaterThan(0);
+  // the status is set at once, but the dots animate there over JUMP_MS (and can cross mid-flight):
+  // wait until they land, one at the corner and the other exactly the reported distance back
+  const back = Number(/is (\d+) m back/.exec((await page.getByTestId("replay-status").textContent()) ?? "")?.[1]);
+  expect(back).toBeGreaterThan(0);
+  await expect.poll(async () => Math.abs(Math.abs(await dist("reference") - await dist("target")) - back),
+    { timeout: 5_000 }).toBeLessThanOrEqual(1);
   await expect(page.getByTestId("corner-panel").getByRole("heading", { level: 3 })).toHaveText("Turn 6");
   if (process.env.SCREENSHOTS) await page.locator("#track").screenshot({ path: process.env.SCREENSHOTS });
 });
