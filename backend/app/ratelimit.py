@@ -3,7 +3,7 @@
   policy     key                 capacity   refill            where
   api        IP                  120        2 / s  (120/min)  every /api/v1 request (middleware)
   auth       IP                  10         10 / min          register, login, refresh
-  engineer   user                20         20 / min          /engineer/report and /ask (LLM cost)
+  engineer   IP                  20         20 / min          /engineer/report and /ask (LLM cost; no account)
   admin      user                10         10 / min          ingest and training jobs
 
 A request that finds its bucket empty gets 429 with `Retry-After` (whole seconds until a token

@@ -3279,15 +3279,6 @@ export interface operations {
                     "application/json": components["schemas"]["EngineerAnswer"];
                 };
             };
-            /** @description Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer) */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
             /** @description Session not ingested / not found */
             404: {
                 headers: {
@@ -3355,15 +3346,6 @@ export interface operations {
                     "application/json": components["schemas"]["FactsResponse"];
                 };
             };
-            /** @description Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer) */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
-                };
-            };
             /** @description Session not ingested / not found */
             404: {
                 headers: {
@@ -3422,15 +3404,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EngineerReport"];
-                };
-            };
-            /** @description Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer) */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Session not ingested / not found */

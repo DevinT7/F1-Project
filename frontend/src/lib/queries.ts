@@ -6,7 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 
-import type { AnalysisParams, Api, ComparisonRequest, EngineerAskRequest, EngineerReportRequest } from "./api/endpoints";
+import type { Api, ComparisonRequest, EngineerAskRequest, EngineerReportRequest } from "./api/endpoints";
 import { HANDLED_CODES } from "./tires";
 import type { LapRef } from "./url-state";
 
@@ -50,37 +50,6 @@ export function useSessionStatus(key: string | null) {
     queryFn: () => api.session(key!),
     enabled: key !== null,
     staleTime: 60_000,
-  });
-}
-
-/** Start an ingest job (POST → 202); the job is then polled with useJob. */
-export function useIngest(key: string | null) {
-  const { api, demo } = useApi();
-  return useMutation({
-    mutationKey: ["ingest", demo, key],
-    mutationFn: () => api.ingest(key!),
-  });
-}
-
-const JOB_DONE = new Set(["succeeded", "failed"]);
-export const JOB_POLL_MS = 1500;
-
-/** Poll a background job until it succeeds or fails; on success the session status is refreshed. */
-export function useJob(id: string | null, sessionKey: string | null) {
-  const { api, demo } = useApi();
-  const client = useQueryClient();
-  return useQuery({
-    queryKey: ["job", demo, id],
-    queryFn: async () => {
-      const job = await api.job(id!);
-      if (job.status === "succeeded" && sessionKey) {
-        await client.invalidateQueries({ queryKey: keys.session(demo, sessionKey) });
-      }
-      return job;
-    },
-    enabled: id !== null,
-    refetchInterval: (query) => (query.state.data && JOB_DONE.has(query.state.data.status) ? false : JOB_POLL_MS),
-    retry: 2,
   });
 }
 
@@ -165,21 +134,5 @@ export function useAskEngineer() {
     mutationKey: ["engineer-ask", demo],
     mutationFn: (body: EngineerAskRequest) => api.engineerAsk(body),
     meta: { inlineErrors: true },
-  });
-}
-
-/** The signed-in user's saved comparisons (empty when signed out). */
-export function useAnalyses(enabled: boolean) {
-  const { api, demo } = useApi();
-  return useQuery({ queryKey: ["analyses", demo], queryFn: () => api.analyses(), enabled, staleTime: 30_000 });
-}
-
-export function useSaveAnalysis() {
-  const { api, demo } = useApi();
-  const client = useQueryClient();
-  return useMutation({
-    mutationKey: ["save-analysis", demo],
-    mutationFn: (v: { title: string; params: AnalysisParams }) => api.saveAnalysis(v.title, v.params),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["analyses", demo] }),
   });
 }

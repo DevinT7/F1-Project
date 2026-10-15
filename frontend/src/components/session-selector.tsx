@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 
-import { isAdmin, useAuth } from "@/lib/auth";
-import { useEvents, useIngest, useJob, useSeasons, useSessionStatus } from "@/lib/queries";
+import { useEvents, useSeasons, useSessionStatus } from "@/lib/queries";
 import { parseSessionKey, sessionKey } from "@/lib/url-state";
 
-/** Season → Grand Prix → Session. Emits a session key; triggers ingest when needed. */
+/** Season → Grand Prix → Session. Emits a session key; says how to add a session that isn't stored. */
 export function SessionSelector({ value, onChange, demo }: { value: string | null; onChange: (key: string | null) => void; demo: boolean }) {
   const parts = parseSessionKey(value);
   // The URL wins when it names a session (shared links, back/forward); the draft only holds a
@@ -78,14 +77,6 @@ export function SessionSelector({ value, onChange, demo }: { value: string | nul
 
 function SessionStatusBar({ sessionKey: key, demo }: { sessionKey: string; demo: boolean }) {
   const status = useSessionStatus(key);
-  const ingest = useIngest(key);
-  const jobId = ingest.data?.id ?? null;
-  const job = useJob(jobId, key);
-  const running = ingest.isPending || (jobId !== null && (!job.data || !["succeeded", "failed"].includes(job.data.status)));
-  const failed = job.data?.status === "failed" ? job.data : null;
-  const user = useAuth((st) => st.user);
-  const canIngest = !demo && isAdmin(user);
-
   if (status.isPending) return <p className="mt-2 text-sm text-muted" role="status">Checking {key}…</p>;
   if (status.isError) return null; // the toast already explains it
   const s = status.data;
@@ -97,39 +88,21 @@ function SessionStatusBar({ sessionKey: key, demo }: { sessionKey: string; demo:
       </p>
     );
   }
-  const pct = Math.round((job.data?.progress ?? 0) * 100);
+  const parts = parseSessionKey(key);
   return (
-    <div className="card mt-3 flex flex-wrap items-center gap-4 p-4" aria-live="polite">
-      <div className="min-w-[240px] flex-1">
-        <div className="text-sm font-semibold">
-          {s.status === "stale_schema" ? `${key} was stored by an older version.` : `${key} isn't stored yet.`}
-        </div>
-        {running ? (
-          <>
-            <p className="text-sm text-muted" role="status" data-testid="ingest-progress">
-              Ingesting from FastF1… {pct}%{job.data?.message ? ` · ${job.data.message}` : ""}
-              {job.data?.status === "retrying" ? " (retrying after an error)" : ""}
-            </p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded bg-line" role="progressbar" aria-label="Ingest progress"
-              aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
-              <i className="block h-full bg-[var(--accent)] transition-[width]" style={{ width: `${pct}%` }} />
-            </div>
-          </>
-        ) : failed ? (
-          <p className="text-sm text-red-ink" role="alert" data-testid="ingest-failed">
-            Ingest failed after {failed.attempts} attempt{failed.attempts === 1 ? "" : "s"}: {failed.error}
-          </p>
-        ) : (
-          <p className="text-sm text-muted" data-testid="ingest-hint">
-            {demo ? "Demo mode can't ingest; switch to live data with the backend running."
-              : canIngest ? "Download and store it once; later visits load instantly."
-                : "Only admins can ingest new sessions. Sign in with an admin account."}
-          </p>
-        )}
+    <div className="card mt-3 p-4" aria-live="polite" data-testid="session-not-stored">
+      <div className="text-sm font-semibold">
+        {s.status === "stale_schema" ? `${key} was stored by an older version.` : `${key} isn't stored yet.`}
       </div>
-      <button type="button" className="btn" disabled={!canIngest || running} onClick={() => ingest.mutate()}>
-        {running ? "Ingesting…" : failed ? "Try again" : s.status === "stale_schema" ? "Re-ingest" : "Ingest session"}
-      </button>
+      <p className="mt-1 text-sm text-muted" data-testid="ingest-hint">
+        {demo ? "Demo mode only has 2024 China qualifying; switch to live data with the backend running."
+          : "Sessions are added by the operator from the command line:"}
+      </p>
+      {!demo && parts && (
+        <code className="mt-2 block overflow-x-auto rounded-md border border-line bg-card-2 px-3 py-2 text-xs text-ink-2">
+          python -m app.ingestion ingest --year {parts.year} --round {parts.round} --session {parts.code}{s.status === "stale_schema" ? " --force" : ""}
+        </code>
+      )}
     </div>
   );
 }

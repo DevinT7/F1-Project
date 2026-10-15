@@ -404,3 +404,10 @@ Full contract: `docs/tire_api.md`.
   - **Track Map:** a 680 px map and a table of every corner (Δ time, entry / apex / exit speed, braking, causes).
   - **Pit Wall:** a brief written from the verified findings, plus tyre, temperature and alignment context.
   - **Tire Analysis:** charts 460 / 380 px.
+
+## No sign-in in the web app (P1, 2026-10-15)
+
+- **The frontend has no accounts.** The sign-in dialog, account menu, saved comparisons and the admin "Ingest session" button are gone.
+- **The AI engineer is public.** `/engineer/report`, `/ask` and `/facts` no longer require a token. LLM cost control is the per-IP bucket (20/min, Redis-shared), the `RaceIQLlmCostBudget` alert and the `ENGINEER_LLM_ENABLED` kill switch.
+- **Admin stays protected.** Ingest, training, job status and the engineer metrics still need an admin token. Operators get one from `POST /api/v1/auth/login` (an address in `RACEIQ_ADMIN_EMAILS`) or use the CLI. A session that isn't stored shows the CLI command.
+- **What remains in the backend.** The `/auth` and `/me` endpoints and the users table remain, used only by operators; saved analyses are unused by the UI.

@@ -19,7 +19,7 @@ Open **http://localhost:3000** when `docker compose ps` shows `frontend` as heal
 What you get:
 - **The full stack:** PostgreSQL (TimescaleDB), Redis, S3-compatible storage, the API, a background worker and the web app.
 - **Sample data:** 2024 Chinese GP qualifying (VER, PER, ALO) and a synthetic race. The page shows a session picker: choose **2024 → Chinese Grand Prix → Qualifying**, and the two fastest laps (VER vs ALO) are compared. Or open http://localhost:3000/?s=2024-05-Q&ref=VER:fastest&tgt=ALO:fastest.
-- **An admin account:** register `admin@raceiq.local` (a password of 10+ characters) in the app. It can ingest more sessions; ingest currently fails upstream, see [Known issues](#known-issues).
+- **No accounts:** the web app has no sign-in; the AI engineer works for everyone (per-IP rate limit). Sessions are added by the operator from the command line (`docker compose exec backend python -m app.ingestion ingest --year 2024 --round 6 --session Q`); ingest currently fails upstream, see [Known issues](#known-issues).
 - **The API docs:** http://localhost:8000/docs.
 
 Ports in use? `FRONTEND_PORT=3300 BACKEND_PORT=8300 docker compose up -d --build`. Stop with `docker compose down` (data is kept); `docker compose down -v` wipes it.

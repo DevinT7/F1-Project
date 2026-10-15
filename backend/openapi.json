@@ -6199,16 +6199,6 @@
             },
             "description": "Successful Response"
           },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
-          },
           "404": {
             "content": {
               "application/json": {
@@ -6260,11 +6250,6 @@
             "description": "Unexpected error (body carries the request id)"
           }
         },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "summary": "Ask the race engineer about a comparison",
         "tags": [
           "v1: engineer"
@@ -6298,16 +6283,6 @@
             },
             "description": "Successful Response"
           },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
-          },
           "404": {
             "content": {
               "application/json": {
@@ -6349,11 +6324,6 @@
             "description": "Unexpected error (body carries the request id)"
           }
         },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "summary": "Every fact of a FactSheet (audit)",
         "tags": [
           "v1: engineer"
@@ -6384,16 +6354,6 @@
               }
             },
             "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer)"
           },
           "404": {
             "content": {
@@ -6446,11 +6406,6 @@
             "description": "Unexpected error (body carries the request id)"
           }
         },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "summary": "Race engineer report for a comparison",
         "tags": [
           "v1: engineer"

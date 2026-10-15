@@ -81,6 +81,5 @@ describe("demo mode", () => {
   it("explains what it cannot serve", async () => {
     await expect(demo.compare({ session_key: "2024-05-Q", reference: { driver: "PER" }, target: { driver: "ALO" } }))
       .rejects.toMatchObject({ code: "demo_unavailable" });
-    await expect(demo.ingest("2024-05-Q")).rejects.toMatchObject({ code: "demo_unavailable" });
   });
 });

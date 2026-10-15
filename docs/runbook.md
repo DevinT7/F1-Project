@@ -68,7 +68,7 @@ SOURCE_URL=postgresql://…/raceiq ops/db/restore_drill.sh [dump-file]    # rest
 
 When: `RaceIQIngestFailed` fired; a session shows `stale_schema`; or the source data was corrected.
 
-1. **Re-ingest.** As an admin, open the session in the UI and click **Ingest session** (or `POST /api/v1/sessions/{key}/ingest?force=true` with an admin token). The job runs on the worker; the UI polls it.
+1. **Re-ingest.** The web app has no sign-in, so this is an operator task. Either run `python -m app.ingestion ingest --year Y --round R --session C --force` (on Render: the api service → Shell; locally `docker compose exec backend …`), or `POST /api/v1/sessions/{key}/ingest?force=true` with an admin token from `POST /api/v1/auth/login` and poll `GET /api/v1/jobs/{id}`. The UI shows the CLI command for any session that is not stored.
 2. **When it fails.** `GET /api/v1/jobs/{id}` shows the error and the attempts.
    - Transient errors (network, FastF1 hiccups) are retried 3 times (5 s, 20 s, 60 s).
    - `PermanentJobError` (the session doesn't exist, or FastF1 couldn't load it) fails at once.
@@ -92,7 +92,7 @@ All secrets live in Render (service environment) or in GitHub environments; none
 
 | Secret | Where | Rotate by | Effect |
 |---|---|---|---|
-| `RACEIQ_JWT_SECRET` | Render api | Render → Environment → new value → Save (restarts) | every session ends; users sign in again |
+| `RACEIQ_JWT_SECRET` | Render api | Render → Environment → new value → Save (restarts) | operator admin tokens end; log in again (the web app has no accounts) |
 | `RACEIQ_METRICS_TOKEN` | Render api + the scraper | new value in Render, then in the scraper config | scrapes fail until both match |
 | `LLM_API_KEY` | Render api | create a new key at the provider, update Render, then revoke the old key | none (templates if the key is missing) |
 | `SENTRY_DSN` / `SENTRY_DSN_FRONTEND` | Render / GitHub environment variable | Sentry → Client Keys → new key, update, redeploy, disable the old key | none |

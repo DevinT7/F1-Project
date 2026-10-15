@@ -19,9 +19,10 @@ from ..schemas.engineer import (
     EngineerReportRequest, FactsResponse,
 )
 
-# signed-in users only (LLM cost control), with a per-user token bucket; the admin metrics are separate
+# open to everyone (no accounts in the frontend), with a per-IP token bucket for LLM cost control;
+# the admin metrics are separate
 router = APIRouter(prefix="/engineer", tags=["v1: engineer"])
-SIGNED_IN = [Depends(engineer_limit)]
+RATE_LIMITED = [Depends(engineer_limit)]
 
 TRANSPARENCY = ("Every number is computed by the analysis engine; the AI only phrases the verified facts. "
                 "`generated_by` says who wrote the text (llm | template | router), `outcome` how it got there "
@@ -35,7 +36,7 @@ TRANSPARENCY = ("Every number is computed by the analysis engine; the AI only ph
                          "`tire_context` is given, races only) and returns the validated report. Cached by "
                          "(factsheet_hash, prompt_version, model); template reports under their own key. "
                          + TRANSPARENCY,
-             responses=error_responses(401, 404, 422, 424, 429), dependencies=SIGNED_IN)
+             responses=error_responses(404, 422, 424, 429), dependencies=RATE_LIMITED)
 def report(body: EngineerReportRequest, request: Request,
            service: EngineerService = Depends(get_engineer_service)) -> EngineerReport:
     return service.report(body, request_id(request))
@@ -45,7 +46,7 @@ def report(body: EngineerReportRequest, request: Request,
              description=f"Follow-up Q&A (≤ {MAX_QUESTION_CHARS} characters after control characters are stripped). "
                          "Out-of-scope questions are refused without an LLM call; the conversation keeps its last "
                          "6 turns server-side (in memory, never persisted). " + TRANSPARENCY,
-             responses=error_responses(401, 404, 422, 424, 429), dependencies=SIGNED_IN)
+             responses=error_responses(404, 422, 424, 429), dependencies=RATE_LIMITED)
 def ask(body: EngineerAskRequest, request: Request,
         service: EngineerService = Depends(get_engineer_service)) -> EngineerAnswer:
     return service.ask(body, request_id(request))
@@ -54,7 +55,7 @@ def ask(body: EngineerAskRequest, request: Request,
 @router.get("/facts/{factsheet_hash}", response_model=FactsResponse, summary="Every fact of a FactSheet (audit)",
             description="All numeric and categorical facts of a FactSheet produced by this server (hover / audit). "
                         "404 when the hash is unknown or has been evicted.",
-            responses=error_responses(401, 404, 422), dependencies=SIGNED_IN)
+            responses=error_responses(404, 422), dependencies=RATE_LIMITED)
 def facts(request: Request, factsheet_hash: str = Path(pattern=FACTSHEET_HASH_PATTERN),
           service: EngineerService = Depends(get_engineer_service)) -> FactsResponse | JSONResponse:
     try:

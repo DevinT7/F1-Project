@@ -4,7 +4,6 @@ import { http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useUiStore } from "@/lib/store";
-import { signInAs, signOutForTest } from "@/test/auth";
 import { apiError, server } from "@/test/msw";
 import { navigation } from "@/test/render";
 
@@ -195,15 +194,17 @@ describe("tabs", () => {
 });
 
 describe("engineer dock", () => {
-  it("asks for a sign-in when signed out", async () => {
-    signOutForTest();
+  it("needs no account: no sign-in anywhere, the engineer is ready", async () => {
     await renderDashboard(SHARED);
-    expect(await screen.findByTestId("dock-signin")).toHaveTextContent("Sign in to ask the race engineer");
+    const dock = await screen.findByTestId("engineer-dock");
+    expect(await within(dock).findByTestId("dock-generate")).toBeEnabled();
+    expect(within(dock).getByTestId("engineer-input")).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /sign in/i })).toBeNull();
+    expect(screen.queryByTestId("signin-open")).toBeNull();
   });
 
   it("generates the report for the selected tab and suggests questions about it", async () => {
     const user = userEvent.setup();
-    signInAs("user");
     await renderDashboard(`${SHARED}&tab=track`);
     const dock = await screen.findByTestId("engineer-dock");
     expect(within(dock).getByTestId("dock-context")).toHaveTextContent("Track Map");
@@ -222,7 +223,6 @@ describe("engineer dock", () => {
 
   it("a report bullet on the AI Engineer tab opens its corner on the Track Map tab", async () => {
     const user = userEvent.setup();
-    signInAs("user");
     await renderDashboard(`${SHARED}&tab=engineer`);
     const report = await screen.findByTestId("engineer-report");
     expect(screen.getByTestId("engineer-facts")).toHaveTextContent("LAP.time_loss_s");

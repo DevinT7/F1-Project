@@ -13,25 +13,16 @@ import {
   FOOTER_NOTE, MAX_QUESTION, REGENERATE_COOLDOWN_S, SECTIONS, badgeFor, defaultSuggestions, factValue, factsFor,
   fallbackExplanation, isNeutral, reportText, segmentFor, type SectionKey,
 } from "@/lib/engineer";
-import { useAuth } from "@/lib/auth";
-import { useApi, useAskEngineer, useEngineerReport, useRegenerateReport } from "@/lib/queries";
+import { useAskEngineer, useEngineerReport, useRegenerateReport } from "@/lib/queries";
 import { useUiStore } from "@/lib/store";
 import { useGoToTab } from "@/lib/tab-nav";
 import type { TabId } from "@/lib/tabs";
 
-import { SignInPrompt } from "./account";
 
 type LapSel = EngineerReportRequest["reference"];
 
 export function engineerRequest(session: string, reference: LapSel, target: LapSel, sessionCode: string | null): EngineerReportRequest {
   return { session_key: session, reference, target, ...(sessionCode === "R" ? { tire_context: {} } : {}) };
-}
-
-/** Signed in (or demo mode, which serves the exported report without an account). */
-export function useEngineerAccess(): { signedIn: boolean; unknown: boolean } {
-  const { demo } = useApi();
-  const status = useAuth((s) => s.status);
-  return { signedIn: demo || status === "signed_in", unknown: !demo && status === "unknown" };
 }
 
 /** AI Engineer tab: the complete validated report, and every fact it rests on. */
@@ -40,22 +31,14 @@ export function EngineerSection({ session, reference, target, sessionCode }: {
 }) {
   const request = useMemo(() => engineerRequest(session, reference, target, sessionCode),
     [session, reference, target, sessionCode]);
-  const { signedIn, unknown } = useEngineerAccess();
   return (
     <section id="engineer" className="card" aria-labelledby="engineer-title">
       <div className="kick">✦ AI engineer</div>
       <h2 id="engineer-title" className="display mt-1 text-[22px]">Race engineer report</h2>
-      {!signedIn ? (
-        <div className="mt-3">
-          {unknown ? <div className="skeleton h-24" aria-label="Checking your session" />
-            : <SignInPrompt what="Sign in to get the AI race engineer's report and ask it questions (accounts keep LLM costs in check)." />}
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-6 2xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
-          <ReportCard request={request} jumpTo="track" />
-          <FactsTable request={request} />
-        </div>
-      )}
+      <div className="mt-4 grid gap-6 2xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+        <ReportCard request={request} jumpTo="track" />
+        <FactsTable request={request} />
+      </div>
       <p className="mt-4 border-t border-line pt-3 text-xs text-muted" data-testid="engineer-footer">{FOOTER_NOTE}</p>
     </section>
   );

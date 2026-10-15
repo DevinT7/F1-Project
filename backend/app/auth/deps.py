@@ -3,7 +3,8 @@
     current_user        401 unless a valid, unrevoked access token is presented (Bearer)
     require_admin       403 unless the user is an admin (the role is read from the database, so
                         a role change takes effect on the next request, not the next token)
-    engineer_limit      per-user token bucket for the LLM-backed endpoints (cost control)
+    engineer_limit      per-IP token bucket for the LLM-backed endpoints (cost control; they need no
+                        account since the frontend dropped sign-in)
     admin_limit         per-user token bucket for ingest / training jobs
 """
 from __future__ import annotations
@@ -69,8 +70,12 @@ def _limit(policy: str, user: User) -> User:
     return user
 
 
-def engineer_limit(user: User = Depends(current_user)) -> User:
-    return _limit("engineer", user)
+def engineer_limit(request: Request) -> None:
+    if settings.rate_limit_enabled:
+        from ..ratelimit import client_ip
+        decision = get_limiter().hit(POLICIES["engineer"], f"ip:{client_ip(request)}")
+        if not decision.allowed:
+            raise RateLimited(decision, "engineer")
 
 
 def admin_limit(user: User = Depends(require_admin)) -> User:

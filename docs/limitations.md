@@ -37,7 +37,9 @@ RaceIQ is an unofficial, non-commercial portfolio project. It is not associated 
 - **Not persisted.** Questions are never written to the database or to disk (Redis keeps them only until the TTL), and they are not used for training or analytics. They are not linked to accounts.
 - **Policy changes** (turn limit, TTL) are recorded here first.
 
-## Accounts (Phase 8)
+## Accounts (Phase 8; operators only since 2026-10-15)
+
+- **The web app has no sign-in.** Nobody needs an account to use any feature, the AI engineer included. The backend's accounts remain for operators: an admin token (POST /api/v1/auth/login with an address in `RACEIQ_ADMIN_EMAILS`) is what ingest, training and the engineer metrics require.
 
 - **Stored data.** Email (lower-cased), an argon2id password hash, role and creation time; saved comparisons are parameters only.
 - **Without a database** (`RACEIQ_DATABASE_URL` unset), accounts are in memory and vanish on restart: local development only.

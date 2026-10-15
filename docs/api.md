@@ -320,17 +320,17 @@ AI race engineer: validated reports and follow-up Q&A over a comparison's FactSh
 
 ### `POST /api/v1/engineer/ask`
 
-**Ask the race engineer about a comparison** · access: signed in
+**Ask the race engineer about a comparison** · access: public
 
 Follow-up Q&A (≤ 300 characters after control characters are stripped). Out-of-scope questions are refused without an LLM call; the conversation keeps its last 6 turns server-side (in memory, never persisted). Every number is computed by the analysis engine; the AI only phrases the verified facts. `generated_by` says who wrote the text (llm | template | router), `outcome` how it got there (a template is served when the LLM is disabled, unavailable or its text failed validation, with `fallback_reason`), `facts` holds every cited fact and `segments` maps fact prefixes to finding ids. Non-streaming: nothing reaches the client before it passes the validator.
 
 Request body: `EngineerAskRequest`
 
-Responses: `200` Successful Response (`EngineerAnswer`); `401` Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer) (`ErrorResponse`); `404` Session not ingested / not found (`ErrorResponse`); `422` Invalid request, invalid lap, or comparison failed an integrity check (`ErrorResponse`); `424` Telemetry unavailable for a requested lap (`ErrorResponse`); `429` Rate limited (`ErrorResponse`); `500` Unexpected error (body carries the request id) (`ErrorResponse`)
+Responses: `200` Successful Response (`EngineerAnswer`); `404` Session not ingested / not found (`ErrorResponse`); `422` Invalid request, invalid lap, or comparison failed an integrity check (`ErrorResponse`); `424` Telemetry unavailable for a requested lap (`ErrorResponse`); `429` Rate limited (`ErrorResponse`); `500` Unexpected error (body carries the request id) (`ErrorResponse`)
 
 ### `GET /api/v1/engineer/facts/{factsheet_hash}`
 
-**Every fact of a FactSheet (audit)** · access: signed in
+**Every fact of a FactSheet (audit)** · access: public
 
 All numeric and categorical facts of a FactSheet produced by this server (hover / audit). 404 when the hash is unknown or has been evicted.
 
@@ -338,14 +338,14 @@ All numeric and categorical facts of a FactSheet produced by this server (hover 
 |---|---|---|---|---|
 | `factsheet_hash` | path | yes | `string` |  |
 
-Responses: `200` Successful Response (`FactsResponse`); `401` Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer) (`ErrorResponse`); `404` Session not ingested / not found (`ErrorResponse`); `422` Invalid request, invalid lap, or comparison failed an integrity check (`ErrorResponse`); `429` Rate limited (`ErrorResponse`); `500` Unexpected error (body carries the request id) (`ErrorResponse`)
+Responses: `200` Successful Response (`FactsResponse`); `404` Session not ingested / not found (`ErrorResponse`); `422` Invalid request, invalid lap, or comparison failed an integrity check (`ErrorResponse`); `429` Rate limited (`ErrorResponse`); `500` Unexpected error (body carries the request id) (`ErrorResponse`)
 
 ### `POST /api/v1/engineer/report`
 
-**Race engineer report for a comparison** · access: signed in
+**Race engineer report for a comparison** · access: public
 
 Builds the FactSheet for the comparison (plus the target's tyre forecast as of a lap when `tire_context` is given, races only) and returns the validated report. Cached by (factsheet_hash, prompt_version, model); template reports under their own key. Every number is computed by the analysis engine; the AI only phrases the verified facts. `generated_by` says who wrote the text (llm | template | router), `outcome` how it got there (a template is served when the LLM is disabled, unavailable or its text failed validation, with `fallback_reason`), `facts` holds every cited fact and `segments` maps fact prefixes to finding ids. Non-streaming: nothing reaches the client before it passes the validator.
 
 Request body: `EngineerReportRequest`
 
-Responses: `200` Successful Response (`EngineerReport`); `401` Not signed in, or the token is invalid / expired / revoked (WWW-Authenticate: Bearer) (`ErrorResponse`); `404` Session not ingested / not found (`ErrorResponse`); `422` Invalid request, invalid lap, or comparison failed an integrity check (`ErrorResponse`); `424` Telemetry unavailable for a requested lap (`ErrorResponse`); `429` Rate limited (`ErrorResponse`); `500` Unexpected error (body carries the request id) (`ErrorResponse`)
+Responses: `200` Successful Response (`EngineerReport`); `404` Session not ingested / not found (`ErrorResponse`); `422` Invalid request, invalid lap, or comparison failed an integrity check (`ErrorResponse`); `424` Telemetry unavailable for a requested lap (`ErrorResponse`); `429` Rate limited (`ErrorResponse`); `500` Unexpected error (body carries the request id) (`ErrorResponse`)

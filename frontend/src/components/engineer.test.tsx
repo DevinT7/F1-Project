@@ -7,7 +7,6 @@ import { Providers } from "@/app/providers";
 import engineerReport from "@/fixtures/api/engineer_report_VER_ALO.json";
 import { FOOTER_NOTE } from "@/lib/engineer";
 import { useUiStore } from "@/lib/store";
-import { signInAs, signOutForTest } from "@/test/auth";
 import { apiError, server } from "@/test/msw";
 
 import { EngineerChat, EngineerSection } from "./engineer";
@@ -33,7 +32,6 @@ function renderEngineer() {
 
 beforeEach(() => {
   useUiStore.setState({ toasts: [], selectedCornerId: null, hoverDistance: null });
-  signInAs("user");
 });
 
 describe("engineer report card", () => {
@@ -168,11 +166,15 @@ describe("engineer chat", () => {
   });
 });
 
-describe("engineer and accounts", () => {
-  it("asks for a sign-in instead of calling the API when signed out", async () => {
-    signOutForTest();
+describe("engineer without accounts", () => {
+  it("calls the API with no Authorization header", async () => {
+    let auth: string | null = "unset";
+    server.use(http.post("*/api/v1/engineer/report", ({ request }) => {
+      auth = request.headers.get("authorization");
+      return HttpResponse.json(engineerReport);
+    }));
     renderEngineer();
-    expect(await screen.findByTestId("signin-prompt")).toHaveTextContent("Sign in to get the AI race engineer");
-    expect(screen.queryByTestId("engineer-report")).toBeNull();
+    expect(await screen.findByTestId("engineer-report")).toBeInTheDocument();
+    expect(auth).toBeNull();
   });
 });

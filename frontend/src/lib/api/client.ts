@@ -4,7 +4,6 @@
  */
 import type { components, paths } from "@/api/types";
 
-import { refreshSession, useAuth } from "../auth";
 import { newRequestId } from "../telemetry";
 
 export type Schemas = components["schemas"];
@@ -96,21 +95,10 @@ async function rawSend(url: string, init: RequestInit): Promise<Response> {
   }
 }
 
-/** Adds the request id and the access token (when signed in); on a 401 tries one silent refresh and
- * retries once, with the same request id (one logical request, one id in the server logs). */
+/** Adds the request id (one logical request, one id in the server logs). */
 async function send(url: string, init: RequestInit): Promise<Response> {
-  const requestId = newRequestId();
-  const withToken = (): RequestInit => {
-    const token = useAuth.getState().accessToken;
-    const headers: Record<string, string> = { ...(init.headers as Record<string, string>), "X-Request-ID": requestId };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    return { ...init, headers };
-  };
-  const response = await rawSend(url, withToken());
-  if (response.status === 401 && useAuth.getState().accessToken && !url.includes("/api/v1/auth/")) {
-    if (await refreshSession()) return rawSend(url, withToken());
-  }
-  return response;
+  const headers: Record<string, string> = { ...(init.headers as Record<string, string>), "X-Request-ID": newRequestId() };
+  return rawSend(url, { ...init, headers });
 }
 
 export async function apiGet<P extends GetPath>(

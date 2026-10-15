@@ -12,18 +12,6 @@ const URL = "/?s=2024-05-Q&ref=VER:fastest&tgt=ALO:fastest";
 // engineer section is held to the stricter "no 0.35 at all".
 const INJECTED = ["lost 0.35 s", "tyre wear", "because of"];
 
-/** The engineer needs an account (Phase 8): register a fresh one through the real dialog. */
-async function signIn(page: Page) {
-  await page.getByTestId("signin-open").click({ timeout: 60_000 });
-  await page.getByRole("button", { name: "New here? Create an account" }).click();
-  await page.getByTestId("signin-email").fill(`e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`);
-  await page.getByTestId("signin-password").fill("e2e password 123");
-  await page.getByTestId("signin-submit").click();
-  // the spec files run in parallel against ONE backend process: under that load (several CPU-bound
-  // comparisons at once) registration can take longer than the 5 s default
-  await expect(page.getByTestId("account-menu")).toBeVisible({ timeout: 30_000 });
-}
-
 async function assertClean(page: Page) {
   const text = await page.locator("body").innerText();
   for (const bad of INJECTED) expect(text, `"${bad}" reached the DOM`).not.toContain(bad);
@@ -35,7 +23,6 @@ async function assertClean(page: Page) {
 
 test("injected numbers and causes never reach the DOM (report, popovers and chat)", async ({ page }) => {
   await page.goto(URL);
-  await signIn(page);
   await page.getByRole("tab", { name: "AI Engineer" }).click();
   const report = page.getByTestId("engineer-report");
   await expect(report).toBeVisible({ timeout: 60_000 });
@@ -73,7 +60,6 @@ test("injected numbers and causes never reach the DOM (report, popovers and chat
 
 test("clicking a report bullet opens its corner on the Track Map tab", async ({ page }) => {
   await page.goto(URL);
-  await signIn(page);
   await page.getByRole("tab", { name: "AI Engineer" }).click();
   const report = page.getByTestId("engineer-report");
   await expect(report).toBeVisible({ timeout: 60_000 });
@@ -86,7 +72,6 @@ test("clicking a report bullet opens its corner on the Track Map tab", async ({ 
 
 test("the dock generates a report for the selected tab", async ({ page }) => {
   await page.goto(`${URL}&tab=track`);
-  await signIn(page);
   const dock = page.getByTestId("engineer-dock");
   await expect(dock.getByTestId("dock-context")).toHaveText("Track Map");
   await dock.getByTestId("dock-generate").click();

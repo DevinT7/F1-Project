@@ -14,7 +14,6 @@ import { DEFAULT_TAB, tabLabel, type TabId } from "@/lib/tabs";
 import { isComparable, parseSessionKey, serializeUrlState, type UrlState } from "@/lib/url-state";
 import { useUrlState } from "@/lib/use-url-state";
 
-import { AccountMenu, SignInDialog } from "./account";
 import { CornerTable, RaceBrief, StraightsTable } from "./briefing";
 import { ComparisonHeader } from "./comparison-header";
 import { EngineerSection } from "./engineer";
@@ -115,7 +114,7 @@ export function Dashboard() {
   return (
     <TabNavContext.Provider value={goTo}>
       <div className="min-h-screen">
-        <TopNav tab={tab} onTab={goTo} demo={state.demo} account={<AccountMenu demo={state.demo} current={state} />}
+        <TopNav tab={tab} onTab={goTo} demo={state.demo}
           demoHref={`?${serializeUrlState(demoState)}`}
           liveHref={`?${serializeUrlState({ ...state, demo: false })}`} />
         <div className="mx-auto max-w-[1920px] xl:grid xl:grid-cols-[minmax(0,1fr)_var(--dock-w)]">
@@ -167,7 +166,6 @@ export function Dashboard() {
           )}
         </div>
         <Toaster />
-        <SignInDialog />
       </div>
     </TabNavContext.Provider>
   );

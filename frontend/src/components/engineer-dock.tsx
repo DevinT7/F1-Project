@@ -10,15 +10,13 @@ import type { EngineerReportRequest } from "@/lib/api/endpoints";
 import { FOOTER_NOTE, TAB_FOCUS, suggestionsFor } from "@/lib/engineer";
 import { tabLabel, type TabId } from "@/lib/tabs";
 
-import { SignInPrompt } from "./account";
-import { EngineerChat, ReportCard, engineerRequest, useEngineerAccess } from "./engineer";
+import { EngineerChat, ReportCard, engineerRequest } from "./engineer";
 
 type LapSel = EngineerReportRequest["reference"];
 
 export function EngineerDock({ tab, session, reference, target, sessionCode }: {
   tab: TabId; session: string | null; reference: LapSel | null; target: LapSel | null; sessionCode: string | null;
 }) {
-  const { signedIn, unknown } = useEngineerAccess();
   const request = useMemo(
     () => (session && reference && target ? engineerRequest(session, reference, target, sessionCode) : null),
     [session, reference, target, sessionCode],
@@ -39,9 +37,6 @@ export function EngineerDock({ tab, session, reference, target, sessionCode }: {
           <p className="rounded-lg border border-dashed border-line p-3 text-sm text-muted" data-testid="dock-empty">
             Pick a session and two laps, and the engineer will brief you on every tab.
           </p>
-        ) : !signedIn ? (
-          unknown ? <div className="skeleton h-24" aria-label="Checking your session" />
-            : <SignInPrompt testId="dock-signin" what="Sign in to ask the race engineer and generate reports for each tab." />
         ) : (
           <DockBody key={JSON.stringify(request)} tab={tab} request={request} target={target!.driver} sessionCode={sessionCode} />
         )}

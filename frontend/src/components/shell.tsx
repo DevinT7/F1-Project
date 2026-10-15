@@ -1,5 +1,5 @@
 "use client";
-/** App shell: the top bar (Senna wordmark, the five tabs, account + data source), placeholder card, toasts. */
+/** App shell: the top bar (Senna wordmark, the five tabs, data source), placeholder card, toasts. */
 import Link from "next/link";
 import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
@@ -57,8 +57,8 @@ export function TabBar({ tab, onTab }: { tab: TabId; onTab: (tab: TabId) => void
   );
 }
 
-export function TopNav({ tab, onTab, demo, demoHref, liveHref, account }: {
-  tab: TabId; onTab: (tab: TabId) => void; demo: boolean; demoHref: string; liveHref: string; account?: ReactNode;
+export function TopNav({ tab, onTab, demo, demoHref, liveHref }: {
+  tab: TabId; onTab: (tab: TabId) => void; demo: boolean; demoHref: string; liveHref: string;
 }) {
   return (
     <header className="topnav">
@@ -68,7 +68,6 @@ export function TopNav({ tab, onTab, demo, demoHref, liveHref, account }: {
           <TabBar tab={tab} onTab={onTab} />
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2.5 py-2">
-          {account}
           {demo
             ? <Link className="btn btn-ghost" href={liveHref}>⏻ Live data</Link>
             : <Link className="btn btn-ghost" href={demoHref}>▶ Demo data</Link>}

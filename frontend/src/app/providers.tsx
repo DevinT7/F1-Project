@@ -1,11 +1,10 @@
 "use client";
 
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { ApiError } from "@/lib/api/client";
 import { createApi } from "@/lib/api/endpoints";
-import { refreshSession, useAuth } from "@/lib/auth";
 import { ApiContext } from "@/lib/queries";
 import { useUiStore } from "@/lib/store";
 import { reportError } from "@/lib/telemetry";
@@ -46,11 +45,6 @@ export function makeQueryClient() {
 export function Providers({ demo, children }: { demo: boolean; children: ReactNode }) {
   const [client] = useState(makeQueryClient);
   const api = useMemo(() => ({ api: createApi(demo), demo }), [demo]);
-  // restore the session from the refresh cookie once (no accounts in demo mode)
-  useEffect(() => {
-    if (demo) useAuth.getState().clear();
-    else if (useAuth.getState().status === "unknown") void refreshSession();
-  }, [demo]);
   return (
     <QueryClientProvider client={client}>
       <ApiContext.Provider value={api}>{children}</ApiContext.Provider>

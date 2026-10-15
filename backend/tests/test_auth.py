@@ -160,9 +160,9 @@ async def test_role_enforcement(client, monkeypatch):
     assert (await client.post("/api/v1/admin/models/train", json={}, headers=bearer(user))).status_code == 403
     assert (await client.post("/api/v1/admin/models/train", json={}, headers=bearer(admin))).status_code == 202
 
-    assert (await client.post("/api/v1/engineer/report", json=body)).status_code == 401           # cost control
-    assert (await client.post("/api/v1/engineer/ask", json=body | {"question": "hi"})).status_code == 401
-    assert (await client.get("/api/v1/engineer/facts/" + "0" * 64)).status_code == 401
+    # the engineer needs no account (the frontend has no sign-in): cost control is the per-IP limit
+    assert (await client.post("/api/v1/engineer/report", json=body)).status_code == 200
+    assert (await client.get("/api/v1/engineer/facts/" + "0" * 64)).status_code == 404
     assert (await client.get("/api/v1/engineer/metrics", headers=bearer(user))).status_code == 403
     assert (await client.get("/api/v1/engineer/metrics", headers=bearer(admin))).status_code == 200
 
@@ -211,15 +211,16 @@ async def test_auth_endpoints_are_rate_limited_per_ip_with_retry_after(client):
     assert r.json()["error"]["code"] == "rate_limited"
 
 
-async def test_engineer_is_rate_limited_per_user(client, monkeypatch):
+async def test_engineer_is_rate_limited_per_ip_without_an_account(client, monkeypatch):
     monkeypatch.setitem(POLICIES, "engineer", Policy("engineer", 2, 1 / 60))
-    token = (await register(client)).json()["access_token"]
     body = {"session_key": "2024-99-Q", "reference": {"driver": "VER"}, "target": {"driver": "ALO"}}
-    first = [(await client.post("/api/v1/engineer/report", json=body, headers=bearer(token))).status_code
-             for _ in range(2)]
-    assert 429 not in first
-    r = await client.post("/api/v1/engineer/report", json=body, headers=bearer(token))
+    first = [(await client.post("/api/v1/engineer/report", json=body)).status_code for _ in range(2)]
+    assert 429 not in first and 401 not in first
+    r = await client.post("/api/v1/engineer/report", json=body)
     assert r.status_code == 429 and r.headers["retry-after"] == "60"
+    # signing in does not buy a fresh bucket: the key is the client IP
+    token = (await register(client)).json()["access_token"]
+    assert (await client.post("/api/v1/engineer/report", json=body, headers=bearer(token))).status_code == 429
 
 
 async def test_the_general_api_limit_applies_per_ip(client, monkeypatch):
