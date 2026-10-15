@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from ..clients.openf1 import OpenF1Error, get_client
-from ..models.schemas import Driver, Session, TelemetryTrace
+from ..models.schemas import Driver, TelemetryTrace
 from ..services import sessions as sessions_svc
 from ..services import telemetry as telemetry_svc
 from ._openf1 import envelope, provider_http_exception

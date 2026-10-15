@@ -233,3 +233,15 @@ def test_event_schedules_are_cached(cache, tmp_path):
     assert svc.events(2024).year == 2024
     assert svc.events(2024).events == []
     assert calls == [2024]
+
+
+def test_cache_hits_are_served_pre_gzipped_and_identical(cache):
+    import gzip as gz
+    svc = ComparisonService(ParquetRepository(FIXTURE_STORE), cache=cache)
+    fresh, zipped = svc.compare_body(body(), gzip_ok=True)
+    assert zipped is False                                    # computed now: plain JSON (middleware compresses)
+    hit, zipped = svc.compare_body(body(), gzip_ok=True)
+    assert zipped is True
+    plain, _ = svc.compare_body(body(), gzip_ok=False)
+    assert gz.decompress(hit) == plain
+    assert any(k.endswith(":gz") for k in (getattr(cache, "_data", {}) or {})) or cache.name == "redis"

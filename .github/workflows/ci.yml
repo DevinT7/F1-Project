@@ -1,20 +1,31 @@
-# RaceIQ CI (Phase 8). Backend tests run against real PostgreSQL + TimescaleDB and Redis service
-# containers (the shared repository contract suite runs on both Parquet and Postgres); S3 tests start
-# SeaweedFS via testcontainers (Docker is available on the runner). Never calls an LLM provider.
+# RaceIQ CI (Phases 8–9). Never calls an LLM provider; needs no secrets.
+#
+#   backend     lint (ruff) · migrations up/down/up · mypy · OpenAPI drift · tests on Parquet + Postgres +
+#               Redis (service containers) with the numerical coverage gate · latency budgets ·
+#               mutation sanity checks · golden findings (part of the tests) · pip-audit
+#   frontend    typecheck · lint · unit/component tests · npm audit
+#   containers  build the api / worker / frontend images · Trivy scan (fixable HIGH/CRITICAL fail) ·
+#               docker compose stack with seeded data · Playwright against it
+#   e2e         Playwright against the in-process backend (fixture store, fake-LLM safety test)
 name: ci
 
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: timescale/timescaledb:2.17.2-pg16
@@ -44,6 +55,8 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - name: Install
         run: pip install -r requirements.txt pip-audit
+      - name: Lint
+        run: ruff check app scripts tests
       - name: Migrations are reversible (upgrade → downgrade base → upgrade)
         env:
           RACEIQ_DATABASE_URL: postgresql://raceiq:raceiq@localhost:5432/raceiq_test
@@ -53,15 +66,23 @@ jobs:
           alembic upgrade head
       - name: Type check
         run: python -m mypy
-      - name: OpenAPI snapshot is reviewed
-        run: python -m scripts.export_openapi --check
-      - name: Tests (contract suite on Parquet + Postgres, cache, jobs, auth, …)
-        run: python -m pytest -q
+      - name: OpenAPI snapshot is reviewed (and docs/api.md is current)
+        run: |
+          python -m scripts.export_openapi --check
+          python -m scripts.gen_api_docs --check
+      - name: Tests with coverage (contract suite, golden findings, cache, jobs, auth, …)
+        run: python -m pytest -q -m "not network and not perf" --cov=app --cov-report=json:coverage.json --cov-report=term:skip-covered
+      - name: Coverage gate (numerical modules ≥ 90%)
+        run: python -m scripts.coverage_gate coverage.json
+      - name: Latency budgets (no coverage instrumentation)
+        run: python -m pytest -q -m perf
+      - name: Mutation sanity checks (planted bugs must be caught)
+        run: python -m scripts.mutation_sanity
       - name: Dependency audit
         run: pip-audit -r requirements.txt --progress-spinner off
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -78,8 +99,47 @@ jobs:
       - name: Dependency audit
         run: npm audit --audit-level=high --omit=dev
 
+  containers:
+    runs-on: ubuntu-24.04
+    env:
+      FRONTEND_PORT: "3000"
+      BACKEND_PORT: "8000"
+      RACEIQ_TAG: ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the images (api, worker, frontend)
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml build
+      - name: Image scan (Trivy; fixable HIGH / CRITICAL fail the build)
+        run: |
+          for image in raceiq-backend:ci raceiq-worker:ci raceiq-frontend:ci; do
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v trivy-cache:/root/.cache \
+              aquasec/trivy:0.67.2 image --quiet --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL "$image"
+          done
+      - name: Start the stack (seeded with sample data)
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d
+          timeout 300 bash -c 'until [ "$(docker inspect -f {{.State.Health.Status}} $(docker compose ps -q frontend))" = healthy ]; do sleep 3; done'
+          docker compose ps
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Playwright against the compose stack
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          CI: "true"
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test -c playwright.compose.config.ts
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 200 seed backend worker frontend
+
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
@@ -98,7 +158,7 @@ jobs:
         run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
       - working-directory: frontend
         run: npm ci && npx playwright install --with-deps chromium
-      - name: Playwright (real backend on the fixture store, fake LLM injection test)
+      - name: Playwright (in-process backend on the fixture store, fake-LLM injection test)
         working-directory: frontend
         env: {CI: "true"}
         run: npx playwright test

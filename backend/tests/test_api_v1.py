@@ -5,8 +5,6 @@ path is exercised exactly as a client would see it.
 """
 from __future__ import annotations
 
-import gzip
-import json
 import shutil
 import statistics
 import time
@@ -361,6 +359,7 @@ def test_openapi_documents_every_v1_route():
 
 
 # ---------------------------------------------------------------- performance
+@pytest.mark.perf
 async def test_comparison_latency(client, repo, capsys):
     """p95 of a full (uncached) comparison at default resolution on a stored session.
 

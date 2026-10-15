@@ -1,0 +1,9 @@
+# Backend lint (Phase 9 CI). Deliberately bug-focused, not style: syntax errors, undefined names,
+# unused imports / variables, redefinitions, mutable default arguments. (B008 is off: FastAPI's
+# `Depends(...)` defaults are the framework's idiom.)
+target-version = "py311"
+line-length = 120
+extend-exclude = [".venv", "mlruns"]
+
+[lint]
+select = ["E9", "F63", "F7", "F82", "F401", "F811", "F841", "B006"]

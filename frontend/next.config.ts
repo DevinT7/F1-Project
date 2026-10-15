@@ -7,6 +7,8 @@ const backend = process.env.BACKEND_URL ?? "http://localhost:8000";
 
 const config: NextConfig = {
   reactStrictMode: true,
+  // a self-contained server bundle for the container image (frontend/Dockerfile)
+  output: "standalone",
   // next dev would otherwise (re)write an AGENTS.md into the repo on every start
   agentRules: false,
   async rewrites() {

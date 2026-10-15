@@ -27,7 +27,7 @@ from . import pit_window as pw
 from .config import WET_COMPOUNDS, ExclusionConfig
 from .dataset import build_rows, laps_frame
 from .exclusions import apply_rules
-from .registry import ModelRegistry, Registry, RegistryEntry
+from .registry import Registry, RegistryEntry
 from .serving import ServedModel
 
 MAX_HORIZON = pw.HORIZON_CAP_LAPS

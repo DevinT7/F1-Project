@@ -227,6 +227,7 @@ async def test_tire_context_on_qualifying_is_stated_unavailable(client):
 
 
 # ---------------------------------------------------------------- latency
+@pytest.mark.perf
 async def test_template_path_is_under_200_ms_once_the_comparison_is_computed(h, client):
     await post(client, "report", BODY)                         # computes the comparison (cached after)
     times = []

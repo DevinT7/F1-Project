@@ -1,0 +1,19 @@
+{
+ "dataset": "regression_dataset_6681d16a0b57.parquet",
+ "dataset_sha256": "f9548c56c701e707a9742e35ad4b16d76410f20f617c28d9803adf40a87a441f",
+ "model": "pooled_fixed_effects_recent",
+ "anchor_laps": 3,
+ "train_fraction": 0.7,
+ "tolerance": 0.1,
+ "recorded_at": "2026-10-15T07:54:52.234252+00:00",
+ "metrics": {
+  "train_races": 17,
+  "test_races": 7,
+  "pooled_fixed_effects_recent_mae_h5": 0.43788,
+  "pooled_fixed_effects_recent_mae_h10": 0.52675,
+  "pooled_fixed_effects_recent_n_h5": 10285,
+  "persistence_mae_h5": 0.43283,
+  "persistence_mae_h10": 0.52131,
+  "persistence_n_h5": 10285
+ }
+}

@@ -1,0 +1,21 @@
+# Keeps pinned dependencies and base-image digests current (Phase 9). Each update is a PR that runs CI
+# (tests, audits, Trivy) before it can merge.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: {interval: weekly}
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: {interval: weekly}
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule: {interval: weekly}
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: monthly}

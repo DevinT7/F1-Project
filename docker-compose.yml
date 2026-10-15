@@ -61,7 +61,8 @@ services:
     volumes: [s3data:/data]
 
   seed:
-    build: ./backend
+    build: {context: ./backend, target: api}
+    image: raceiq-backend:${RACEIQ_TAG:-local}
     command: ["python", "-m", "scripts.seed"]
     environment:
       <<: *backend-env
@@ -77,7 +78,8 @@ services:
     restart: "no"
 
   backend:
-    build: ./backend
+    build: {context: ./backend, target: api}
+    image: raceiq-backend:${RACEIQ_TAG:-local}
     environment: *backend-env
     ports: ["${BACKEND_PORT:-8000}:8000"]
     volumes:
@@ -85,15 +87,13 @@ services:
       - fastf1_cache:/cache
     depends_on:
       seed: {condition: service_completed_successfully}
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+    healthcheck:          # the image's own HEALTHCHECK, faster for compose
       interval: 5s
-      timeout: 5s
       retries: 30
 
   worker:
-    build: ./backend
-    command: ["python", "-m", "app.jobs.worker"]
+    build: {context: ./backend, target: worker}
+    image: raceiq-worker:${RACEIQ_TAG:-local}
     environment: *backend-env
     volumes:
       - ./models:/models
@@ -105,6 +105,7 @@ services:
     build:
       context: ./frontend
       args: {BACKEND_URL: "http://backend:8000"}
+    image: raceiq-frontend:${RACEIQ_TAG:-local}
     ports: ["${FRONTEND_PORT:-3000}:3000"]
     depends_on:
       backend: {condition: service_healthy}

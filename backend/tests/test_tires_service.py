@@ -13,7 +13,7 @@ from app.api.routes.tires import to_schema
 from app.main import app
 from app.tires.registry import ChecksumMismatchError, ModelNotAvailableError, ModelRegistry
 from app.tires.service import TireService
-from tests.tire_service_fixtures import QUALI, RACE, TOTAL_LAPS, FakeRepo, PersistencePoint, lap_records, write_registry
+from tests.tire_service_fixtures import RACE, TOTAL_LAPS, FakeRepo, PersistencePoint, lap_records, write_registry
 
 
 def service(tmp_path, **kw) -> TireService:

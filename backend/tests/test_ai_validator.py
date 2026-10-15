@@ -172,6 +172,7 @@ def test_explain_for_retry_is_concise_and_does_not_leak_the_factsheet():
     assert "0.311" not in text and "meaning" not in text  # no fact values or FactSheet content
 
 
+@pytest.mark.perf
 def test_full_report_validates_in_under_20_ms():
     case = next(c for c in GOOD if c["id"] == "g30")
     report, fs = build(case)

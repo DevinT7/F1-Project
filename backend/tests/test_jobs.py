@@ -3,7 +3,6 @@ both job stores, the 202 ingest API, and a real RQ round trip on Redis."""
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import httpx

@@ -1,0 +1,13 @@
+# Overrides for the end-to-end suite against the full stack (Phase 9):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build
+#   cd frontend && npx playwright test -c playwright.compose.config.ts
+#
+# TEST ONLY: the engineer uses the scripted fake LLM that injects an ungrounded number and a
+# fabricated cause (the safety test asserts neither reaches the DOM), and the per-IP rate limit is
+# off (one page makes dozens of requests; tests/test_auth.py covers the limiter).
+services:
+  backend:
+    environment:
+      RACEIQ_ENGINEER_FAKE_LLM: inject
+      RACEIQ_RATE_LIMIT_ENABLED: "false"

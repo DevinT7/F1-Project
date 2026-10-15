@@ -22,7 +22,7 @@ from fastapi.testclient import TestClient
 
 from app.clients import fastf1_client
 from app.main import app
-from app.models.schemas import Driver, TelemetrySample, TelemetryTrace
+from app.models.schemas import TelemetrySample, TelemetryTrace
 from app.services import analysis as analysis_svc
 from app.services import sessions as sessions_svc
 from app.services import telemetry as telemetry_svc

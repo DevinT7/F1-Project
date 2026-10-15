@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 
 from ..deps import get_comparison_service
@@ -28,8 +28,14 @@ router = APIRouter(tags=["v1: comparisons"])
 )
 def create_comparison(
     request: ComparisonRequest,
+    http: Request,
     service: ComparisonService = Depends(get_comparison_service),
 ) -> Response:
     # The service returns JSON rendered from a validated ComparisonResponse (cached hits are
-    # pre-rendered), skipping FastAPI's re-validation + jsonable_encoder pass (~35 ms here).
-    return Response(content=service.compare_json(request), media_type="application/json")
+    # pre-rendered, and pre-gzipped for clients that accept it), skipping FastAPI's re-validation +
+    # jsonable_encoder pass (~35 ms) and per-request compression (the GZip middleware leaves a
+    # response that already has a Content-Encoding alone).
+    gzip_ok = "gzip" in http.headers.get("accept-encoding", "").lower()
+    body, gzipped = service.compare_body(request, gzip_ok)
+    headers = {"Content-Encoding": "gzip", "Vary": "Accept-Encoding"} if gzipped else None
+    return Response(content=body, media_type="application/json", headers=headers)

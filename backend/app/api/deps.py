@@ -5,7 +5,7 @@ import logging
 from collections.abc import Callable
 from functools import lru_cache
 
-from fastapi import Depends, Request
+from fastapi import Depends
 
 from ..ai.llm_client import LLMClient, client_from_env
 from ..ai.testing import FAKES

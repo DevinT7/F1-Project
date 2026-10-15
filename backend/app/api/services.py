@@ -6,6 +6,7 @@ memoizes results in an in-process LRU (replaced by Redis in Phase 8).
 """
 from __future__ import annotations
 
+import gzip
 import math
 import threading
 from collections import OrderedDict
@@ -284,6 +285,10 @@ class ComparisonService:
 
     def _fetch(self, request: ComparisonRequest) -> tuple[bytes, ComparisonResponse | None]:
         """(the JSON a cache hit returns, the freshly built response when this call computed it)."""
+        _key, value, fresh = self._fetch_keyed(request)
+        return value, fresh
+
+    def _fetch_keyed(self, request: ComparisonRequest) -> tuple[str, bytes, ComparisonResponse | None]:
         key, build = self._lookup(request)
         built: list[ComparisonResponse] = []
 
@@ -299,7 +304,22 @@ class ComparisonService:
                 self.misses += 1
             else:
                 self.hits += 1
-        return value, (built[0] if built else None)
+        return key, value, (built[0] if built else None)
+
+    def compare_body(self, request: ComparisonRequest, gzip_ok: bool) -> tuple[bytes, bool]:
+        """(body, is_gzipped). A cache hit for a gzip-capable client is served pre-compressed: the
+        gzip bytes are computed once per comparison and cached next to the JSON (same key prefix,
+        so re-ingest invalidation covers them), instead of compressing ~400 KB on every request."""
+        key, value, fresh = self._fetch_keyed(request)
+        if fresh is not None:
+            return fresh.model_dump_json().encode("utf-8"), False
+        if not gzip_ok:
+            return value, False
+        gz = self.cache.get(f"{key}:gz")
+        if gz is None:
+            gz = gzip.compress(value, compresslevel=6)
+            self.cache.set(f"{key}:gz", gz, TTL_S["cmp"])
+        return gz, True
 
     def compare(self, request: ComparisonRequest) -> ComparisonResponse:
         value, fresh = self._fetch(request)
