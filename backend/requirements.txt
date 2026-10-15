@@ -12,7 +12,7 @@ python-dotenv==1.2.4
 # Secondary data source (heavier; used by analysis + ml)
 fastf1==3.5.3
 # Phase 1 ingestion store (Parquet) + CLI progress logging
-pyarrow==25.0.1  # mlflow 3.17 requires pyarrow<26
+pyarrow==26.0.0  # mlflow 3.17 requires pyarrow<26
 structlog==26.1.0
 # Phase 2 delta engine: Savitzky-Golay smoothing (already pulled in by scikit-learn)
 scipy==1.17.1
