@@ -22,7 +22,7 @@ matplotlib==3.11.2
 # ML (Person 3). Needed to unpickle ml/models/tire_model.pkl in tires.py — must match
 # the version ml/requirements.txt trained with. Without it the endpoint still works,
 # it just logs the load failure and serves baseline-linear.
-scikit-learn==1.6.0
+scikit-learn==1.9.1
 # Phase 6B Baseline B (fixed-effects OLS, cluster-robust SEs)
 statsmodels==0.15.0
 # Phase 6C experiment tracking (python -m scripts.run_eval)
