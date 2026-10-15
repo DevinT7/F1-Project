@@ -54,7 +54,7 @@ jobs:
       backend: ${{ steps.meta.outputs.prefix }}/raceiq-backend@${{ steps.api.outputs.digest }}
       worker: ${{ steps.meta.outputs.prefix }}/raceiq-worker@${{ steps.worker.outputs.digest }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: meta
         name: Version and image names
         env:
