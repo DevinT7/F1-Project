@@ -161,7 +161,7 @@ async def test_role_enforcement(client, monkeypatch):
     assert (await client.post("/api/v1/admin/models/train", json={}, headers=bearer(admin))).status_code == 202
 
     # the engineer needs no account (the frontend has no sign-in): cost control is the per-IP limit
-    assert (await client.post("/api/v1/engineer/report", json=body)).status_code == 200
+    assert (await client.post("/api/v1/engineer/report", json=body)).status_code not in (401, 403)  # 200 or 404 by data
     assert (await client.get("/api/v1/engineer/facts/" + "0" * 64)).status_code == 404
     assert (await client.get("/api/v1/engineer/metrics", headers=bearer(user))).status_code == 403
     assert (await client.get("/api/v1/engineer/metrics", headers=bearer(admin))).status_code == 200

@@ -193,32 +193,18 @@ describe("tabs", () => {
   });
 });
 
-describe("engineer dock", () => {
-  it("needs no account: no sign-in anywhere, the engineer is ready", async () => {
+describe("AI engineer tab", () => {
+  it("is the only place the engineer lives: report and chat on its tab, no side window", async () => {
     await renderDashboard(SHARED);
-    const dock = await screen.findByTestId("engineer-dock");
-    expect(await within(dock).findByTestId("dock-generate")).toBeEnabled();
-    expect(within(dock).getByTestId("engineer-input")).toBeEnabled();
+    await screen.findByTestId("race-brief");
+    expect(screen.queryByTestId("engineer-dock")).toBeNull();
+    expect(screen.queryByTestId("engineer-chat")).toBeNull();
     expect(screen.queryByRole("button", { name: /sign in/i })).toBeNull();
-    expect(screen.queryByTestId("signin-open")).toBeNull();
-  });
-
-  it("generates the report for the selected tab and suggests questions about it", async () => {
     const user = userEvent.setup();
-    await renderDashboard(`${SHARED}&tab=track`);
-    const dock = await screen.findByTestId("engineer-dock");
-    expect(within(dock).getByTestId("dock-context")).toHaveTextContent("Track Map");
-    expect((await within(dock).findAllByTestId("engineer-chip"))[0]).toHaveTextContent("Which corners should ALO focus on?");
-    await user.click(within(dock).getByTestId("dock-generate"));
-    const report = await within(dock).findByTestId("dock-report");
-    // the corner report keeps only bullets that point at a corner, straight or sector
-    for (const b of within(report).getAllByTestId("engineer-bullet").slice(1)) {
-      expect(within(b).getByTitle(/track map/)).toBeInTheDocument();
-    }
-    await user.click(screen.getByRole("tab", { name: "Lap Comparison" }));
-    expect(within(dock).getByTestId("dock-context")).toHaveTextContent("Lap Comparison");
-    expect(within(dock).getByTestId("dock-generate")).toBeInTheDocument();   // a report per tab, on request
-    expect(within(dock).getAllByTestId("engineer-chip")[1]).toHaveTextContent("Is ALO slower on the straights or in the corners?");
+    await user.click(screen.getByRole("tab", { name: "AI Engineer" }));
+    expect(await screen.findByTestId("engineer-report")).toBeInTheDocument();
+    expect(screen.getByTestId("engineer-chat")).toBeInTheDocument();
+    expect(screen.getAllByTestId("engineer-chip")[0]).toHaveTextContent("Where did ALO lose the most time?");
   });
 
   it("a report bullet on the AI Engineer tab opens its corner on the Track Map tab", async () => {
@@ -229,5 +215,25 @@ describe("engineer dock", () => {
     await user.click(within(report).getByRole("button", { name: /^Turn 16: ALO lost 0\.176 s/ }));
     expect(navigation.search).toContain("tab=track");
     expect(within(await screen.findByTestId("corner-panel")).getByRole("heading", { level: 3 })).toHaveTextContent("Turn 16");
+  });
+});
+
+describe("track map labels", () => {
+  it("Pit Wall and Track Map label turns on leader lines; Lap Comparison shows the bare layout", async () => {
+    const user = userEvent.setup();
+    await renderDashboard(SHARED);
+    await screen.findByTestId("race-brief");
+    const t6 = screen.getByTestId("map-label-T6");
+    expect(t6.querySelector("line")).not.toBeNull();          // a leader line…
+    expect(t6.querySelector("text")).toHaveTextContent("T6");  // …ending in the turn label
+    expect(t6.querySelector("circle[r='9']")).toBeNull();      // not the old numbered disc
+
+    await user.click(screen.getByRole("tab", { name: "Track Map" }));
+    expect(await screen.findByTestId("map-label-T16")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Lap Comparison" }));
+    await screen.findByTestId("straights-table");
+    expect(screen.queryByTestId("map-label-T6")).toBeNull();
+    expect(screen.queryByTestId("corner-T6")).toBeNull();
   });
 });

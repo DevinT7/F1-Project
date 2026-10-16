@@ -411,3 +411,11 @@ Full contract: `docs/tire_api.md`.
 - **The AI engineer is public.** `/engineer/report`, `/ask` and `/facts` no longer require a token. LLM cost control is the per-IP bucket (20/min, Redis-shared), the `RaceIQLlmCostBudget` alert and the `ENGINEER_LLM_ENABLED` kill switch.
 - **Admin stays protected.** Ingest, training, job status and the engineer metrics still need an admin token. Operators get one from `POST /api/v1/auth/login` (an address in `RACEIQ_ADMIN_EMAILS`) or use the CLI. A session that isn't stored shows the CLI command.
 - **What remains in the backend.** The `/auth` and `/me` endpoints and the users table remain, used only by operators; saved analyses are unused by the UI.
+
+## Track labels on leader lines; no engineer dock (P1, 2026-10-15)
+
+- **Track map labels.**
+  - **Pit Wall and Track Map:** corners are labelled on short leader lines out of each apex instead of numbered discs on the track. Placement is greedy: square to the track and away from the circuit's middle first, then angled, then inwards, at increasing lengths. A spot is taken only if the label is inside the map, clear of the track and clear of labels already placed.
+  - **Lap Comparison:** shows the bare layout, with no labels and no corner chips.
+- **No dock.** The right-hand engineer dock is gone, along with its per-tab reports. The AI engineer lives only on its own tab: the full report, the chat and every fact behind the report.
+- **Styling.** The dashed kerb line under the tab bar and the red stripe on top of every card were removed.

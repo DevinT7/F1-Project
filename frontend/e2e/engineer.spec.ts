@@ -15,8 +15,8 @@ const INJECTED = ["lost 0.35 s", "tyre wear", "because of"];
 async function assertClean(page: Page) {
   const text = await page.locator("body").innerText();
   for (const bad of INJECTED) expect(text, `"${bad}" reached the DOM`).not.toContain(bad);
-  // the report (AI Engineer tab) and the dock (chat) are held to the stricter "no 0.35 at all"
-  for (const id of ["#engineer", "#engineer-dock"]) {
+  // the AI Engineer tab (report and chat) is held to the stricter "no 0.35 at all"
+  for (const id of ["#engineer"]) {
     if (await page.locator(id).count()) expect(await page.locator(id).innerText()).not.toMatch(/\b0\.35\b/);
   }
 }
@@ -68,13 +68,4 @@ test("clicking a report bullet opens its corner on the Track Map tab", async ({ 
   await report.getByRole("button", { name: /^Turn 16:/ }).click();
   await expect(page).toHaveURL(/tab=track/);
   await expect(page.getByTestId("corner-panel").getByRole("heading", { level: 3 })).toHaveText("Turn 16");
-});
-
-test("the dock generates a report for the selected tab", async ({ page }) => {
-  await page.goto(`${URL}&tab=track`);
-  const dock = page.getByTestId("engineer-dock");
-  await expect(dock.getByTestId("dock-context")).toHaveText("Track Map");
-  await dock.getByTestId("dock-generate").click();
-  await expect(dock.getByTestId("dock-report")).toBeVisible({ timeout: 60_000 });
-  await assertClean(page);
 });

@@ -17,7 +17,6 @@ import { useUrlState } from "@/lib/use-url-state";
 import { CornerTable, RaceBrief, StraightsTable } from "./briefing";
 import { ComparisonHeader } from "./comparison-header";
 import { EngineerSection } from "./engineer";
-import { EngineerDock } from "./engineer-dock";
 import { ErrorBoundary } from "./error-boundary";
 import { CornerPanel, FindingsList, SectorCard } from "./findings";
 import { LapPicker } from "./lap-picker";
@@ -26,14 +25,14 @@ import { PlaceholderCard, Toaster, TopNav } from "./shell";
 import { TabStage } from "./tab-stage";
 import { TelemetryStack } from "./telemetry-stack";
 import { TireSection } from "./tire-section";
-import { TrackMap } from "./track-map";
+import { TrackMap, type CornerLabelMode } from "./track-map";
 
 const TAB_INTRO: Record<TabId, string> = {
   pitwall: "The whole comparison at a glance: lap times, the brief, the map and the corners that decided it.",
   laps: "Speed, throttle, brake, gear and the running time delta, metre by metre, with the speed traps.",
   track: "Where on the circuit the time went, corner by corner, with a real-pace replay of both laps.",
   tires: "Stints, degradation and the pit window for race sessions; observed laps for the others.",
-  engineer: "The AI race engineer's full report, written only from verified numbers, and the facts behind it.",
+  engineer: "The AI race engineer: its full report, written only from verified numbers, the facts behind it, and questions.",
 };
 
 export function Dashboard() {
@@ -117,7 +116,7 @@ export function Dashboard() {
         <TopNav tab={tab} onTab={goTo} demo={state.demo}
           demoHref={`?${serializeUrlState(demoState)}`}
           liveHref={`?${serializeUrlState({ ...state, demo: false })}`} />
-        <div className="mx-auto max-w-[1920px] xl:grid xl:grid-cols-[minmax(0,1fr)_var(--dock-w)]">
+        <div className="mx-auto max-w-[1920px]">
           <main className="min-w-0 px-4 pt-6 pb-16 sm:px-8">
             <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
               <div className="min-w-0">
@@ -160,10 +159,6 @@ export function Dashboard() {
               </p>
             </footer>
           </main>
-          {features.engineer && (
-            <EngineerDock tab={tab} session={request ? state.session : null} reference={state.ref} target={state.tgt}
-              sessionCode={sessionCode} />
-          )}
         </div>
         <Toaster />
       </div>
@@ -172,14 +167,15 @@ export function Dashboard() {
 }
 
 // ---------------------------------------------------------------- the tabs
-function MapCard({ comparison, corners, maxHeight, title }: {
+function MapCard({ comparison, corners, maxHeight, title, labels = "leaders" }: {
   comparison: ComparisonResponse; corners: CornersResponse | undefined; maxHeight: number; title?: string;
+  labels?: CornerLabelMode;
 }) {
   return (
     <section id="track" className="card min-w-0" aria-labelledby="track-heading">
       <div className="kick">Interactive track map</div>
       <h2 id="track-heading" className="mb-2 text-[16px] font-bold">{title ?? `${comparison.findings.session_context?.event_name ?? "Circuit"} · time gained / lost by corner`}</h2>
-      <ErrorBoundary label="Track map"><TrackMap comparison={comparison} corners={corners} maxHeight={maxHeight} /></ErrorBoundary>
+      <ErrorBoundary label="Track map"><TrackMap comparison={comparison} corners={corners} maxHeight={maxHeight} labels={labels} /></ErrorBoundary>
     </section>
   );
 }
@@ -208,7 +204,7 @@ function LapComparison({ comparison, corners }: { comparison: ComparisonResponse
       <ErrorBoundary label="Telemetry"><TelemetryStack comparison={comparison} height={920} /></ErrorBoundary>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <StraightsTable comparison={comparison} />
-        <MapCard comparison={comparison} corners={corners} maxHeight={320} title="Where on track (follows the chart cursor)" />
+        <MapCard comparison={comparison} corners={corners} maxHeight={320} title="Where on track (follows the chart cursor)" labels="none" />
       </div>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <FindingsList comparison={comparison} />

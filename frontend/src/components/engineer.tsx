@@ -25,7 +25,7 @@ export function engineerRequest(session: string, reference: LapSel, target: LapS
   return { session_key: session, reference, target, ...(sessionCode === "R" ? { tire_context: {} } : {}) };
 }
 
-/** AI Engineer tab: the complete validated report, and every fact it rests on. */
+/** AI Engineer tab: the complete validated report, the chat, and every fact the report rests on. */
 export function EngineerSection({ session, reference, target, sessionCode }: {
   session: string; reference: LapSel; target: LapSel; sessionCode: string | null;
 }) {
@@ -35,10 +35,15 @@ export function EngineerSection({ session, reference, target, sessionCode }: {
     <section id="engineer" className="card" aria-labelledby="engineer-title">
       <div className="kick">✦ AI engineer</div>
       <h2 id="engineer-title" className="display mt-1 text-[22px]">Race engineer report</h2>
-      <div className="mt-4 grid gap-6 2xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+      <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         <ReportCard request={request} jumpTo="track" />
-        <FactsTable request={request} />
+        {/* keyed by the comparison: a different comparison starts a new conversation */}
+        <div className="min-w-0 rounded-lg border border-line bg-card-2 p-4">
+          <EngineerChat key={JSON.stringify(request)} request={request} target={target.driver} sessionCode={sessionCode}
+            logClassName="max-h-[520px]" />
+        </div>
       </div>
+      <div className="mt-6"><FactsTable request={request} /></div>
       <p className="mt-4 border-t border-line pt-3 text-xs text-muted" data-testid="engineer-footer">{FOOTER_NOTE}</p>
     </section>
   );

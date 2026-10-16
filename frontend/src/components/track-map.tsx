@@ -24,7 +24,11 @@ import { useUiStore } from "@/lib/store";
 import { buildTrack, nearestDistance, pointAt, segmentPath, type TrackGeometry } from "@/lib/track";
 
 const SIZE = { width: 420, height: 320, padding: 22 };
+// leader-line labels sit outside the track: more room around it
+const LEADER_SIZE = { width: 420, height: 320, padding: 44 };
 type Mode = "delta" | "replay";
+/** "leaders": a short line out of each corner to its turn label · "none": the bare layout */
+export type CornerLabelMode = "leaders" | "none";
 
 export function cornerShortLabel(f: Finding): string {
   return f.corner_number != null ? `T${f.corner_number}` : "•";
@@ -32,15 +36,16 @@ export function cornerShortLabel(f: Finding): string {
 
 interface Seg { f: Finding; d: string; style: ReturnType<typeof lossStyle> }
 
-export function TrackMap({ comparison, corners, maxHeight = 340 }: {
-  comparison: ComparisonResponse; corners: CornersResponse | undefined; maxHeight?: number;
+export function TrackMap({ comparison, corners, maxHeight = 340, labels = "leaders" }: {
+  comparison: ComparisonResponse; corners: CornersResponse | undefined; maxHeight?: number; labels?: CornerLabelMode;
 }) {
   const palette = useThemePalette();
   const [mode, setMode] = useState<Mode>("delta");
   const ref = comparison.channels.reference;
   const track = useMemo(
-    () => buildTrack(comparison.distance_m, ref.x, ref.y, corners?.circuit_rotation_deg ?? 0, SIZE),
-    [comparison, ref.x, ref.y, corners?.circuit_rotation_deg],
+    () => buildTrack(comparison.distance_m, ref.x, ref.y, corners?.circuit_rotation_deg ?? 0,
+      labels === "leaders" ? LEADER_SIZE : SIZE),
+    [comparison, ref.x, ref.y, corners?.circuit_rotation_deg, labels],
   );
   const findings = comparison.findings.corners;
   const segments = useMemo<Seg[]>(
@@ -61,14 +66,16 @@ export function TrackMap({ comparison, corners, maxHeight = 340 }: {
         ))}
       </div>
       {mode === "delta"
-        ? <DeltaMap track={track} segments={segments} palette={palette} maxHeight={maxHeight} />
-        : <ReplayMap track={track} segments={segments} palette={palette} comparison={comparison} maxHeight={maxHeight} />}
+        ? <DeltaMap track={track} segments={segments} palette={palette} maxHeight={maxHeight} labels={labels} />
+        : <ReplayMap track={track} segments={segments} palette={palette} comparison={comparison} maxHeight={maxHeight} labels={labels} />}
     </div>
   );
 }
 
 // ---------------------------------------------------------------- time gained / lost
-function DeltaMap({ track, segments, palette, maxHeight }: { track: TrackGeometry; segments: Seg[]; palette: ThemePalette; maxHeight: number }) {
+function DeltaMap({ track, segments, palette, maxHeight, labels }: {
+  track: TrackGeometry; segments: Seg[]; palette: ThemePalette; maxHeight: number; labels: CornerLabelMode;
+}) {
   const selected = useUiStore((s) => s.selectedCornerId);
   const selectCorner = useUiStore((s) => s.selectCorner);
   const setHover = useUiStore((s) => s.setHover);
@@ -93,7 +100,7 @@ function DeltaMap({ track, segments, palette, maxHeight }: { track: TrackGeometr
           </path>
         ))}
         <StartFinish track={track} palette={palette} />
-        <CornerLabels track={track} segments={segments} palette={palette} onPick={(f) => selectCorner(f.id)} />
+        {labels === "leaders" && <CornerLabels track={track} segments={segments} palette={palette} onPick={(f) => selectCorner(f.id)} />}
         <HoverMarker track={track} color={palette.accent} />
       </svg>
       <ul className="mt-2 flex flex-wrap justify-center gap-4 text-xs text-muted" aria-label="Map legend">
@@ -101,14 +108,15 @@ function DeltaMap({ track, segments, palette, maxHeight }: { track: TrackGeometr
         <li><span aria-hidden className="mr-1.5 inline-block h-1 w-4 rounded align-middle" style={{ background: lossStyle(0.2).color }} />▲ Target losing</li>
         <li><span aria-hidden className="mr-1.5 inline-block h-1 w-4 rounded align-middle" style={{ background: lossStyle(0).color }} />● Level (&lt; {NOISE_FLOOR_S} s)</li>
       </ul>
-      <CornerChips segments={segments} onPick={(f) => selectCorner(f.id)} />
+      {labels === "leaders" && <CornerChips segments={segments} onPick={(f) => selectCorner(f.id)} />}
     </div>
   );
 }
 
 // ---------------------------------------------------------------- lap replay
-function ReplayMap({ track, segments, palette, comparison, maxHeight }: {
+function ReplayMap({ track, segments, palette, comparison, maxHeight, labels }: {
   track: TrackGeometry; segments: Seg[]; palette: ThemePalette; comparison: ComparisonResponse; maxHeight: number;
+  labels: CornerLabelMode;
 }) {
   const selectCorner = useUiStore((s) => s.selectCorner);
   const replay = useMemo(() => buildReplay(comparison.distance_m, comparison.channels.reference.time_s,
@@ -203,7 +211,7 @@ function ReplayMap({ track, segments, palette, comparison, maxHeight }: {
             strokeWidth={9} strokeLinecap="round" opacity={0.45} data-testid="replay-gap" />
         )}
         <StartFinish track={track} palette={palette} />
-        <CornerLabels track={track} segments={segments} palette={palette} onPick={pickCorner} />
+        {labels === "leaders" && <CornerLabels track={track} segments={segments} palette={palette} onPick={pickCorner} />}
         {(["target", "reference"] as const).map((side) => {
           const [x, y] = pointAt(track, pos[side]);
           const hollow = sameTeam && side === "target";
@@ -252,7 +260,7 @@ function ReplayMap({ track, segments, palette, comparison, maxHeight }: {
         {jump ? jumpText(jump, code) : status}
       </p>
       <p className="mt-1 text-[11px] text-muted">Click a corner number: the driver who reaches it first moves there, the other stops where they were at that moment.</p>
-      <CornerChips segments={segments} onPick={pickCorner} />
+      {labels === "leaders" && <CornerChips segments={segments} onPick={pickCorner} />}
     </div>
   );
 }
@@ -291,23 +299,100 @@ function BaseLine({ track, palette }: { track: TrackGeometry; palette: ThemePale
     stroke={palette.line} strokeWidth={13} strokeLinecap="round" strokeLinejoin="round" className="track-draw" />;
 }
 
+/** Turn labels on leader lines: a short line leaves each apex, square to the track and away from the
+ * circuit's middle, and the label sits at its end. Corners close together get longer lines. */
 function CornerLabels({ track, segments, palette, onPick }: {
   track: TrackGeometry; segments: Seg[]; palette: ThemePalette; onPick: (f: Finding) => void;
 }) {
   const selected = useUiStore((s) => s.selectedCornerId);
-  return segments.map(({ f, style }) => {
-    const [x, y] = pointAt(track, f.segment!.apex_m ?? f.segment!.start_m);
+  const leaders = useMemo(() => leaderLayout(track, segments.map((sg) => sg.f)), [track, segments]);
+  return segments.map(({ f, style }, i) => {
+    const l = leaders[i]!;
     const isSel = f.id === selected;
     return (
-      <g key={`${f.id}-label`} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`} onClick={() => onPick(f)}
-        className="cursor-pointer" aria-hidden data-testid={`map-label-${cornerShortLabel(f)}`}>
-        <circle r={isSel ? 11 : 9} fill={palette.card} stroke={isSel ? palette.accent : style.color} strokeWidth={isSel ? 3 : 2} />
-        <text textAnchor="middle" dy="3.2" fontSize="8.5" fontWeight="700" fill={palette.ink}>{f.corner_number ?? "•"}</text>
+      <g key={`${f.id}-label`} onClick={() => onPick(f)} className="track-seg cursor-pointer" aria-hidden
+        data-testid={`map-label-${cornerShortLabel(f)}`}>
+        <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={isSel ? palette.accent : palette.muted}
+          strokeWidth={isSel ? 1.6 : 1} />
+        <circle cx={l.x1} cy={l.y1} r={1.8} fill={isSel ? palette.accent : style.color} />
+        <text x={l.tx} y={l.ty} textAnchor={l.anchor} dominantBaseline="central" fontSize={LABEL_FONT}
+          fontWeight={isSel ? 800 : 700} fill={isSel ? palette.accent : palette.ink}
+          stroke={palette.card} strokeWidth={3} paintOrder="stroke">{cornerShortLabel(f)}</text>
         <title>{`${f.label}: ${style.glyph} ${style.label}`}</title>
       </g>
     );
   });
 }
+
+interface Leader { x1: number; y1: number; x2: number; y2: number; tx: number; ty: number; anchor: "middle" }
+
+const LABEL_FONT = 9.5;
+const TRACK_CLEAR = 9;        // the track is drawn 13 wide: keep labels this far from its centre line
+
+/**
+ * Where each corner's leader line and label go (SVG units). Greedy, corner by corner: try directions
+ * (square to the track and away from the circuit's middle first, then angled, then inwards) and
+ * lengths, and take the first spot where the label is inside the map, clear of the track and clear
+ * of every label already placed.
+ */
+export function leaderLayout(track: TrackGeometry, corners: Finding[]): Leader[] {
+  const n = track.px.length;
+  const step = Math.max(1, Math.floor(n / 900));          // the track polyline, thinned for the checks
+  const tx: number[] = [], ty: number[] = [];
+  for (let k = 0; k < n; k += step) { tx.push(track.px[k]!); ty.push(track.py[k]!); }
+  const cx = tx.reduce((a, b) => a + b, 0) / tx.length;
+  const cy = ty.reduce((a, b) => a + b, 0) / ty.length;
+  const placed: { x0: number; y0: number; x1: number; y1: number }[] = [];
+
+  const clearOfTrack = (b: { x0: number; y0: number; x1: number; y1: number }) => {
+    for (let k = 0; k < tx.length; k++) {
+      const dx = Math.max(b.x0 - tx[k]!, 0, tx[k]! - b.x1), dy = Math.max(b.y0 - ty[k]!, 0, ty[k]! - b.y1);
+      if (dx * dx + dy * dy < TRACK_CLEAR * TRACK_CLEAR) return false;
+    }
+    return true;
+  };
+  const clearOfLabels = (b: { x0: number; y0: number; x1: number; y1: number }) =>
+    placed.every((o) => b.x1 + 2 < o.x0 || o.x1 + 2 < b.x0 || b.y1 + 1 < o.y0 || o.y1 + 1 < b.y0);
+  const inside = (b: { x0: number; y0: number; x1: number; y1: number }) =>
+    b.x0 >= 1 && b.y0 >= 1 && b.x1 <= track.width - 1 && b.y1 <= track.height - 1;
+
+  return corners.map((f) => {
+    const d = f.segment!.apex_m ?? f.segment!.start_m;
+    const [x, y] = pointAt(track, d);
+    const [ax, ay] = pointAt(track, d - 20), [bx, by] = pointAt(track, d + 20);
+    let nx = -(by - ay), ny = bx - ax;                       // normal to the track's direction
+    const len = Math.hypot(nx, ny) || 1;
+    nx /= len; ny /= len;
+    if (nx * (x - cx) + ny * (y - cy) < 0) { nx = -nx; ny = -ny; }   // away from the middle
+    const text = cornerShortLabel(f);
+    const w = text.length * LABEL_FONT * 0.62 + 2, h = LABEL_FONT + 2;
+
+    let best: Leader | null = null;
+    search:
+    for (const reach of [16, 26, 38, 52]) {
+      for (const angle of [0, 30, -30, 60, -60, 90, -90, 180, 150, -150, 120, -120]) {
+        const t = (angle * Math.PI) / 180;
+        const dx = nx * Math.cos(t) - ny * Math.sin(t), dy = nx * Math.sin(t) + ny * Math.cos(t);
+        const ex = x + dx * reach, ey = y + dy * reach;
+        // the label's centre sits just beyond the line's end, along the same direction
+        const lx = ex + dx * (w / 2 + 2), ly = ey + dy * (h / 2 + 2);
+        const box = { x0: lx - w / 2, y0: ly - h / 2, x1: lx + w / 2, y1: ly + h / 2 };
+        if (!inside(box) || !clearOfLabels(box) || !clearOfTrack(box)) continue;
+        placed.push(box);
+        best = { x1: round(x + dx * 7), y1: round(y + dy * 7), x2: round(ex), y2: round(ey), tx: round(lx), ty: round(ly), anchor: "middle" };
+        break search;
+      }
+    }
+    if (!best) {                                              // nothing clear: the plain outward spot
+      const ex = x + nx * 26, ey = y + ny * 26;
+      best = { x1: round(x + nx * 7), y1: round(y + ny * 7), x2: round(ex), y2: round(ey),
+        tx: round(ex + nx * (w / 2 + 2)), ty: round(ey + ny * (h / 2 + 2)), anchor: "middle" };
+    }
+    return best;
+  });
+}
+
+const round = (v: number) => Math.round(v * 10) / 10;
 
 function CornerChips({ segments, onPick }: { segments: Seg[]; onPick: (f: Finding) => void }) {
   const selected = useUiStore((s) => s.selectedCornerId);

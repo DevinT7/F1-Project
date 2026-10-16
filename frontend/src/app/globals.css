@@ -35,7 +35,6 @@
   --nav-active-ink: #ffffff;
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.45);
   --ease-race: cubic-bezier(0.22, 0.9, 0.2, 1.08);
-  --dock-w: 232px;
   color-scheme: dark;
 }
 
@@ -89,17 +88,6 @@ body {
     border-radius: 10px;
     box-shadow: var(--shadow);
     padding: 22px;
-  }
-  /* a red "livery" stripe on the top-left edge of every card */
-  .card::before {
-    content: "";
-    position: absolute;
-    left: -1px;
-    top: -1px;
-    width: 56px;
-    height: 3px;
-    border-top-left-radius: 10px;
-    background: linear-gradient(90deg, var(--accent-strong), transparent);
   }
   .kick {
     font-size: 11px;
@@ -274,16 +262,6 @@ body {
   background: rgba(7, 7, 10, 0.86);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
-}
-.topnav::after {          /* a thin kerb line under the bar */
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -3px;
-  height: 2px;
-  background: repeating-linear-gradient(90deg, var(--accent-strong) 0 18px, transparent 18px 36px);
-  opacity: 0.55;
 }
 .tab-btn {
   position: relative;
