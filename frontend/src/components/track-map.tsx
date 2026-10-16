@@ -94,7 +94,7 @@ function DeltaMap({ track, segments, palette, maxHeight, labels }: {
         <BaseLine track={track} palette={palette} />
         {segments.map(({ f, d, style }) => (
           <path key={f.id} d={d} fill="none" stroke={style.color}
-            strokeWidth={f.id === selected ? 9 : 6} strokeLinecap="round" strokeLinejoin="round"
+            strokeWidth={f.id === selected ? 5.5 : 3.5} strokeLinecap="round" strokeLinejoin="round"
             opacity={selected && f.id !== selected ? 0.55 : 1} onClick={() => selectCorner(f.id)} className="track-seg cursor-pointer">
             <title>{`${f.label}: ${style.glyph} ${style.label}`}</title>
           </path>
@@ -201,13 +201,13 @@ function ReplayMap({ track, segments, palette, comparison, maxHeight, labels }: 
         {/* corners both drivers have completed show where the gap changed (green = target gained, red = lost) */}
         {segments.map(({ f, d, style }) => (
           <path key={f.id} d={d} fill="none" stroke={f.segment!.end_m <= trail ? style.color : palette.line}
-            strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" opacity={f.segment!.end_m <= trail ? 0.75 : 1}>
+            strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" opacity={f.segment!.end_m <= trail ? 0.75 : 1}>
             <title>{`${f.label}: ${style.glyph} ${style.label}`}</title>
           </path>
         ))}
         {gap.metres > 1 && (
           <path d={segmentPath(track, trail, Math.max(pos.reference, pos.target))} fill="none" stroke={leadColor}
-            strokeWidth={9} strokeLinecap="round" opacity={0.45} data-testid="replay-gap" />
+            strokeWidth={6} strokeLinecap="round" opacity={0.45} data-testid="replay-gap" />
         )}
         <StartFinish track={track} palette={palette} />
         {labels === "leaders" && <CornerLabels track={track} segments={segments} palette={palette} onPick={pickCorner} />}
@@ -295,7 +295,7 @@ function svgPoint(e: React.MouseEvent<SVGSVGElement>): DOMPoint | null {
 function BaseLine({ track, palette }: { track: TrackGeometry; palette: ThemePalette }) {
   // pathLength="1" lets the CSS draw the circuit like a lap being traced (globals.css .track-draw)
   return <path d={segmentPath(track, 0, track.distance[track.distance.length - 1]!)} fill="none" pathLength={1}
-    stroke={palette.line} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" className="track-draw" />;
+    stroke={palette.line} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="track-draw" />;
 }
 
 /** Turn labels on leader lines: a short line leaves each apex, square to the track and away from the
@@ -329,7 +329,7 @@ function CornerLabels({ track, segments, palette, onPick }: {
 interface Leader { x1: number; y1: number; x2: number; y2: number; tx: number; ty: number; w: number; h: number; anchor: "middle" }
 
 const LABEL_FONT = 9.5;
-const TRACK_CLEAR = 9;        // the track is drawn 13 wide: keep labels this far from its centre line
+const TRACK_CLEAR = 8;        // keep labels this far from the track's centre line
 
 /**
  * Where each corner's leader line and label go (SVG units). Greedy, corner by corner: try directions
@@ -425,8 +425,8 @@ function StartFinish({ track, palette }: { track: TrackGeometry; palette: ThemeP
   const line = { x1: x - nx * h, y1: y - ny * h, x2: x + nx * h, y2: y + ny * h };
   return (
     <g aria-hidden data-testid="start-finish">
-      <line {...line} stroke={palette.ink} strokeWidth={5.5} strokeLinecap="round" opacity={0.55} />
-      <line {...line} stroke="#ffffff" strokeWidth={3} strokeLinecap="round" />
+      <line {...line} stroke={palette.ink} strokeWidth={4} strokeLinecap="round" opacity={0.55} />
+      <line {...line} stroke="#ffffff" strokeWidth={2} strokeLinecap="round" />
       <title>Start / finish</title>
     </g>
   );
