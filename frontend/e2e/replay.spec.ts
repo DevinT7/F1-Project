@@ -19,7 +19,7 @@ test("lap replay: play, then click a corner number", async ({ page }) => {
   await page.getByTestId("replay-play").click();                     // pause
   await expect(page.getByTestId("replay-status")).toContainText(/VER|ALO/);
 
-  await page.getByTestId("map-label-T6").click();
+  await page.getByTestId("map-label-hit-T6").click();
   await expect(page.getByTestId("replay-status")).toContainText(/^Turn 6: (VER|ALO) gets there first; (VER|ALO) is \d+ m back/);
   // the status is set at once, but the dots animate there over JUMP_MS (and can cross mid-flight):
   // wait until they land, one at the corner and the other exactly the reported distance back

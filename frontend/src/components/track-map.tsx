@@ -318,13 +318,16 @@ function CornerLabels({ track, segments, palette, onPick }: {
         <text x={l.tx} y={l.ty} textAnchor={l.anchor} dominantBaseline="central" fontSize={LABEL_FONT}
           fontWeight={isSel ? 800 : 700} fill={isSel ? palette.accent : palette.ink}
           stroke={palette.card} strokeWidth={3} paintOrder="stroke">{cornerShortLabel(f)}</text>
+        {/* an invisible, generous hit area on top: the label text and hairline alone are hard to click */}
+        <rect x={l.tx - l.w / 2 - 4} y={l.ty - l.h / 2 - 3} width={l.w + 8} height={l.h + 6} fill="transparent"
+          pointerEvents="all" data-testid={`map-label-hit-${cornerShortLabel(f)}`} />
         <title>{`${f.label}: ${style.glyph} ${style.label}`}</title>
       </g>
     );
   });
 }
 
-interface Leader { x1: number; y1: number; x2: number; y2: number; tx: number; ty: number; anchor: "middle" }
+interface Leader { x1: number; y1: number; x2: number; y2: number; tx: number; ty: number; w: number; h: number; anchor: "middle" }
 
 const LABEL_FONT = 9.5;
 const TRACK_CLEAR = 9;        // the track is drawn 13 wide: keep labels this far from its centre line
@@ -379,14 +382,14 @@ export function leaderLayout(track: TrackGeometry, corners: Finding[]): Leader[]
         const box = { x0: lx - w / 2, y0: ly - h / 2, x1: lx + w / 2, y1: ly + h / 2 };
         if (!inside(box) || !clearOfLabels(box) || !clearOfTrack(box)) continue;
         placed.push(box);
-        best = { x1: round(x + dx * 7), y1: round(y + dy * 7), x2: round(ex), y2: round(ey), tx: round(lx), ty: round(ly), anchor: "middle" };
+        best = { x1: round(x + dx * 7), y1: round(y + dy * 7), x2: round(ex), y2: round(ey), tx: round(lx), ty: round(ly), w: round(w), h: round(h), anchor: "middle" };
         break search;
       }
     }
     if (!best) {                                              // nothing clear: the plain outward spot
       const ex = x + nx * 26, ey = y + ny * 26;
       best = { x1: round(x + nx * 7), y1: round(y + ny * 7), x2: round(ex), y2: round(ey),
-        tx: round(ex + nx * (w / 2 + 2)), ty: round(ey + ny * (h / 2 + 2)), anchor: "middle" };
+        tx: round(ex + nx * (w / 2 + 2)), ty: round(ey + ny * (h / 2 + 2)), w: round(w), h: round(h), anchor: "middle" };
     }
     return best;
   });

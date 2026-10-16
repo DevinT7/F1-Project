@@ -65,6 +65,8 @@
   --font-sans: "Titillium Web", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+html { scroll-padding-top: 80px; }   /* scrolled-to elements clear the sticky tab bar */
+
 html,
 body {
   background-color: var(--bg);
