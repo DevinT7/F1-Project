@@ -25,7 +25,7 @@ import { buildTrack, nearestDistance, pointAt, segmentPath, type TrackGeometry }
 
 const SIZE = { width: 420, height: 320, padding: 22 };
 // leader-line labels sit outside the track: more room around it
-const LEADER_SIZE = { width: 420, height: 320, padding: 44 };
+const LEADER_SIZE = { width: 420, height: 320, padding: 34 };
 type Mode = "delta" | "replay";
 /** "leaders": a short line out of each corner to its turn label · "none": the bare layout */
 export type CornerLabelMode = "leaders" | "none";
@@ -101,7 +101,6 @@ function DeltaMap({ track, segments, palette, maxHeight, labels }: {
         ))}
         <StartFinish track={track} palette={palette} />
         {labels === "leaders" && <CornerLabels track={track} segments={segments} palette={palette} onPick={(f) => selectCorner(f.id)} />}
-        <HoverMarker track={track} color={palette.accent} />
       </svg>
       <ul className="mt-2 flex flex-wrap justify-center gap-4 text-xs text-muted" aria-label="Map legend">
         <li><span aria-hidden className="mr-1.5 inline-block h-1 w-4 rounded align-middle" style={{ background: lossStyle(-0.2).color }} />▼ Target gaining</li>
@@ -296,7 +295,7 @@ function svgPoint(e: React.MouseEvent<SVGSVGElement>): DOMPoint | null {
 function BaseLine({ track, palette }: { track: TrackGeometry; palette: ThemePalette }) {
   // pathLength="1" lets the CSS draw the circuit like a lap being traced (globals.css .track-draw)
   return <path d={segmentPath(track, 0, track.distance[track.distance.length - 1]!)} fill="none" pathLength={1}
-    stroke={palette.line} strokeWidth={13} strokeLinecap="round" strokeLinejoin="round" className="track-draw" />;
+    stroke={palette.line} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" className="track-draw" />;
 }
 
 /** Turn labels on leader lines: a short line leaves each apex, square to the track and away from the
@@ -317,7 +316,7 @@ function CornerLabels({ track, segments, palette, onPick }: {
         <circle cx={l.x1} cy={l.y1} r={1.8} fill={isSel ? palette.accent : style.color} />
         <text x={l.tx} y={l.ty} textAnchor={l.anchor} dominantBaseline="central" fontSize={LABEL_FONT}
           fontWeight={isSel ? 800 : 700} fill={isSel ? palette.accent : palette.ink}
-          stroke={palette.card} strokeWidth={3} paintOrder="stroke">{cornerShortLabel(f)}</text>
+          stroke={palette.card} strokeWidth={3} paintOrder="stroke">{f.corner_number ?? "•"}</text>
         {/* an invisible, generous hit area on top: the label text and hairline alone are hard to click */}
         <rect x={l.tx - l.w / 2 - 4} y={l.ty - l.h / 2 - 3} width={l.w + 8} height={l.h + 6} fill="transparent"
           pointerEvents="all" data-testid={`map-label-hit-${cornerShortLabel(f)}`} />
@@ -367,7 +366,7 @@ export function leaderLayout(track: TrackGeometry, corners: Finding[]): Leader[]
     const len = Math.hypot(nx, ny) || 1;
     nx /= len; ny /= len;
     if (nx * (x - cx) + ny * (y - cy) < 0) { nx = -nx; ny = -ny; }   // away from the middle
-    const text = cornerShortLabel(f);
+    const text = String(f.corner_number ?? "•");
     const w = text.length * LABEL_FONT * 0.62 + 2, h = LABEL_FONT + 2;
 
     let best: Leader | null = null;
@@ -434,9 +433,3 @@ function StartFinish({ track, palette }: { track: TrackGeometry; palette: ThemeP
 }
 
 /** Follows the shared hover distance (from any chart or the map itself). */
-function HoverMarker({ track, color }: { track: TrackGeometry; color: string }) {
-  const hover = useUiStore((s) => s.hoverDistance);
-  if (hover === null) return null;
-  const [x, y] = pointAt(track, hover);
-  return <circle data-testid="map-marker" cx={x} cy={y} r={6} fill={color} stroke="#fff" strokeWidth={2} pointerEvents="none" />;
-}

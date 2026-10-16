@@ -1,6 +1,6 @@
 /**
  * E2E smoke: real backend (Parquet fixture repo, 2024 R5 Q) + production frontend build.
- * Load a shared URL → Lap Comparison: charts render, hover syncs the map → Track Map: click a corner →
+ * Load a shared URL → Lap Comparison: charts render, the hover cursor works → Track Map: click a corner →
  * the panel shows its values.
  */
 import { expect, test } from "@playwright/test";
@@ -30,11 +30,12 @@ test("shared URL → charts → hover sync → corner panel", async ({ page }) =
   });
   expect(deltaEnd).toBeCloseTo(0.488, 3);
 
-  // hovering the chart moves the map marker (after the reveal animation: its clip-path also clips hit-testing)
+  // hovering the chart moves its cursor (after the reveal animation: its clip-path also clips hit-testing)
   await plot.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)));
   const box = (await plot.locator(".nsewdrag").first().boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.5, box.y + 40);
-  await expect(page.getByTestId("map-marker")).toBeVisible();
+  await expect(page.getByTestId("chart-cursor")).toBeVisible();          // the cursor line follows the mouse
+  await expect(page.getByTestId("map-marker")).toHaveCount(0);           // no dot travels round the map
 
   // Track Map tab: click a corner → the panel shows its values
   await page.getByRole("tab", { name: "Track Map" }).click();

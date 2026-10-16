@@ -225,7 +225,7 @@ describe("track map labels", () => {
     await screen.findByTestId("race-brief");
     const t6 = screen.getByTestId("map-label-T6");
     expect(t6.querySelector("line")).not.toBeNull();          // a leader line…
-    expect(t6.querySelector("text")).toHaveTextContent("T6");  // …ending in the turn label
+    expect(t6.querySelector("text")?.textContent).toBe("6");  // …ending in the turn number
     expect(t6.querySelector("circle[r='9']")).toBeNull();      // not the old numbered disc
 
     await user.click(screen.getByRole("tab", { name: "Track Map" }));

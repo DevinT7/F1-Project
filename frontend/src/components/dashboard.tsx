@@ -184,8 +184,8 @@ function PitWall({ comparison, corners }: { comparison: ComparisonResponse; corn
   return (
     <div className="rise flex flex-col gap-5">
       <ErrorBoundary label="Comparison summary"><ComparisonHeader comparison={comparison} /></ErrorBoundary>
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <MapCard comparison={comparison} corners={corners} maxHeight={520} />
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <MapCard comparison={comparison} corners={corners} maxHeight={760} />
         <CornerPanel comparison={comparison} />
       </div>
       <RaceBrief comparison={comparison} />
@@ -204,7 +204,7 @@ function LapComparison({ comparison, corners }: { comparison: ComparisonResponse
       <ErrorBoundary label="Telemetry"><TelemetryStack comparison={comparison} height={920} /></ErrorBoundary>
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <StraightsTable comparison={comparison} />
-        <MapCard comparison={comparison} corners={corners} maxHeight={320} title="Where on track (follows the chart cursor)" labels="none" />
+        <MapCard comparison={comparison} corners={corners} maxHeight={320} title="Track layout" labels="none" />
       </div>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <FindingsList comparison={comparison} />
