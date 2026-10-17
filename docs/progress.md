@@ -472,3 +472,22 @@ API key: **not needed** for anything that runs locally or in CI. **Hosting crede
 ### Phase 9: hosted environments (placeholder: credentials needed)
 
 To be filled after the first real deploy: the staging URL, the production URL, the first tag deployed, approval timing, and a production rollback drill against Render.
+
+## Phase 10.1 — User-uploaded sim telemetry (selected first stretch)
+
+Design/spec/test/acceptance contract: [docs/stretch/user-uploaded-telemetry.md](stretch/user-uploaded-telemetry.md).
+This is the first selected stretch feature. Parser, API, UI, and acceptance implementation remain pending; no uploaded telemetry is accepted by the application yet.
+
+### Scope order
+
+1. Bounded, sandboxed CSV parser into `TelemetryFrame`.
+2. Same-track comparison only, with explicit track-length, tire-model, and sampling warnings.
+3. Accessible upload UI, size/error states, and no persistence of uploaded bytes.
+4. Parser, API, UI, and E2E acceptance gates from the design doc.
+5. Consider F1 game UDP format after the CSV path is accepted.
+
+### Validation state
+
+The dashboard already includes the MVP lap comparison chart and basic summary (Phases 2–5). The existing AI engineer remains FactSheet-grounded with validator and template fallback. Current Phase 9 CI is green on the latest upstream main run. GitHub Pages is configured here as a fixture-backed static demo; the backend and live engineer still require the existing Render/Vercel deployment.
+
+Historical telemetry backfill is an operator command (`python -m app.ingestion backfill --from-year 2018 --to-year 2026`). It has not been run in this change: FastF1 source availability is not uniform across year/session types, and generated telemetry is intentionally not committed. Record actual stored-session coverage after a successful backfill rather than claiming all sessions are available.

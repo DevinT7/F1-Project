@@ -7,7 +7,8 @@ import { Dashboard } from "@/components/dashboard";
 import { Providers } from "./providers";
 
 export function DashboardPage() {
-  const demo = useSearchParams().get("demo") === "1";
+  const demoParam = useSearchParams().get("demo");
+  const demo = demoParam === "1" || (process.env.NEXT_PUBLIC_DEMO_DEFAULT === "1" && demoParam !== "0");
   return (
     <Providers demo={demo}>
       <Dashboard />

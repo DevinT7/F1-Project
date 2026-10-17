@@ -44,3 +44,4 @@ frontend/.lighthouse/
 .vscode/
 P2_ANALYSIS_PLAN.md
 P3_TIRE_AI_PLAN.md
+/frontend/out/

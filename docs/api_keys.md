@@ -38,7 +38,7 @@ python -m scripts.eval_report_quality --live      # 7D gate
 python -m scripts.eval_qa_quality --live          # 7E gate
 ```
 
-Both scripts append their results to `docs/progress.md`, under the placeholders. Then grade the sampled reports and transcripts. The free providers (Groq, OpenRouter `:free` models, local Ollama) work through `LLM_PROVIDER=openai` plus `LLM_BASE_URL`; see `docs/prompts.md`.
+Both scripts append their results to `docs/progress.md`, under the placeholders. Then grade the sampled reports and transcripts. Free provider endpoints (for example, Groq or OpenRouter free models) require creating an account and generating your own key; local Ollama needs no hosted key. These OpenAI-compatible endpoints can be configured with `LLM_PROVIDER=openai`, `LLM_MODEL`, `LLM_API_KEY`, and `LLM_BASE_URL`. Never commit a key or use a key shared by someone else. See `docs/prompts.md`.
 
 ## Deployment credentials (Phase 9)
 

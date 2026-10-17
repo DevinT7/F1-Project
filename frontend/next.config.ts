@@ -6,15 +6,23 @@ import type { NextConfig } from "next";
 // backend for prod (the deploy workflow sets it, and NEXT_PUBLIC_API_URL, to each environment's API).
 const backend = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+const isGitHubPages = process.env.GITHUB_PAGES === "true";
+const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
+const basePath = isGitHubPages && repositoryName ? `/${repositoryName}` : "";
+
 const config: NextConfig = {
   reactStrictMode: true,
-  // a self-contained server bundle for the container image (frontend/Dockerfile)
-  output: "standalone",
+  // GitHub Pages serves a static demo build; hosted deployments keep the standalone server bundle.
+  ...(isGitHubPages ? { output: "export" as const } : { output: "standalone" as const }),
+  ...(basePath ? { basePath, assetPrefix: basePath } : {}),
+  trailingSlash: true,
   // next dev would otherwise (re)write an AGENTS.md into the repo on every start
   agentRules: false,
-  async rewrites() {
-    return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
-  },
+  ...(!isGitHubPages ? {
+    async rewrites() {
+      return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
+    },
+  } : {}),
 };
 
 // Sentry (Phase 9): source maps upload only when SENTRY_AUTH_TOKEN (+ SENTRY_ORG / SENTRY_PROJECT) is set

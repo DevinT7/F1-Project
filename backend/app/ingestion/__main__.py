@@ -11,6 +11,7 @@ import argparse
 import logging
 import sys
 from collections.abc import Sequence
+from datetime import date
 
 import structlog
 
@@ -50,8 +51,16 @@ def _parser() -> argparse.ArgumentParser:
 
     season = sub.add_parser("season", help="ingest every completed round of a season")
     season.add_argument("--year", type=int, required=True)
-    season.add_argument("--sessions", default="Q,R", help="comma-separated codes (default Q,R)")
+    season.add_argument(
+        "--sessions", default="FP1,FP2,FP3,Q,R", help="comma-separated codes (default: FP1,FP2,FP3,Q,R)"
+    )
     season.add_argument("--force", action="store_true")
+
+    backfill = sub.add_parser("backfill", help="ingest all completed FP1/FP2/FP3/Q/R sessions over a year range")
+    backfill.add_argument("--from-year", type=int, default=2018)
+    backfill.add_argument("--to-year", type=int, default=date.today().year)
+    backfill.add_argument("--sessions", default="FP1,FP2,FP3,Q,R", help="comma-separated codes")
+    backfill.add_argument("--force", action="store_true")
 
     events = sub.add_parser("events", help="list (and cache) a season's schedule")
     events.add_argument("--year", type=int, required=True)
@@ -81,6 +90,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 state = f"FAILED: {result.error}" if result.error else ("skipped" if result.skipped else f"{result.laps} laps")
                 print(f"{result.key}: {state}")
             return 1 if any(result.error for result in results) else 0
+        elif args.command == "backfill":
+            if args.from_year < 2018 or args.to_year < args.from_year or args.to_year > date.today().year:
+                raise ValueError("year range must run from 2018 through the current year")
+            failed = False
+            for year in range(args.from_year, args.to_year + 1):
+                results = service.ingest_season(year, args.sessions.split(","), force=args.force)
+                for result in results:
+                    state = f"FAILED: {result.error}" if result.error else (
+                        "skipped" if result.skipped else f"{result.laps} laps"
+                    )
+                    print(f"{result.key}: {state}")
+                failed = failed or any(result.error for result in results)
+            return 1 if failed else 0
         elif args.command == "events":
             for event in service.list_events(args.year, refresh=args.refresh):
                 codes = ",".join(s.code or s.name for s in event.sessions)
@@ -88,7 +110,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif args.command == "list":
             for info in repo.list_sessions(args.year):
                 print(f"{info.key}  {info.event_name}  {info.session_name}  {info.date:%Y-%m-%d}")
-    except IngestionError as exc:
+    except (IngestionError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     return 0

@@ -54,7 +54,7 @@ cd frontend && npx playwright test                          # end-to-end (starts
 ```
 
 **Other entry points:**
-- **More data:** `python -m app.ingestion ingest --year 2024 --round 5 --session Q` writes to `data/` (Parquet). `SEED_FULL_DATA=1 docker compose run --rm seed` loads `data/` into the stack.
+- **More data:** `python -m app.ingestion backfill --from-year 2018 --to-year 2026` ingests completed FP1/FP2/FP3/Q/R sessions into `data/` (Parquet). Use `season --year 2024` for one year or `--sessions Q,R` for a smaller pull. `SEED_FULL_DATA=1 docker compose run --rm seed` loads `data/` into the stack.
 - **API types:** `make gen-types` regenerates `frontend/src/api/types.ts` from the reviewed `backend/openapi.json`. CI fails when the API changes without it.
 
 ## How it is built
@@ -87,3 +87,5 @@ cd frontend && npx playwright test                          # end-to-end (starts
 
 - **New ingests fail upstream (since 2026-10-15).** F1's live-timing server now rejects anonymous requests (HTTP 401), so FastF1 3.5.3 cannot load new sessions. Stored and sample sessions work normally. The fix to try is upgrading FastF1 (3.8.3 is out); see the [runbook](docs/runbook.md#re-ingest-a-session).
 - **The live LLM evaluation is pending an API key.** Without a key the engineer serves validated template reports ([api_keys.md](docs/api_keys.md)).
+
+**GitHub Pages preview:** the Pages workflow publishes a static, fixture-backed demo (2024 Chinese GP qualifying). It does not host the FastAPI backend, ingest data, or enable live AI calls. For a full deployment, use the existing Render + Vercel pipeline in [docs/deployment.md](docs/deployment.md).
